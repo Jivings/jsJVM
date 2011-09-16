@@ -1,0 +1,3 @@
+#!/bin/csh
+
+javadoc -author -overview overview.html -private -use -d doc attr classfile jconst util javad.java

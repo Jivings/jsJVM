@@ -1,68 +1,71 @@
 $(function() {
-	var test = [
-		"const #1 = Method #6.#15;", // java/lang/Object."<init>":()V
-		"const #2 = Field #16.#17;", // java/lang/System.out:Ljava/io/PrintStream;
-		"const #3 = String #18;", // Hello, world!
-		"const #4 = Method #19.#20;", // java/io/PrintStream.println:(Ljava/lang/String;)V
-		"const #5 = class #21;", // HelloWorld
-		"const #6 = class #22;", // java/lang/Object
-		"const #7 = Asciz <init>;",
-		"const #8 = Asciz ()V;",
-		"const #9 = Asciz Code;",
-		"const #10 = Asciz LineNumberTable;",
-		"const #11 = Asciz main;",
-		"const #12 = Asciz ([Ljava/lang/String;)V;",
-		"const #13 = Asciz SourceFile;",
-		"const #14 = Asciz HelloWorld.java;",
-		'const #15 = NameAndType #7:#8;',// "<init>":()V
-		"const #16 = class #23;", // java/lang/System",
-		"const #17 = NameAndType #24:#25;",// out:Ljava/io/PrintStream;",
-		"const #18 = Asciz Hello, world!;",
-		"const #19 = class #26;", // java/io/PrintStream",
-		"const #20 = NameAndType #27:#28;",// println:(Ljava/lang/String;)V"
-		"const #21 = Asciz HelloWorld;",
-		"const #22 = Asciz java/lang/Object;",
-		"const #23 = Asciz java/lang/System;",
-		"const #24 = Asciz out;",
-		"const #25 = Asciz Ljava/io/PrintStream;;",
-		"const #26 = Asciz java/io/PrintStream;",
-		"const #27 = Asciz println;",
-		"const #28 = Asciz (Ljava/lang/String;)V;"
-	];
+	var test = [ "const #1 = Method #6.#15;", // java/lang/Object."<init>":()V
+	"const #2 = Field #16.#17;", // java/lang/System.out:Ljava/io/PrintStream;
+	"const #3 = String #18;", // Hello, world!
+	"const #4 = Method #19.#20;", // java/io/PrintStream.println:(Ljava/lang/String;)V
+	"const #5 = class #21;", // HelloWorld
+	"const #6 = class #22;", // java/lang/Object
+	"const #7 = Asciz <init>;", "const #8 = Asciz ()V;",
+			"const #9 = Asciz Code;", "const #10 = Asciz LineNumberTable;",
+			"const #11 = Asciz main;",
+			"const #12 = Asciz ([Ljava/lang/String;)V;",
+			"const #13 = Asciz SourceFile;",
+			"const #14 = Asciz HelloWorld.java;",
+			'const #15 = NameAndType #7:#8;',// "<init>":()V
+			"const #16 = class #23;", // java/lang/System",
+			"const #17 = NameAndType #24:#25;",// out:Ljava/io/PrintStream;",
+			"const #18 = Asciz Hello, world!;", "const #19 = class #26;", // java/io/PrintStream",
+			"const #20 = NameAndType #27:#28;",// println:(Ljava/lang/String;)V"
+			"const #21 = Asciz HelloWorld;",
+			"const #22 = Asciz java/lang/Object;",
+			"const #23 = Asciz java/lang/System;", "const #24 = Asciz out;",
+			"const #25 = Asciz Ljava/io/PrintStream;;",
+			"const #26 = Asciz java/io/PrintStream;",
+			"const #27 = Asciz println;",
+			"const #28 = Asciz (Ljava/lang/String;)V;" ];
 
-	document.getElementById('files').addEventListener('change', handleFileSelect, false);
-	
-	
-	//var ts = file.OpenAsTextStream(); 
+	document.getElementById('files').addEventListener('change',
+			handleFileSelect, false);
 
-	//parse_bytecode(test);	
-	
-	/*var t = spawn_thread();
-	$.each(test, function(i, opcode) {
-		var $op = $('<p>'+opcode+'</p>');
-		$('#log').append($op);
-		try {
-			opcodes[opcode](t);
-		}
-		catch(err) {
-			$op.append('<span class="error">'+err+'OPCODE not found</span>');
-		}
-	});
-	*/
+	// var ts = file.OpenAsTextStream();
+
+	// parse_bytecode(test);
+
+	/*
+	 * var t = spawn_thread(); $.each(test, function(i, opcode) { var $op = $('<p>'+opcode+'</p>');
+	 * $('#log').append($op); try { opcodes[opcode](t); } catch(err) {
+	 * $op.append('<span class="error">'+err+'OPCODE not found</span>'); } });
+	 */
 });
 
+var tags = {
+		1 : 'Asciz',
+		3 : 'Integer',
+		4 : 'Float',
+		5 : 'Long',
+		6 : 'Double',
+		7 : 'Class',
+		8 : 'String Reference',
+		9 : 'Field Reference',
+		10 : 'Method',
+		11 : 'Interface Method',
+		12 : 'NameAndType'
+	};
+
 function handleFileSelect(evt) {
+	
 	var files = evt.target.files;
 	var file = files[0];
 	var reader = new FileReader();
 	reader.onloadend = function(evt) {
- 	     	if (evt.target.readyState == FileReader.DONE) {
+		if (evt.target.readyState == FileReader.DONE) {
+
 			
 			var _class = evt.target.result,
-			    // Values stored as Hex after assignment
-			    _class_vars = {
-				magic_number : 4, 
-				minor_version : 2, 
+			// Values stored as Hex after assignment
+			_class_vars = {
+				magic_number : 4,
+				minor_version : 2,
 				major_version : 2,
 				constant_pool_count : 2,
 				constant_pool : [],
@@ -77,37 +80,41 @@ function handleFileSelect(evt) {
 				method_table : [],
 				attribute_count : 2,
 				attribute_table : []
-			    };
-			
+			};
+
 			$.each(_class_vars, function(name, bytes) {
 				
-				if(name == 'constant_pool') {
+				if (name == 'constant_pool') {
 					// After constant pool count, get constants from pool
 					$('#console').append('<p>Constant-Pool:</p>');
-					constant_pool = iteratePool(_class_vars.constant_pool_count, _class);
-				}
-				else if(name == 'interface_table') {
+					constant_pool = iteratePool(
+							_class_vars.constant_pool_count, _class);
+				} else if (name == 'interface_table') {
 					$('#console').append('<p>interface_table:</p>');
-					interface_table = iterateInterfaces(_class_vars.interface_count, _class);
+					interface_table = iterateInterfaces(
+							_class_vars.interface_count, _class);
 				}
-
-				[_class_vars[name],_class] = readNextBytes(bytes, _class);
-				$('#console').append('<p>'+ name + ' : ' + _class_vars[name] + '</p>');
-			
-				
-				
+				else {
+					[ _class_vars[name], _class ] = readNextBytes(bytes, _class);
+					if( name == 'magic_number' && _class_vars[name] != 'cafebabe'){
+						throw 'UnsupportedClassFormatException';
+					}
+					$('#console').append(
+							'<p>' + name + ' : ' + _class_vars[name] + '</p>');
+				}
 			});
-			
-			
-			/*[magic_number,_class] = readNextBytes(4, _class);
-			[minor_version,_class] = readNextBytes(2, _class);
-			[major_version,_class] = readNextBytes(2, _class);
-			[constant_pool_count,_class] = readNextBytes(2, _class);
 
-			$('#console').append('<p>magic:' + magic_number + '</p>');
-			$('#console').append('<p>minor version:' + minor_version + '</p>');
-			$('#console').append('<p>major version:' + major_version + '</p>');
-			$('#console').append('<p>constant_pool:' + constant_pool_count + '</p>');*/
+			/*
+			 * [magic_number,_class] = readNextBytes(4, _class);
+			 * [minor_version,_class] = readNextBytes(2, _class);
+			 * [major_version,_class] = readNextBytes(2, _class);
+			 * [constant_pool_count,_class] = readNextBytes(2, _class);
+			 * 
+			 * $('#console').append('<p>magic:' + magic_number + '</p>');
+			 * $('#console').append('<p>minor version:' + minor_version + '</p>');
+			 * $('#console').append('<p>major version:' + major_version + '</p>');
+			 * $('#console').append('<p>constant_pool:' + constant_pool_count + '</p>');
+			 */
 		}
 	};
 	reader.readAsBinaryString(file);
@@ -115,71 +122,60 @@ function handleFileSelect(evt) {
 
 function iteratePool(count, _class) {
 	// pool constants start at index 1 for historic reasons...
-	var pool = [], 
-	    count = parseInt(count, 16);
-	for(var i=1; i<count; i++) {
+	var pool = [], count = parseInt(count, 16);
+	for ( var i = 1; i < count; i++) {
 		var tag, value;
-		[tag,_class] = getTag(_class);
-		[value,_class] = getConstant(tag, _class);
-		$('#console').append('<p class="constant">#'+i+' '+tag+' '+value+'</p>');
+		[ tag, _class ] = getTag(_class);
+		[ value, _class ] = getConstant(tag, _class);
+		$('#console').append(
+				'<p class="constant">#' + i + ' ' + tags[tag] + '<span class="value">' + HTMLencode(value) + '</span></p>');
 		pool[i] = value;
 	}
 };
 function iterateInterfaces(count, _class) {
-	var interfaces = [],
-	    count = parseInt(count, 16);
-	for(var i=0; i<=count; i++) {
+	var interfaces = [], count = parseInt(count, 16);
+	for ( var i = 0; i <= count; i++) {
 		var value;
-		[value, _class] = readNextBytes(2,_class);
-		$('#console').append('<p class="constant">'+value+'</p>')
-	} 
+		[ value, _class ] = readNextBytes(2, _class);
+		$('#console').append('<p class="constant">' + parseInt(value, 16) + '</p>')
+	}
 };
 function getConstant(tag, _class) {
-	
-	switch(parseInt(tag)){
-		case 1:			
-			// UTF-8 String
-			var str_len = 0;
-			// get string length in hex and parse to int
-			[str_len,_class] = readNextBytes(2, _class);
-			// get string bytes
-			return readNextBytesAsString(parseInt(str_len, 16), _class);
-			
-		case 3:
-			// Integer
-			return readNextBytes(4, _class)
-		case 4:
-			// Float
-			return readNextBytes(4, _class)
- 		case 5:
-			// Long
-			return readNextBytes(8, _class)
-		case 6:
-			// Double
-			return readNextBytes(8, _class)
-		case 7:
-			// Class Reference
-			return readNextReference(2, _class);
-		case 8:
-			// String Reference
-			return readNextReference(2, _class);
-		case 9:
-			// Field Reference
-			return readNextReference(4, _class);
-		case 10:
-			// Method Reference			
-			return readNextReference(4, _class);
-		case 11:
-			// Interface Method
-			return readNextBytes(4, _class)
-		case 12:
-			// Name and type descriptor
-			return readNextBytes(4, _class)
-	}	
+
+	switch (parseInt(tag)) {
+	case 1:	// UTF-8 String
+		var str_len = 0;
+		// get string length in hex and parse to int
+		[ str_len, _class ] = readNextBytes(2, _class);
+		// get string bytes
+		return readNextBytesAsString(parseInt(str_len, 16), _class);
+
+	case 3:	// Integer
+		return readNextBytes(4, _class);
+	case 4: // Float
+		return readNextBytes(4, _class);
+	case 5:	// Long
+		return readNextBytes(8, _class);
+	case 6:	// Double
+		return readNextBytes(8, _class);
+	case 7:	// Class Reference
+		return readNextReference(2, _class);
+	case 8: // String Reference
+		return readNextReference(2, _class);
+	case 9: // Field Reference
+		return readNextReference(4, _class);
+	case 10: // Method Reference
+		return readNextReference(4, _class);
+	case 11: // Interface Method
+		return readNextBytes(4, _class);
+	case 12: // Name and type descriptor
+		return readNextReference(4, _class);
+	default:
+		throw 'UnknownConstantException';
+	}
 }
 function getTag(stream) {
-	var tag = stream.substring(0, 1);
-	return [stream.substring(0, 1).charCodeAt(0), stream.substring(1)];
+	return [ stream.substring(0, 1).charCodeAt(0), stream.substring(1) ];
 }
 function readNextBytes(quantity, stream) {
 	var U = '';
@@ -187,18 +183,21 @@ function readNextBytes(quantity, stream) {
 		U += ch.charCodeAt(0).toString(16);
 	});
 	var _class = stream.substring(quantity);
-	return [U, _class];
+	return [ U, _class ];
 };
 
 function readNextReference(quantity, stream) {
 	var reference_as_hex, reference = '';
-	[reference_as_hex, stream] = readNextBytes(quantity, stream);
-	
-	for(var i=0; i<quantity; i=i+2) {
-		reference += '#' + parseInt(reference_as_hex.substring(i,i+2), 16) + ' ';
+	[ reference_as_hex, stream ] = readNextBytes(quantity, stream);
+
+	if(quantity == 2) {
+		return [ reference = '#' +  parseInt(reference_as_hex, 16) , stream ];
 	}
-	var _class = stream.substring(quantity);
-	return [reference, _class];
+	for ( var i = 0; i < quantity; i = i + 2) {
+		reference += '#' + parseInt(reference_as_hex.substring(i, i + 2), 16)
+				+ ' ';
+	}
+	return [ reference, stream ];
 }
 
 function readNextBytesAsString(quantity, stream) {
@@ -207,5 +206,10 @@ function readNextBytesAsString(quantity, stream) {
 		U += ch.charAt(0);
 	});
 	var _class = stream.substring(quantity);
-	return [U, _class];
+	return [ U, _class ];
+};
+
+function HTMLencode(string){
+	return string.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+
 };

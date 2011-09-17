@@ -38,3 +38,6 @@ div#console p {
 div#console p.constant {
 	margin-left: 20px;
 }
+div#console p.constant span.value {
+	margin-left: 20px;
+}

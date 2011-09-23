@@ -64,7 +64,7 @@ function handleFileSelect(evt) {
 			var c = class_file;
 			c.prototype = new class_reader();
 			cf = new c(evt.target.result);			
-			cf.parse_class_vars();
+			cf.parse_file();
 			return;
 			
 			

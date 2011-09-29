@@ -1,21 +1,33 @@
-
-
-
+/**
+ * Class to read and load Java Class files into memory. 
+ * @returns {ClassLoader}
+ */
 function ClassLoader() { // extends class_reader
 	
 	
 	this.classReader = new ClassReader();
 	
+	this.get_class = function(class_name) {
+		alert(class_name);
+	};
+	/**
+	 * Load a class into memory for reading
+	 */
 	this.load_class = function(hex_stream) {
 		this.classReader.stream = hex_stream;
 		var _class = this.parse_file();
+		RDA.method_area[_class.this_class] = _class;
 	};
 		
+	/**
+	 * Perform Class File Parsing
+	 * @returns: {JavaClass}
+	 */
 	this.parse_file = function() {
 		var _class = new JavaClass();
 		
 		this.parse_class_vars(_class);
-		Console.write('Constants:');
+		Console.debug('Constants:');
 		this.parse_constant_pool(_class);
 		this.parse_second_class_vars(_class);
 		this.parse_interfaces(_class);
@@ -24,23 +36,28 @@ function ClassLoader() { // extends class_reader
 		return _class;
 	};
 	
+	/**
+	 * Parse the initial class variables and verify this is a Java Class file.
+	 */
 	this.parse_class_vars = function(_class){
 		_class.magic_number  = this.classReader.read(4);
 		if(!_class.verify()) {
 			throw 'VerifyError';
 		};
-		Console.write('Magic Number: ' + _class.magic_number);
+		Console.debug('Magic Number: ' + _class.magic_number);
 		_class.minor_version = this.classReader.read(2);
-		Console.write('Minor Version: ' + _class.minor_version);
+		Console.debug('Minor Version: ' + _class.minor_version);
 		_class.major_version = this.classReader.read(2);
-		Console.write('Major Version: ' + _class.major_version);
+		Console.debug('Major Version: ' + _class.major_version);
 	};
 	
+	/**
+	 * Parse the Constant Pool
+	 */
 	this.parse_constant_pool = function(_class) {
-		_class.constant_pool_count = this.classReader.read(2);
-		var count = parseInt(_class.constant_pool_count, 16);
-		
-		for ( var i = 1; i < count; i++ ) {
+		_class.set_constant_pool_count(parseInt(this.classReader.read(2), 16));
+				
+		for ( var i = 1; i < _class.constant_pool_count; i++ ) {
 			
 			var tag = this.classReader.read_tag(),
 				value = this.classReader.read_constant(tag);
@@ -50,53 +67,70 @@ function ClassLoader() { // extends class_reader
 		}
 	};
 	
+	/**
+	 * Parse the secondary class variables
+	 */
 	this.parse_second_class_vars = function(_class) {
 		_class.access_flags  =  this.classReader.read(2);
-		Console.write('Access flags: ' + _class.access_flags.toString(10));
-		_class.this_class = this.classReader.read(2);
-		Console.write('This Class: #' + parseInt(_class.this_class, 16));
-		_class.super_class = this.classReader.read(2);
-		Console.write('Super Class: #' + parseInt(_class.super_class, 16));
+		Console.debug('Access flags: ' + _class.access_flags.toString(10));
+		_class.this_class = parseInt(this.classReader.read(2), 16);
+		Console.debug('This Class: #' + _class.this_class);
+		_class.super_class = parseInt(this.classReader.read(2), 16);
+		Console.debug('Super Class: #' + _class.super_class);
+		// Load the super class now, before anything else happens.
+		this.get_class(_class.get_super());
 	};
 	
+	/**
+	 * Parse class Interfaces
+	 */
 	this.parse_interfaces = function(_class) {
-		_class.interfaces_count = this.classReader.read(2);
-		Console.write('Interface Count: ' + _class.interfaces_count);
+		_class.set_interfaces_count(parseInt(this.classReader.read(2), 16));
+		Console.debug('Interface Count: ' + _class.interfaces_count);
 		
-		var count = parseInt(_class.interfaces_count, 16);
-		
-		for ( var i = 1; i < count; i++ ) {
-			
+		for ( var i = 1; i < _class.interfaces_count; i++ ) {
+			// TODO
 		}
 	};
 	
+	/**
+	 * Parse Class fields
+	 */
 	this.parse_fields = function(_class) {
 		_class.fields_count = this.classReader.read(2);
-		Console.write('Field Count: ' + _class.fields_count);
-		
+		Console.debug('Field Count: ' + _class.fields_count);
+		// TODO
 	};
 	
+	/**
+	 * Parse Class methods
+	 */
 	this.parse_methods = function(_class) {
-		_class.methods_count = this.classReader.read(2);
-		Console.write('Method Count: ' + _class.methods_count);
-		var count = parseInt(_class.methods_count, 16);
-		
-		for( var i = 1; i < count; i++ ) {
-			//_class.methods[i] = this.classReader.parse_method_info();
-			//Console.write(this.methods[i]);
+		_class.set_method_count(parseInt(this.classReader.read(2), 16));
+		Console.debug('Method Count: ' + _class.methods_count);
+		for( var i = 0; i < _class.methods_count; i++ ) {
+			// Pass _class to the method so we can access the constant table when needed
+			_class.methods[i] = this.classReader.read_method_info(_class);
 		};
 	};
 	
+	/**
+	 * Parse Class attributes
+	 */
 	this.parse_attributes = function(_class) {
-		_class.attributes_count = this.classReader.read(2);
-		var count = parseInt(_class.attributes_count, 16);
-		
-		for( var i = 1; i < count; i++ ) {
-			_class.attributes[i] = this.classReader.parse_attribute_info();
+		_class.set_attributes_count(parseInt(this.classReader.read(2), 16));
+				
+		for( var i = 0; i < _class.attributes_count; i++ ) {
+			// TODO
+			//_class.attributes[i] = this.classReader.parse_attribute_info();
 		};
 	};
 };
 
+/**
+ * Class to rid bytes from a Java Class file. As data is parsed it is discarded.
+ * @returns {ClassReader}
+ */
 function ClassReader() {
 	
 	this.stream = '';
@@ -140,10 +174,10 @@ function ClassReader() {
 			reference = '';
 
 		if(quantity == 2) {
-			return reference = '#' +  parseInt(reference_as_hex, 16);
+			return reference = '' +  parseInt(reference_as_hex, 16);
 		}
 		for ( var i = 0; i < quantity; i = i + 2) {
-			reference += '#' + parseInt(reference_as_hex.substring(i, i + 2), 16)
+			reference += parseInt(reference_as_hex.substring(i, i + 2), 16)
 					+ ' ';
 		}
 		return reference;
@@ -182,7 +216,7 @@ function ClassReader() {
 		}
 	};
 	
-	this.parse_method_info = function() {
+	this.read_method_info = function(_class) {
 		
 		var method_info = {};
 		
@@ -190,13 +224,66 @@ function ClassReader() {
 		method_info.name_index = this.read(2);
 		method_info.descriptor_index = this.read(2);
 		method_info.attribute_count = this.read(2);
+		Console.write_method(method_info, _class);
+		method_info.attributes = Array(method_info.attribute_count);
 		
+		for ( var i = 0; i < parseInt(method_info.attribute_count, 16); i++ ) {
+			method_info.attributes[i] = this.read_attribute(_class);
+		}
+		return method_info;		
+	};
+	
+	this.read_attribute = function(_class) {
+		var attribute_name_index = this.read(2);
+		var attribute_length = this.read(4);
 		
-		for ( var i = 1; i < parseInt(method_info.attribute_count, 16); i++ ) {
-			method_info.attribute_info = this.parse_attribute_info();
+		if(_class.constant_pool[parseInt(attribute_name_index, 16)] == 'Code'){
+			Console.debug('	Attr Name: '+attribute_name_index);
+			Console.debug('	Attr Length: '+parseInt(attribute_length, 16));
+			return this.read_code_attribute(_class, attribute_name_index, attribute_length);
+		}
+		else if(_class.constant_pool[parseInt(attribute_name_index, 16)] == 'Exception'){
+			throw 'NotYetImplementedException';
+		}
+		else {
+			// Not implemented and not required by JVM specification, so ignore the bytes for this attribute.
+			this.read(attribute_length);
+		};
+	};
+	
+	this.read_code_attribute = function(_class, name_index, length) {
+		Console.debug('	Code: ');
+		var code_attribute = {};
+		code_attribute.attribute_name_index = name_index;
+		code_attribute.attribute_length = length;
+		code_attribute.max_stack = this.read(2);
+		Console.debug('		Max Stack: ' + code_attribute.max_stack);
+		code_attribute.max_locals = this.read(2);
+		Console.debug('		Max Locals: ' + code_attribute.max_locals);
+		code_attribute.code_length = this.read(4);
+		Console.debug('		Code Length: ' + code_attribute.code_length);
+		code_attribute.code = {};
+		var code_length = parseInt(code_attribute.code_length, 16);
+		Console.debug('		OpCodes: ');
+		for( var i = 0; i < code_length; i++) {
+			code_attribute.code[i] = this.read(1);
+			Console.debug('			'+code_attribute.code[i]);
+		};
+		code_attribute.exception_table_length = this.read(2);
+		Console.debug('		Exception Table Count: ' + code_attribute.exception_table_length);
+		for( var i = 0; i < code_attribute.exception_table_length; i++ ) {
+			// TODO Exceptions here.
 		}
 		
-		return method_info;		
+		code_attribute.attributes_count = parseInt(this.read(2), 16);
+		code_attribute.attributes = new Array(code_attribute.attributes_count);
+		Console.debug('		Attributes Count: ' + code_attribute.attributes_count);
+		for( var i = 0; i < code_attribute.attributes_count; i++) {
+			code_attribute.attributes[i] = this.read_attribute(_class);
+		};
+		
+		return code_attribute;
+		
 	};
 };
 

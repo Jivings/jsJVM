@@ -1,5 +1,5 @@
 /*$(function() {
-	var JVM_classes = [
+var JVM_classes = [	
 			'ClassLoader',
 			'JavaClass',
 			'Console',
@@ -12,29 +12,43 @@
 
 });
 
-*/
+ */
 /**
- * Represents the bulk of the JavaScript Implementation of the Java Virtual Machine 
+ * Represents the bulk of the JavaScript Implementation of the Java Virtual
+ * Machine
  */
 function JVM() {
-	
+
 	this.classLoader = new ClassLoader();
 	
-	
-	this.load = function(classes) {
-		Console.write('Loading classes...');
+	/**
+	 * Initialise the ClassLoader
+	 */
+	this.load = function(classes, classes_size, main_class_name) {
+		Console.out('Loading classes...');
+		// move classLoader object into scope.		
+		var classLoader = this.classLoader;
 		try {
-		//$.each(classes, function(i, binary_stream) {
-			this.classLoader.load_class(classes);
-		//});
+			$.each(classes, function(i, binary_stream) {
+				var reader = new FileReader();
+				reader.onloadend = function(evt) {
+					Console.out(binary_stream.name + '..............[OK]');
+					classLoader.load_class(evt.target.result);
+					if(i+1 == classes_size) {
+						Console.out('Classes loaded successfully.');
+					}
+				};
+				reader.readAsBinaryString(binary_stream);
+			});
+		} catch (err) {
+			// TODO; use Java Exception Classes
+			Console.error(err);
+		} finally {
+			
 		}
-		catch(err) {
-			Console.write(err);
-		}
+		
 	};
-	
-	
-	
+
 	// OPCODE Loop
 	this.start = function() {
 		

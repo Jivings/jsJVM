@@ -3,6 +3,14 @@ div,body {
 	margin:0;
 }
 
+#load {
+	margin-top:20px;	
+}
+
+p {
+	margin:0;
+	padding:0;
+}
 div#log {
 	margin: 0 auto;
 	width:300px;	
@@ -40,4 +48,9 @@ div#console p.constant {
 }
 div#console p.constant span.value {
 	margin-left: 20px;
+}
+
+pre {
+	margin: 0;
+	padding: 0;
 }

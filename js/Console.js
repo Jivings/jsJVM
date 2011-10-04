@@ -81,9 +81,9 @@ var Console = {
 								this.HTMLencode(_class.constant_pool[parseInt(method.name_index, 16)]) +
 								this.parse_descriptor(_class.constant_pool[parseInt(method.descriptor_index, 16)])+'</p>'+
 							'<p class="constant"> Access Flags: '+method.access_flags+'</p>'+
-							'<p class="constant"> Name Index: '+method.name_index+'</p>'+
-							'<p class="constant"> Descriptor: '+method.descriptor_index+'</p>'+
-							'<p class="constant"> Attr Count: '+method.attribute_count+'</p></pre>');
+							'<p class="constant"> Name Index: '+parseInt(method.name_index, 16)+'</p>'+
+							'<p class="constant"> Descriptor: '+parseInt(method.descriptor_index, 16)+'</p>'+
+							'<p class="constant"> Attr Count: '+parseInt(method.attribute_count, 16)+'</p></pre>');
 		}
 	},
 	

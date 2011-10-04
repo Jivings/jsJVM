@@ -1,5 +1,3 @@
-//document.getElementById('files').addEventListener('change',
-	//		handleFileSelect, false);
 var classes = {};
 var classes_size = 0;
 

@@ -21,13 +21,26 @@ function JavaClass() {
 	this.attributes_count = 0;
 	this.attributes;
 	
+	/**
+	 * Returns the super class reference so that it can be loaded.
+	 */
 	this.get_super = function() {
 		var super_ref = this.constant_pool[this.super_class];
 		return this.constant_pool[super_ref];
 	};
 	
+	/**
+	 * Verifies the file is a Java Class file.
+	 */
 	this.verify = function() {
 		return this.magic_number == 'cafebabe'; 
+	};
+	
+	/**
+	 * Validates the class, checking it can be loaded based on the type and access flags.
+	 */
+	this.validate = function(class_type) {
+		// TODO 
 	};
 	
 	this.set_method_count = function(count) {

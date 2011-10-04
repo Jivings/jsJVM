@@ -2,20 +2,32 @@
  * Class to read and load Java Class files into memory. 
  * @returns {ClassLoader}
  */
-function ClassLoader() { // extends class_reader
-	
+function ClassLoader() { 
 	
 	this.classReader = new ClassReader();
 	
-	this.get_class = function(class_name) {
-		alert(class_name);
+	this.get_class_stream = function(class_name) {
+		var self = this;
+		$.get('java/'+class_name+'.class', function(response) {
+			self.load_class(response);
+		});
 	};
+	
 	/**
 	 * Load a class into memory for reading
 	 */
-	this.load_class = function(hex_stream) {
+	this.load_class = function(hex_stream, type) {
+		if(!hex_stream || hex_stream.length < 10) {
+			throw 'InvalidClassFileException';
+		}
 		this.classReader.stream = hex_stream;
+		// Parse the class
 		var _class = this.parse_file();
+		// Validate class
+		_class.validate(type);
+		// Load super class
+		this.get_class_stream(_class.get_super());
+		// Store the class data in the Method Area
 		RDA.method_area[_class.this_class] = _class;
 	};
 		
@@ -41,9 +53,9 @@ function ClassLoader() { // extends class_reader
 	 */
 	this.parse_class_vars = function(_class){
 		_class.magic_number  = this.classReader.read(4);
-		if(!_class.verify()) {
-			throw 'VerifyError';
-		};
+		//if(!_class.verify()) {
+		//	throw 'VerifyError';
+		//};
 		Console.debug('Magic Number: ' + _class.magic_number);
 		_class.minor_version = this.classReader.read(2);
 		Console.debug('Minor Version: ' + _class.minor_version);
@@ -77,8 +89,6 @@ function ClassLoader() { // extends class_reader
 		Console.debug('This Class: #' + _class.this_class);
 		_class.super_class = parseInt(this.classReader.read(2), 16);
 		Console.debug('Super Class: #' + _class.super_class);
-		// Load the super class now, before anything else happens.
-		this.get_class(_class.get_super());
 	};
 	
 	/**

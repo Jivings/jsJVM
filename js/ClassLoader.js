@@ -1,41 +1,133 @@
 /**
- * Class to read and load Java Class files into memory. 
+ * Class to read and load Java Class files into memory. Classes to be loaded must be pushed to the Stack using add(). 
+ * Classes on the stack will be checked and loaded into memory.  
  * @returns {ClassLoader}
  */
 function ClassLoader() { 
 	
-	this.classReader = new ClassReader();
+	this.classReader;
+	this.stack = new Array;
+	this.ps_id = 0;
 	
-	this.get_class_stream = function(class_name) {
+	/**
+	 *  Initialises the ClassLoader, returns self for chaining.
+	 */
+	this.start = function() {
 		var self = this;
-		$.get('java/'+class_name+'.class', function(response) {
-			self.load_class(response);
-		});
+		this.ps_id = setInterval(function() { self.load(); }, 100);
+		return self;
+	};
+	/**
+	 * Add a class to the stack for loading
+	 */
+	this.add = function(hex_stream, name) {
+		this.stack.push( { 'name' : name, 'data' : hex_stream } );		
+	};
+	
+	/**
+	 * Load the classes on the current stack and their superclasses into the Method Area.
+	 */
+	this.load = function() {
+		
+		var next;
+		while( (next = this.stack.pop()) != undefined ) {
+			
+			// Sanity check to see if class may already have been loaded
+			if(RDA.method_area[next.name]) {
+				return true;
+			}
+			// Initial validation of Class File
+			if(!next.data || next.data.length < 10) {
+				throw 'InvalidClassFileException';
+			}
+			
+			this.classReader = new ClassReader(next.data);
+			
+			// Parse the class
+			var _class = this.parse();
+			// TODO Validate class
+			//_class.validate(type);
+			
+			// Push super class to stack
+			this.find(_class.get_super());
+			
+			// Store the class data in the Method Area
+			RDA.method_area[_class.get_name()] = _class;
+		}
+		
+		/*for(name in this.stack) {
+			// If class is already loaded, done
+			if(RDA.method_area[name]) {
+				return true;
+			}
+			// Initial validation of Class File
+			if(!this.stack[name] || this.stack[name].length < 10) {
+				throw 'InvalidClassFileException';
+			}
+			
+			this.classReader = new ClassReader(this.stack[name]);
+			// Parse the class
+			var _class = this.parse_class();
+			// TODO Validate class
+			//_class.validate(type);
+			
+			// If super class is not already on the stack then push it.
+			if(this.stack[_class.get_super()] == 'undefined') {
+				this.find(_class.get_super());
+			}
+			// Store the class data in the Method Area
+			RDA.method_area[_class.this_class] = _class;
+		}*/
+		
+	};
+	
+	/**
+	 * Locate a class file that is not on the stack and push it.
+	 */
+	this.find = function(class_name) {
+		// Sanity Check, java/lang/object has no superclass.
+		if(class_name != undefined) {
+			
+			var self = this;
+			Console.out(class_name + '..............[OK]');
+			$.get('java/'+class_name+'.class', function(response) {
+				self.add(response, class_name);
+			});
+		}
+		
+		
 	};
 	
 	/**
 	 * Load a class into memory for reading
 	 */
-	this.load_class = function(hex_stream, type) {
+	/*this.load_class = function(hex_stream, name, type) {
+		
+		
+		if(RDA.method_area[name]) {
+			return true;
+		}
+		// Initial validation of Class File
 		if(!hex_stream || hex_stream.length < 10) {
 			throw 'InvalidClassFileException';
 		}
-		this.classReader.stream = hex_stream;
+		
+		this.classReader = new ClassReader(hex_stream);
 		// Parse the class
-		var _class = this.parse_file();
+		var _class = this.parse_class();
 		// Validate class
 		_class.validate(type);
 		// Load super class
 		this.get_class_stream(_class.get_super());
 		// Store the class data in the Method Area
 		RDA.method_area[_class.this_class] = _class;
-	};
+	};*/
 		
 	/**
 	 * Perform Class File Parsing
 	 * @returns: {JavaClass}
 	 */
-	this.parse_file = function() {
+	this.parse = function() {
 		var _class = new JavaClass();
 		
 		this.parse_class_vars(_class);
@@ -141,9 +233,10 @@ function ClassLoader() {
  * Class to rid bytes from a Java Class file. As data is parsed it is discarded.
  * @returns {ClassReader}
  */
-function ClassReader() {
+function ClassReader(hexstream) {
 	
-	this.stream = '';
+	this.stream = hexstream;
+	this.offset = 0;
 	
 	this.readNextU2 = function(offset) {
 		return this.read(2);
@@ -155,7 +248,7 @@ function ClassReader() {
 	
 	this.read = function(length) {
 		var U = '';
-		
+		this.offset += length;
 		$.each(this.stream.substring(0, length), function(i, ch) {
 			U += ch.charCodeAt(0).toString(16);
 		});
@@ -257,7 +350,7 @@ function ClassReader() {
 		}
 		else {
 			// Not implemented and not required by JVM specification, so ignore the bytes for this attribute.
-			this.read(attribute_length);
+			this.read(parseInt(attribute_length, 16));
 		};
 	};
 	
@@ -295,6 +388,7 @@ function ClassReader() {
 		return code_attribute;
 		
 	};
+	
 };
 
 

@@ -18,16 +18,6 @@ var Console = {
 		11 : 'Interface Method',
 		12 : 'NameAndType'
 	},
-	access_flags : {
-		1 : 'public',
-		2 : 'private',
-		4 : 'protected',
-		8 : 'static',
-		10 : 'final',
-		20 : 'synchronized',
-		100 : 'native',
-		400 : 'abstract'
-	},
 	descriptors : {
 		B : 'byte',
 		C : 'char',
@@ -77,7 +67,7 @@ var Console = {
 	write_method : function(method, _class) {
 		if(this._debug) {
 			this.console.append('<pre>'+
-							'<p>'+this.access_flags[parseInt(method.access_flags, 16)] + ' ' +
+							'<p>'+access_flags.get_flag('0x'+method.access_flags) + ' ' +
 								this.HTMLencode(_class.constant_pool[parseInt(method.name_index, 16)]) +
 								this.parse_descriptor(_class.constant_pool[parseInt(method.descriptor_index, 16)])+'</p>'+
 							'<p class="constant"> Access Flags: '+method.access_flags+'</p>'+

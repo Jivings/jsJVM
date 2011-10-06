@@ -21,36 +21,39 @@ function JVM() {
 
 	this.classLoader = new ClassLoader();
 	
+	
 	/**
-	 * Initialise the ClassLoader
+	 * Push classes onto the ClassLoader Stack.
+	 * Return self for chaining.
 	 */
 	this.load = function(classes, classes_size, main_class_name) {
 		Console.out('Loading classes...');
+		
 		// move classLoader object into scope.		
 		var classLoader = this.classLoader;
+		
 		try {
+			
 			$.each(classes, function(i, binary_stream) {
 				var reader = new FileReader();
 				reader.onloadend = function(evt) {
 					Console.out(binary_stream.name + '..............[OK]');
-					classLoader.load_class(evt.target.result);
-					if(i+1 == classes_size) {
-						Console.out('Classes loaded successfully.');
-					}
+					classLoader.add(evt.target.result, binary_stream.name);
 				};
 				reader.readAsBinaryString(binary_stream);
 			});
+			
 		} catch (err) {
 			// TODO; use Java Exception Classes
 			Console.error(err);
-		} finally {
-			
 		}
-		
+		return this;
 	};
 
 	// OPCODE Loop
+	// never finish while there is something left to do.
 	this.start = function() {
+		this.classLoader.start();
 		
 	};
 }

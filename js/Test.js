@@ -12,17 +12,10 @@ $('#files').change(function(evt){
 
 $('#load').click(function(){
 	var main = $('input[name="classes"]:checked').val();
-	new JVM().load(classes, classes_size, main);
-});
-
-function handleFileSelect(evt) {
+	var jvm = new JVM()
+		.load(classes, classes_size, main)
+		.start();
+		
 	
-	var files = evt.target.files;
-	var file = files[0];
-	var reader = new FileReader();
-	reader.onloadend = function(evt) {
-		var jvm = new JVM();
-		jvm.load(evt.target.result);		
-	};
-	reader.readAsBinaryString(file);
-}
+	
+});

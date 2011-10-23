@@ -1,3 +1,8 @@
+###
+Represents the bulk of the JavaScript Implementation of the Java Virtual
+Machine
+###
+
 class JVM
   constructor : ->
 	  @classLoader = new ClassLoader();
@@ -10,6 +15,7 @@ class JVM
           classLoader.add evt.target.result, binary_stream.name
         reader.readAsBinaryString binary_stream 
     catch e
+	  # TODO; use Java Exception Classes
       alert e
 
     @classLoader.start()

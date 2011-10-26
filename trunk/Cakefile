@@ -1,0 +1,15 @@
+JAVA_HOME = '/usr/lib/jvm/java-6-openjdk/'
+
+
+{exec} = require 'child_process'
+task 'build', 'Build project from src/*.coffee to bin/*.js', ->
+  exec 'mkdir -p bin/js/'
+  exec 'coffee --watch --compile --output bin/js/ src/', (err, stdout, stderr) ->
+    throw err if err
+    console.log stdout + stderr
+  console.log '[OK]'
+
+task 'clean', 'Clean /bin/*.js files', ->
+  exec 'ls bin/js/*.js', (err, stdout, stderr) ->
+    throw err if err
+    console.log stdout + stderr

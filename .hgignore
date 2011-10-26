@@ -1,3 +1,4 @@
 syntax: glob
 
-trunk/bin/j*
+trunk/bin/rt/
+trunk/bin/js/

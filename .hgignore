@@ -1,4 +1,4 @@
 syntax: glob
 
-trunk/bin/rt/
+trunk/bin/classes/rt/
 trunk/bin/js/

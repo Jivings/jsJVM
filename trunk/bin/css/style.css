@@ -1,7 +1,36 @@
 div,body {
 	padding:0;
 	margin:0;
+	background-color:#222;
 }
+
+#terminal {
+	color:#CCC;
+	font-size:11pt;
+	padding:10px;
+	font-family: courier;
+	line-height:150%; 
+}
+
+#terminal .line span.prompt {
+	margin-right:10px;
+	font-weight: bold;
+	color: white; 
+} 
+
+#terminal .line input.command {
+	background-color:#222;
+	border-style:none;
+	color:#CCC;
+	font-family: courier;
+	font-size:11pt;
+	width:90%;
+}
+
+#terminal .line .blinker {
+	background-color:#CCC;
+}
+
 
 #load {
 	margin-top:20px;	

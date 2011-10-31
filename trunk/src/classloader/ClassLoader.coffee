@@ -1,5 +1,4 @@
 class this.ClassLoader
-  
   classReader : 1
   stack : new Array
   ps_id : 0
@@ -26,7 +25,13 @@ class this.ClassLoader
     true
 
   find : (class_name) ->
-    #if class_name?
+    self = this
+    $.get("classes/#{class_name}.class", (response) ->
+      return self.add response, class_name
+    ).error (err) ->
+      $.get("classes/rt/#{class_name}.class", (response) ->
+        return self.add response, class_name
+      ).error (err) -> throw 'NoClassDefFoundError'
   
 class ClassReader
     
@@ -94,7 +99,6 @@ class ClassReader
     if _class.magic_number & 0xCAFEBABE is 0 then alert("Not JavaClass")
     @console.println 'minor version: ' + _class.minor_version = @read(2)
     @console.println 'major version: ' + _class.major_version = @read(2)
-    
     yes
 
   parseConstantPool : (_class) ->
@@ -155,7 +159,6 @@ class ClassReader
     method_info
         
   readAttribute : (_class) ->
-    
     attribute_name = @read 2
     attribute_length = @read 4
     real_name = _class.constant_pool[parseInt(attribute_name, 16)]
@@ -201,3 +204,8 @@ class ClassReader
     while i++ < parseInt(field_info.attribute_count, 16)
       field_info.attributes[i] = @readAttribute _class
     field_info
+
+#classLoader = new ClassLoader()
+#this.onmessage = (e) ->
+ # this.postMessage('Done')
+  

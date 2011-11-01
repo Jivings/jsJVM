@@ -13,6 +13,7 @@ class this.JVM
     @stdout = params['stdout']
     @stderr = params['stderr']
     @verbosity = params['verbosity']
+    document.console = new Console(stdout, stderr)
     if params.version 
       @stdout.write "JS-JVM version '#{@VERSION_ID}' \njava version #{@JAVA_VERSION}"
     else if params.help

@@ -25,6 +25,7 @@ div,body {
 	font-family: courier;
 	font-size:11pt;
 	width:90%;
+	outline: none;
 }
 
 #terminal .line .blinker {

@@ -21,7 +21,7 @@ class this.ClassLoader
      classReader = new ClassReader next.data 
      _class = classReader.parse()
      #RDA.method_area[_class.get_name()] = _class;
-     @find _class.get_super()
+     #find _class.get_super()
     true
 
   find : (class_name) ->

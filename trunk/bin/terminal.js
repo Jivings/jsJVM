@@ -1,3 +1,6 @@
+var history = [];
+var current = 0;
+
 $('.command').focus().val('');
 
 $(document).keydown(function() {
@@ -13,9 +16,9 @@ $('.command').live('keyup', function(e) {
 			$(this).replaceWith('<span>'+c+'</span>');
 			$('#terminal').append('<p class="line"><span class="prompt">$</span><input type="text" class="command" /></p>');
 			$('.command:last').focus();
-		case 37: // left
+			history.push(c);
+			current++;
 		case 38: // up
-		case 39: // right
 		case 40: // down
 		default:
 	}

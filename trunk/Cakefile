@@ -12,3 +12,5 @@ task 'clean', 'Clean /bin/*.js files', ->
   exec 'ls bin/js/*.js', (err, stdout, stderr) ->
     throw err if err
     console.log stdout + stderr
+
+

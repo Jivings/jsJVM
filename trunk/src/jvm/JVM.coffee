@@ -20,7 +20,7 @@ class this.JVM
       @stdout.write @helpText()
     else    
       @classLoader = new ClassLoader();
-    
+
   # Push classes to the classloader stack. Return self for chaining or return helptext if no classname supplied
   load : (classname) ->
     if @classLoader? 

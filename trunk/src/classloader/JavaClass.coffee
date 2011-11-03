@@ -8,18 +8,18 @@ class this.JavaClass
   minor_version : 0
   major_version : 0
   constant_pool_count : 0
-  constant_pool : 0
+  constant_pool : []
   access_flags : 0
   this_class : 0
   super_class : 0
   interfaces_count : 0
-  interfaces : 0
+  interfaces : []
   fields_count : 0
-  fields : 0
+  fields : []
   methods_count : 0
-  methods : 0
+  methods : []
   attributes_count : 0
-  attributes : 0
+  attributes : []
   
   get_super : -> 
     super_ref = @constant_pool[@super_class];

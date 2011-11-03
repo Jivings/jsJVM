@@ -26,4 +26,4 @@ class this.Console
       @stdout.write string
   
   writeConstant : (index, tag, value) ->
-    @print "<p class='constant'># #{index} #{@tags[tag]}<span class='value'>#{value}</span></p>" 
+    @print "<p class='constant'># #{index} #{@tags[tag]} <span class='value'>#{value}</span></p>" 

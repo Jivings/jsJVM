@@ -25,17 +25,24 @@ class this.ClassLoader
     true
 
   find : (class_name) ->
-    self = this
-    $.get("classes/#{class_name}.class", (response) ->
-      return self.add response, class_name
-    ).error (err) ->
-      $.get("classes/rt/#{class_name}.class", (response) ->
-        return self.add response, class_name
-      ).error (err) -> throw 'NoClassDefFoundError'
+    req = new XMLHttpRequest();
+    req.open 'GET', "classes/#{class_name}.class", false
+    # The following line says we want to receive data as Binary and not as Unicode
+    req.overrideMimeType 'text/plain; charset=x-user-defined'
+    req.send null
+    if req.status isnt 200
+      req.open 'GET', "classes/rt/#{class_name}.class", false
+      req.overrideMimeType 'text/plain; charset=x-user-defined'
+      req.send null
+      if req.status isnt 200
+        throw 'NoClassDefFoundError'
+    return @add req.responseText, class_name
   
 class ClassReader
     
-  constructor : (@stream) ->
+  constructor : (stream) ->
+    @binaryReader = new jDataView stream
+    @binaryReader._littleEndian = false
     @console = document.console
     
   parse : ->
@@ -49,63 +56,55 @@ class ClassReader
     _class
 
   read : (length) ->
-    s = @stream.substring(0, length)
+    switch length
+      when 1
+        @binaryReader.getUint8()
+      when 2
+        @binaryReader.getUint16()
+      when 4 
+        @binaryReader.getUint32() 
+      else 
+        # Probably something not implemented, step forward
+        @binaryReader.seek(@binaryReader.tell() + length)
+  
+  readDouble : ->
+    @binaryReader.getFloat32()
     
-    i = -1
-    U = new Array(s.length)
-    while ++i < s.length
-      U[i] = s.charCodeAt(i)
-      if U[i] < 256
-        if U[i].length is 1 then U[i] = 0 + U[i].toString(16)
-        else U[i] = U[i].toString(16)
-      else alert 'MultiByte value! ' + U[i]
-    @stream = @stream.substring(length)    
-    @console.progress += length
-    return '0x' + U.join("")
-  
   readString : (length) ->
-    #s = @stream.substring(offset, offset+=length)
-    s = @stream.substring(0, length)
-    i = -1
-    U = new Array(s.length)
-    while ++i < s.length 
-      U[i] = s.charAt(i)
-    @stream = @stream.substring(length)
-    @console.progress += length
-    return U.join("")
-  
+    @binaryReader.getString length
+    
   readTag : ->
-    parseInt(@read 1)
+    @read 1
 
   readConstant : (tag) ->
     switch tag
       when 1 # UTF-8 String 
-        return @readString parseInt(@read(2), 16)
-      when 3, 4 # Integer
-        return @read 4  
+        @readString(@read 2) 
+      when 3, 4 # Integer, Float
+        @read 2 
       when 5, 6 # Long, Double
-        return @read 8
+        @readDouble 
       when 7, 8 # Class Reference, String Reference
-        return @read 2
+        @read 2 
       when 9, 10, 12 # Field Reference, Method Reference, Name and Type Descriptor
         return "#{@read 2} #{@read 2}"
       when 11 # Interface method
-        return @read 4
+        @read 4
       else
-        throw "UnknownConstantException, Offset : " + @console.progress
+        throw "UnknownConstantException, Offset : " + @binaryReader.tell()
 	  
   parseClassVars : (_class) ->
-    @console.println 'magic number: ' + _class.magic_number = @read(4)
+    @console.println 'magic number: ' + _class.magic_number = @read 4 
     if _class.magic_number & 0xCAFEBABE is 0 then alert("Not JavaClass")
-    @console.println 'minor version: ' + _class.minor_version = @read(2)
-    @console.println 'major version: ' + _class.major_version = @read(2)
+    @console.println 'minor version: ' + _class.minor_version = @read 2
+    @console.println 'major version: ' + _class.major_version = @read 2
     yes
 
   parseConstantPool : (_class) ->
     
     #constantPoolCount = parseInt @read(2), 16
     #cp = parseInt(constantPoolCount)
-    _class.set_constant_pool_count(@read 2)
+    _class.constant_pool_count = @read 2
     i = 0
     @console.println "Constant Pool Count : #{_class.constant_pool_count}"
     while ++i < _class.constant_pool_count 
@@ -123,7 +122,7 @@ class ClassReader
     yes
    
   parseInterfaces : (_class) ->
-    @console.println 'interface count: ' +_class.set_interfaces_count @read 2
+    @console.println 'interface count: ' +_class.interfaces_count = @read 2
     i = -1
     while ++i < _class.interfaces_count
       @console.println (_class.interfaces[i] = @read 2)
@@ -137,14 +136,14 @@ class ClassReader
     yes
     
   parseMethods : (_class) ->
-    @console.println 'method count: ' + _class.set_method_count(@read 2)
+    @console.println 'method count: ' + _class.method_count = @read 2
     i = -1
-    while ++i < _class.methods_count
+    while ++i < _class.method_count
         _class.methods[i] = @readMethodInfo(_class)   
     yes   
    	
   parseAttributes : (_class) ->
-    _class.set_attributes_count(@read 2)
+    _class.attributes_count(@read 2)
   
   readMethodInfo : (_class) ->
     method_info = {}
@@ -152,22 +151,22 @@ class ClassReader
     @console.println '  name index: ' + method_info.name_index = @read 2;
     @console.println '  descriptor index: ' + method_info.descriptor_index = @read 2;
     @console.println '  atrribute count: ' + method_info.attribute_count = @read 2;
-   	method_info.attributes = new Array(parseInt(method_info.attribute_count, 16));
+   	method_info.attributes = new Array(method_info.attribute_count);
     i = 0
-    while i++ < parseInt(method_info.attribute_count, 16)
+    while i++ < method_info.attribute_count
       method_info.attributes[i] = @readAttribute _class
     method_info
         
   readAttribute : (_class) ->
     attribute_name = @read 2
     attribute_length = @read 4
-    real_name = _class.constant_pool[parseInt(attribute_name, 16)]
+    real_name = _class.constant_pool[attribute_name]
     @console.println '    attribute name: ' + real_name
     @console.println '    attribute length: ' + attribute_length
     if real_name is 'Code'
       return @readCodeAttribute(_class, attribute_name, attribute_length)
     else
-      @read parseInt(attribute_length, 16) 
+      @read attribute_length
       return {}
 
     
@@ -179,14 +178,14 @@ class ClassReader
     code_attribute.max_locals = @read 2
     code_attribute.code_length = @read 4
     code_attribute.code = {};
-    code_length = parseInt(code_attribute.code_length)
+    code_length = code_attribute.code_length
     i = -1
     while ++i < code_length
         @console.println '      ' +code_attribute.code[i] = @read 1
     code_attribute.exception_table_length = @read 2
     # TODO exception table
     @read(code_attribute.exception_table_length*8)
-    code_attribute.attributes_count = parseInt(@read(2), 16)
+    code_attribute.attributes_count = @read 2
    	code_attribute.attributes = new Array(code_attribute.attributes_count)
     i = -1
     while ++i < code_attribute.attributes_count
@@ -199,9 +198,9 @@ class ClassReader
     @console.println '  name index: ' + field_info.name_index = @read 2;
     @console.println '  descriptor index: ' + field_info.descriptor_index = @read 2;
     @console.println '  atrribute count: ' + field_info.attribute_count = @read 2;
-   	field_info.attributes = new Array(parseInt(field_info.attribute_count, 16));
+   	field_info.attributes = new Array(field_info.attribute_count);
     i = 0
-    while i++ < parseInt(field_info.attribute_count, 16)
+    while i++ < field_info.attribute_count
       field_info.attributes[i] = @readAttribute _class
     field_info
 

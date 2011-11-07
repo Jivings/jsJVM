@@ -12,10 +12,11 @@ $('.command').live('keyup', function(e) {
 	switch(key) {
 		case 13: // enter
 			var c = $(this).val();
-			executeCommand(c);
+			executeCommand(c, function() {
+				$('#terminal').append('<p class="line"><span class="prompt">$</span><input type="text" class="command" /></p>');
+				$('.command:last').focus();
+			});
 			$(this).replaceWith('<span>'+c+'</span>');
-			$('#terminal').append('<p class="line"><span class="prompt">$</span><input type="text" class="command" /></p>');
-			$('.command:last').focus();
 			history.push(c);
 			current++;
 		case 38: // up
@@ -23,6 +24,7 @@ $('.command').live('keyup', function(e) {
 		default:
 	}
 });
+
 
 var stdin = {
 	stream : [],
@@ -41,7 +43,7 @@ var stderr = stdout = {
 };
 
 
-function executeCommand(c) {
+function executeCommand(c, finished) {
 	var options = [], classname, args = [];
 	var command = c.split(" "); 
 		
@@ -62,17 +64,19 @@ function executeCommand(c) {
 			}
 		}
 		
-		runJava(options, classname, args);		
+		runJava(options, classname, args, finished);		
 	}
 	else if(command[0] === 'help') {
 		$('#terminal').append('This terminal provides access to the JavaScript JVM implementation. The Java program can be executed in the same manner as in a regular bash shell. Type "java -help" to find out more.');
+		finished();
 	}
 	else {
 		$('#terminal').append('<p>Command not found. Type "help" for a list of commands</p>');
+		finished();
 	}
 };
 
-function runJava(options, classname, args) {
+function runJava(options, classname, args, finished) {
 	
 	var parameters = {
 		'stdin' : stdin,
@@ -87,7 +91,9 @@ function runJava(options, classname, args) {
 		else if(options[index] === '-help' || options[index] === '-?') parameters.help = 'true';
 	}
 	var jvm = new JVM(parameters)
+		.setCallBack(finished)
 		.load(classname, args)
+		
 	
 }
 

@@ -2,7 +2,7 @@
 class this.Console
   
      
-  constructor : (@stdout, @stderr) ->
+  constructor : (@stdout, @stderr, verbosity = 'warn') ->
     @tags = 
       1 : 'Asciz'
       3 : 'Integer'
@@ -15,15 +15,19 @@ class this.Console
       10 : 'Method'
       11 : 'Interface Method'
       12 : 'NameAndType'
-    @debug = true
+    @verbosity = @verbosity_level[verbosity]
     @progress = 0
     
-  println : (string, level = 'normal') ->
+  println : (string, level) ->
     @print('<p>' + string + '</p>', level)
     
-  print : (string, level = 'normal') ->
-    if (level is 'debug' and @debug is true) or level isnt 'debug'
-      @stdout.write string
+  print : (string, level = 0) ->
+    if level <= @verbosity then @stdout.write string
   
-  writeConstant : (index, tag, value) ->
-    @print "<p class='constant'># #{index} #{@tags[tag]} <span class='value'>#{value}</span></p>" 
+  writeConstant : (index, tag, value, level) ->
+    @print "<p class='constant'># #{index} #{@tags[tag]} <span class='value'>#{value}</span></p>", level 
+
+  verbosity_level : 
+    warn : 0
+    info : 1
+    debug : 2

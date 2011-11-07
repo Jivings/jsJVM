@@ -4,22 +4,25 @@ Represents a Java Class file. Also provides Class verification methods.
 ###
 
 class this.JavaClass 
-  magic_number : 0
-  minor_version : 0
-  major_version : 0
-  constant_pool_count : 0
-  constant_pool : []
-  access_flags : 0
-  this_class : 0
-  super_class : 0
-  interfaces_count : 0
-  interfaces : []
-  fields_count : 0
-  fields : []
-  methods_count : 0
-  methods : []
-  attributes_count : 0
-  attributes : []
+
+  constructor : () ->
+	  @magic_number = 0
+	  @minor_version = 0
+	  @major_version = 0
+	  @constant_pool_count = 0
+	  @constant_pool = []
+	  @access_flags = 0
+	  @this_class = 0
+	  @super_class = 0
+	  @interfaces_count = 0
+	  @interfaces = []
+	  @fields_count = 0
+	  @fields = []
+	  @methods_count = 0
+	  @methods = []
+	  @attributes_count = 0
+	  @attributes = []
+	  @dependancies = []
   
   get_super : -> 
     super_ref = @constant_pool[@super_class];

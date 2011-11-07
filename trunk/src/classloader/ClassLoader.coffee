@@ -2,42 +2,82 @@ class this.ClassLoader
   classReader : 1
   stack : new Array
   ps_id : 0
+  required_classes : 
+    'java/lang/Class' 
+
+  ###
+  Constructor 
+  Set runtime data area and grab console from global scope
+  ###
+  constructor : (@RDA) ->
+    @console = document.console
+    @find @required_classes
   
-  start : ->
+  ###
+  Starts the Classloader, calls load evey 10th of a second
+  ###
+  start : (loaded) ->
     self = this
     @ps_id = setInterval((() ->  self.load()), 100)
 
+  ###
+  Adds a class to the load stack
+  ###
   add : (hexstream, name) ->
     this.stack.push { 
       name : name,
       data : hexstream
     }
 
+  ###
+  Steps through the class stack and loads each entry into the method area of the RDA.
+  ###
   load : ->
     until (next = @stack.pop()) is `undefined`
-     #if RDA.method_area[next.name]? then true
+     if @RDA.method_area[next.name]? then return true
      if !next.data? or next.data.length < 10 then throw 'InvalidClassException' 
 			
      classReader = new ClassReader next.data 
-     _class = classReader.parse()
-     #RDA.method_area[_class.get_name()] = _class;
-     #find _class.get_super()
+     classReader.parse(@loaded, this)
     true
 
+  ### 
+  Callback method to execute when class has finished loading.
+  Neccessary due to Async AJAX request during find
+  Adds class to Method Area and loads class dependancies
+  ###
+  loaded : (_class, self) ->
+    self.RDA.method_area[_class.get_name()] = _class;
+    self.console.println "Loaded #{_class.get_name()}", 1
+    # load dependancies
+    self.find _class.get_super()
+    #for c_ref in _class.dependancies
+    #  self.find _class.constant_pool[c_ref]
+    yes
+    
+  ###
+  Finds a class on the classpath
+  ###
   find : (class_name) ->
+    # java/lang/Object super class will be undefined
+    if typeof class_name is 'undefined'
+      return 
     req = new XMLHttpRequest();
-    req.open 'GET', "classes/#{class_name}.class", false
+    req.open 'GET', "classes/rt/#{class_name}.class", false
     # The following line says we want to receive data as Binary and not as Unicode
     req.overrideMimeType 'text/plain; charset=x-user-defined'
     req.send null
     if req.status isnt 200
-      req.open 'GET', "classes/rt/#{class_name}.class", false
+      req.open 'GET', "classes/#{class_name}.class", false
       req.overrideMimeType 'text/plain; charset=x-user-defined'
       req.send null
       if req.status isnt 200
         throw 'NoClassDefFoundError'
     return @add req.responseText, class_name
-  
+
+###
+ClassReader
+###
 class ClassReader
     
   constructor : (stream) ->
@@ -45,7 +85,7 @@ class ClassReader
     @binaryReader._littleEndian = false
     @console = document.console
     
-  parse : ->
+  parse : (callback, classLoader) ->
     _class = new JavaClass()  
     @parseClassVars _class 
     @parseConstantPool _class
@@ -53,7 +93,7 @@ class ClassReader
     @parseInterfaces _class
     @parseFields _class
     @parseMethods _class
-    _class
+    callback _class, classLoader
 
   read : (length) ->
     switch length
@@ -81,9 +121,9 @@ class ClassReader
       when 1 # UTF-8 String 
         @readString(@read 2) 
       when 3, 4 # Integer, Float
-        @read 2 
+        @binaryReader.getUint32()
       when 5, 6 # Long, Double
-        @readDouble 
+        @binaryReader.getFloat64()
       when 7, 8 # Class Reference, String Reference
         @read 2 
       when 9, 10, 12 # Field Reference, Method Reference, Name and Type Descriptor
@@ -92,12 +132,13 @@ class ClassReader
         @read 4
       else
         throw "UnknownConstantException, Offset : " + @binaryReader.tell()
-	  
+
   parseClassVars : (_class) ->
-    @console.println 'magic number: ' + _class.magic_number = @read 4 
-    if _class.magic_number & 0xCAFEBABE is 0 then alert("Not JavaClass")
-    @console.println 'minor version: ' + _class.minor_version = @read 2
-    @console.println 'major version: ' + _class.major_version = @read 2
+    @console.println('magic number: ' + _class.magic_number = @read(4), 2) 
+    valid = _class.magic_number.toString(16) & 0xCAFEBABE 
+    if valid isnt 0 then alert("Not JavaClass")
+    @console.println('minor version: ' + _class.minor_version = @read(2), 2)
+    @console.println('major version: ' + _class.major_version = @read(2), 2)
     yes
 
   parseConstantPool : (_class) ->
@@ -106,37 +147,42 @@ class ClassReader
     #cp = parseInt(constantPoolCount)
     _class.constant_pool_count = @read 2
     i = 0
-    @console.println "Constant Pool Count : #{_class.constant_pool_count}"
+    @console.println("Constant Pool Count : #{_class.constant_pool_count}", 2)
     while ++i < _class.constant_pool_count 
       tag = @readTag()
       constant = @readConstant(tag)
       _class.constant_pool[i] = constant
-      @console.writeConstant(i, tag, constant)
+      @console.writeConstant(i, tag, constant, 2)
       if tag is 5 then i++;
+      else if tag is 7 
+        if constant isnt _class.this_class
+          _class.dependancies.push(constant)
+        
     yes
 	
   parseFileVars : (_class) ->
-    @console.println 'access flags: '+_class.access_flags = @read 2
-    @console.println 'this class: '+_class.this_class = @read 2
-    @console.println 'super class: '+_class.super_class = @read 2
+    @console.println('access flags: '+_class.access_flags = @read(2), 2)
+    @console.println('this class: '+_class.this_class = @read(2), 2)
+    _class.super_class = @read(2)
+    @console.println('super class: '+_class.super_class, 2)
     yes
    
   parseInterfaces : (_class) ->
-    @console.println 'interface count: ' +_class.interfaces_count = @read 2
+    @console.println('interface count: ' +_class.interfaces_count = @read(2), 2)
     i = -1
     while ++i < _class.interfaces_count
-      @console.println (_class.interfaces[i] = @read 2)
+      @console.println _class.interfaces[i] = @read(2), 2
     yes
     
   parseFields : (_class) ->
-    @console.println 'fields count: ' + _class.fields_count = @read 2
+    @console.println 'fields count: ' + _class.fields_count = @read(2), 2
     i = -1
     while ++i < _class.fields_count
       _class.fields[i] = @readFieldInfo(_class)
     yes
     
   parseMethods : (_class) ->
-    @console.println 'method count: ' + _class.method_count = @read 2
+    @console.println 'method count: ' + _class.method_count = @read(2), 2
     i = -1
     while ++i < _class.method_count
         _class.methods[i] = @readMethodInfo(_class)   
@@ -147,10 +193,10 @@ class ClassReader
   
   readMethodInfo : (_class) ->
     method_info = {}
-    @console.println '  access flags: ' + method_info.access_flags = @read 2;
-    @console.println '  name index: ' + method_info.name_index = @read 2;
-    @console.println '  descriptor index: ' + method_info.descriptor_index = @read 2;
-    @console.println '  atrribute count: ' + method_info.attribute_count = @read 2;
+    @console.println '  access flags: ' + method_info.access_flags = @read(2), 2;
+    @console.println '  name index: ' + method_info.name_index = @read(2), 2;
+    @console.println '  descriptor index: ' + method_info.descriptor_index = @read(2), 2;
+    @console.println '  atrribute count: ' + method_info.attribute_count = @read(2), 2;
    	method_info.attributes = new Array(method_info.attribute_count);
     i = 0
     while i++ < method_info.attribute_count
@@ -161,8 +207,8 @@ class ClassReader
     attribute_name = @read 2
     attribute_length = @read 4
     real_name = _class.constant_pool[attribute_name]
-    @console.println '    attribute name: ' + real_name
-    @console.println '    attribute length: ' + attribute_length
+    @console.println '    attribute name: ' + real_name, 2
+    @console.println '    attribute length: ' + attribute_length, 2
     if real_name is 'Code'
       return @readCodeAttribute(_class, attribute_name, attribute_length)
     else
@@ -181,7 +227,7 @@ class ClassReader
     code_length = code_attribute.code_length
     i = -1
     while ++i < code_length
-        @console.println '      ' +code_attribute.code[i] = @read 1
+        @console.println('      ' +(code_attribute.code[i] = @read(1)), 2)
     code_attribute.exception_table_length = @read 2
     # TODO exception table
     @read(code_attribute.exception_table_length*8)
@@ -194,10 +240,10 @@ class ClassReader
     
   readFieldInfo : (_class) ->
     field_info = {}
-    @console.println '  access flags: ' + field_info.access_flags = @read 2;
-    @console.println '  name index: ' + field_info.name_index = @read 2;
-    @console.println '  descriptor index: ' + field_info.descriptor_index = @read 2;
-    @console.println '  atrribute count: ' + field_info.attribute_count = @read 2;
+    @console.println '  access flags: ' + field_info.access_flags = @read(2), 2
+    @console.println '  name index: ' + field_info.name_index = @read(2), 2
+    @console.println '  descriptor index: ' + field_info.descriptor_index = @read(2), 2
+    @console.println '  atrribute count: ' + field_info.attribute_count = @read(2), 2
    	field_info.attributes = new Array(field_info.attribute_count);
     i = 0
     while i++ < field_info.attribute_count
@@ -208,3 +254,4 @@ class ClassReader
 #this.onmessage = (e) ->
  # this.postMessage('Done')
   
+

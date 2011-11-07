@@ -1,12 +1,12 @@
 JAVA_HOME = '/usr/lib/jvm/java-6-openjdk/'
 
 
-{exec} = require 'child_process'
-task 'build', 'Build project from src/*.coffee to bin/*.js', ->
+{spawn, exec} = require 'child_process'
+
+task 'watch', 'Build project from src/*.coffee to bin/*.js', ->
   exec 'mkdir -p bin/js/'
-  exec 'coffee --watch --compile --output bin/js/ src/', (err, stdout, stderr) ->
-    console.log stdout + stderr
-  console.log 'Compiled coffee files....Watching for changes'
+  coffee = spawn 'coffee', ['-cw', '-o', 'bin/js', 'src']
+  coffee.stdout.on 'data', (data) -> console.log data.toString().trim()  
 
 task 'clean', 'Clean /bin/*.js files', ->
   exec 'ls bin/js/*.js', (err, stdout, stderr) ->

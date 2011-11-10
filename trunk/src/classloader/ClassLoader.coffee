@@ -16,7 +16,7 @@ class this.ClassLoader
   ###
   Starts the Classloader, calls load evey 10th of a second
   ###
-  start : (loaded) ->
+  start : (JVM) ->
     self = this
     @ps_id = setInterval((() ->  self.load()), 100)
 
@@ -51,8 +51,8 @@ class this.ClassLoader
     self.console.println "Loaded #{_class.get_name()}", 1
     # load dependancies
     self.find _class.get_super()
-    #for c_ref in _class.dependancies
-    #  self.find _class.constant_pool[c_ref]
+    # initialise class
+    self.clinit(_class)    
     yes
     
   ###
@@ -75,6 +75,9 @@ class this.ClassLoader
         throw 'NoClassDefFoundError'
     return @add req.responseText, class_name
 
+  clinit : (_class) ->
+    yes
+    
 ###
 ClassReader
 ###
@@ -185,7 +188,8 @@ class ClassReader
     @console.println 'method count: ' + _class.method_count = @read(2), 2
     i = -1
     while ++i < _class.method_count
-        _class.methods[i] = @readMethodInfo(_class)   
+      method = @readMethodInfo _class
+      _class.methods[_class.constant_pool[method.name_index]] = method 
     yes   
    	
   parseAttributes : (_class) ->

@@ -33,13 +33,15 @@ class this.JVM
     if @classLoader? 
       if classname? && classname.length > 0
         @classLoader.find(classname)
-        @classLoader.start(@start)
-       
+        @classLoader.start(@)
       else 
         @stdout.write @helpText()
     this
   
-  start : ->
+  start : (main_class) ->
+    
+  
+  end : () ->
     if @callback?
       @callback() 
   ###

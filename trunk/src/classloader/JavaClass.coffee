@@ -24,6 +24,8 @@ class this.JavaClass
 	  @attributes = []
 	  @dependancies = []
   
+  init : () ->
+    
   get_super : -> 
     super_ref = @constant_pool[@super_class];
     @constant_pool[super_ref];

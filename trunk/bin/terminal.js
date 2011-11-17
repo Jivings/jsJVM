@@ -13,7 +13,7 @@ $('.command').live('keyup', function(e) {
 		case 13: // enter
 			var c = $(this).val();
 			executeCommand(c, function() {
-				$('#terminal').append('<p class="line"><span class="prompt">$</span><input type="text" class="command" /></p>');
+				$('#terminal').append('<p class="line"><span class="prompt">$</span><input type="text" class="command" value="java Sums" /></p>');
 				$('.command:last').focus();
 			});
 			$(this).replaceWith('<span>'+c+'</span>');

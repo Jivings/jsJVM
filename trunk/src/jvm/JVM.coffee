@@ -3,11 +3,15 @@ The core of the Java Virtual Machine
 Defined in Global Scope.
 ###
 
+scopedJVM = 0
+
 class this.JVM
   ###
     Initialise JVM options
   ###
+  
   constructor : (params) ->
+    scopedJVM = this
     @VERSION_ID = "0.10"
     @JAVA_VERSION = "1.6.0_22"
     
@@ -15,7 +19,7 @@ class this.JVM
     @stdout = params['stdout']
     @stderr = params['stderr']
     @verbosity = params['verbosity']
-    document.console = new Console(stdout, stderr, @verbosity)
+    @console = new Console(stdout, stderr, @verbosity)
     if params.version 
       @stdout.write "JS-JVM version '#{@VERSION_ID}' \njava version #{@JAVA_VERSION}"
     else if params.help
@@ -24,7 +28,12 @@ class this.JVM
       # Create Runtime Data Area
       @RDA = new RDA();
       # Create ClassLoader
-      @classLoader = new ClassLoader(@RDA);
+      @classLoader = new Worker('http://localhost/js-jvm/trunk/bin/js/classloader/ClassLoader.js')
+      @classLoader.onmessage = @message
+      # Start the Runtime Environment
+      @ps_id = setInterval((() ->  scopedJVM.start(scopedJVM.RDA)), 100)
+      @JNI = new InternalJNI()
+      
 
   ###
   Push classes to the classloader stack. Return self for chaining or return helptext if no classname supplied
@@ -32,18 +41,45 @@ class this.JVM
   load : (classname) ->
     if @classLoader? 
       if classname? && classname.length > 0
-        @classLoader.find(classname)
-        @classLoader.start(@)
+        @classLoader.postMessage({ 'action' : 'find' , 'param' : classname })
+        @classLoader.postMessage({ 'action' : 'start' })
       else 
         @stdout.write @helpText()
     this
-  
-  start : (main_class) ->
+   
+  ### 
+  Main OPCODE loop 
+  ### 
+  start : (RDA) ->
     
-  
+    #if((thread = RDA.threads[1])?)
+    #  thread.execute()
+              
+    this
+ 
   end : () ->
     if @callback?
       @callback() 
+
+  ###
+  Retrieves messages from Workers and performs relevent actions.
+  Hack 'scopedJVM' needed because this is treated as a callback method and thus 
+  expected scope is completely lost 
+  ###
+  message : (e) ->
+    switch e.data.action
+      when 'log'
+        scopedJVM.console.println(data.param)
+      when 'class'
+        scopedJVM.RDA.addClass(e.data.classname, e.data._class)
+        scopedJVM.console.println "Loaded #{ e.data.classname }", 1
+        scopedJVM.RDA.clinit(e.data._class)
+      else 
+        alert e.data
+
+
+  
+  
   ###
   Print help text
   ###

@@ -1,4 +1,5 @@
 class this.OpCodes
+      
   constructor : (thread) ->    
   
     @[0] = new OpCode('nop', 'Does nothing', (frame) -> yes )
@@ -175,8 +176,8 @@ class this.OpCodes
     @[59] = new OpCode('', '', (frame) -> 
     # not yet implemented
     yes )
-    @[60] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[60] = new OpCode('istore_1', 'Store int from opstack to local variable 1', (frame) -> 
+      frame.locals[1] = frame.op_stack.pop()
     yes )
     @[61] = new OpCode('', '', (frame) -> 
     # not yet implemented
@@ -542,11 +543,45 @@ class this.OpCodes
       thread.jvm_stack.pop()
       thread.current_frame = thread.jvm_stack.peek()
     )
-    @[178] = new OpCode('', '', (frame) -> 
+    @[178] = new OpCode('getstatic', 'Fetch static field from class', (frame) -> 
+      indexByte1 = frame.method_stack[++thread.pc]
+      indexByte2 = frame.method_stack[++thread.pc]
+      ref = indexByte1 << 8 | indexByte2
+      class_field_ref = thread.current_class.constant_pool[ref]
+      
+      # get the class the owns the static field 
+      class_ref = thread.current_class.constant_pool[class_field_ref[0]]
+      cls = thread.current_class.constant_pool[class_ref]
+      if typeof cls isnt 'object'
+        thread.resolveClass(class_ref)
+        # break opcode execution until class is resolved
+        return false
+              
+      field_name_type = thread.current_class.constant_pool[class_field_ref[1]]
+      frame.op_stack.push(cls.fields[field_name_type[0]].value)
+      yes
     # not yet implemented
     yes )
-    @[179] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[179] = new OpCode('putstatic', 'Set static field in class', (frame) -> 
+      indexByte1 = frame.method_stack[++thread.pc]
+      indexByte2 = frame.method_stack[++thread.pc]
+      ref = indexByte1 << 8 | indexByte2
+      class_field_ref = thread.current_class.constant_pool[ref]
+      
+      # get the class the owns the static field 
+      cls = thread.current_class.constant_pool[class_field_ref[0]]
+      field_ref = thread.current_class.constant_pool[class_field_ref[1]]
+      field_name = thread.current_class.constant_pool[field_ref[0]]
+      field_type = thread.current_class.constant_pool[field_ref[1]]
+      #cls = thread.current_class.constant_pool[class_ref]
+      if typeof cls isnt 'object'
+        thread.resolveClass(class_ref)
+        # break opcode execution until class is resolved
+        return false
+        
+      value = frame.op_stack.pop()
+      # set field value
+      cls.fields[field_name].value = value
     yes )
     @[180] = new OpCode('', '', (frame) -> 
     # not yet implemented
@@ -561,20 +596,25 @@ class this.OpCodes
     # not yet implemented
     yes )
     @[184] = new OpCode('invokestatic', 'Invoke a class (static) method', (frame) -> 
-      # CP reference
-      ref = 0 << 8 | 2
+      # cp ref
+      indexByte1 = frame.method_stack[++thread.pc]
+      indexByte2 = frame.method_stack[++thread.pc]
+      ref = indexByte1 << 8 | indexByte2
+      
       method_ref = thread.current_class.constant_pool[ref]
       class_ref = thread.current_class.constant_pool[method_ref[0]]
       method_detail = thread.current_class.constant_pool[method_ref[1]]
       
       if typeof class_ref is 'number'
-        ; # TODO should have been resolved?
+        thread.resolveClass(class_ref)
+        # break opcode execution until class is resolved
+        return false
         
       method = class_ref.methods[thread.current_class.constant_pool[method_detail[0]]]
       
       thread.current_class = class_ref
       # set frame pc to skip operands, and machine pc to nil for new method
-      frame.pc += 2
+      thread.pc += 2
       thread.pc = -1
       
       # create new frame for the static method
@@ -804,9 +844,7 @@ class this.OpCodes
     yes )
         
     
-    
-    # Integer Arithmetic
-    
+
     
   
 class OpCode

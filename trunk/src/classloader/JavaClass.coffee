@@ -23,7 +23,8 @@ class this.JavaClass
 	  @attributes_count = 0
 	  @attributes = []
 	  @dependancies = []
-  
+	  @real_name = 'None'
+    
   init : () ->
     
   get_super : -> 

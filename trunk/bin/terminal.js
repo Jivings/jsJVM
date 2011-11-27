@@ -1,7 +1,7 @@
 var history = [];
 var current = 0;
 
-$('.command').focus().val('');
+//$('.command').focus().val('');
 
 $(document).keydown(function() {
 	$('.command:last').focus();

@@ -26,22 +26,25 @@ class this.JVM
       @stdout.write @helpText()
     else    
       # Create Runtime Data Area
-      @RDA = new RDA();
+      @RDA = new RDA()
+      @RDA.JVM = @
       # Create ClassLoader
       @classLoader = new Worker('http://localhost/js-jvm/trunk/bin/js/classloader/ClassLoader.js')
       @classLoader.onmessage = @message
-      # Start the Runtime Environment
-      @ps_id = setInterval((() ->  scopedJVM.start(scopedJVM.RDA)), 100)
+      
       @JNI = new InternalJNI()
       
 
   ###
   Push classes to the classloader stack. Return self for chaining or return helptext if no classname supplied
+  When the RDA requests a class to be loaded, a callback method will be provided. 
+  This is so that opcode execution can continue after the class is loaded.
   ###
-  load : (classname) ->
+  load : (classname, callback) ->
     if @classLoader? 
       if classname? && classname.length > 0
-        @classLoader.postMessage({ 'action' : 'find' , 'param' : classname })
+        @classLoader.postMessage({ 'action' : 'find' , 'param' : classname , 'waitingThreads': callback })
+        
         @classLoader.postMessage({ 'action' : 'start' })
       else 
         @stdout.write @helpText()
@@ -69,11 +72,15 @@ class this.JVM
   message : (e) ->
     switch e.data.action
       when 'log'
-        scopedJVM.console.println(data.param)
+        scopedJVM.console.println(e.data.message)
       when 'class'
         scopedJVM.RDA.addClass(e.data.classname, e.data._class)
         scopedJVM.console.println "Loaded #{ e.data.classname }", 1
-        scopedJVM.RDA.clinit(e.data._class)
+       
+        #scopedJVM.RDA.clinit(e.data._class)
+        # notify any threads waiting on this class
+        if(e.data.waitingThreads) 
+          scopedJVM.RDA.notifyAll(e.data.classname)
       else 
         alert e.data
 

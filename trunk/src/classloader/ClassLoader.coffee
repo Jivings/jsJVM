@@ -15,10 +15,13 @@ class this.ClassLoader
     @console = { println : -> yes}
     @find @required_classes
   
+  ###
   doAction : (message) -> 
+    
     switch message.action
       when 'start' then @start()
-      when 'find' then @find(message.parameter)
+      when 'find' then @find(message.param, message.waitingThreads)
+  ### 
 
   ###
   Starts the Classloader, calls load evey 10th of a second
@@ -30,11 +33,13 @@ class this.ClassLoader
   ###
   Adds a class to the load stack
   ###
-  add : (hexstream, name) ->
+  add : (hexstream, name, waitingThreads) ->
     this.stack.push { 
       name : name,
-      data : hexstream
+      data : hexstream,
+      'waitingThreads' : waitingThreads      
     }
+    #messenger.postMessage( { 'action' : 'log', 'message' : 'Class added to stack for loading', 'data' : { 'name' : name, 'waitingThreads': waitingThreads }} )
 
   ###
   Steps through the class stack and loads each entry into the method area of the RDA.
@@ -45,7 +50,7 @@ class this.ClassLoader
      if !next.data? or next.data.length < 10 then throw 'InvalidClassException' 
 			
      classReader = new ClassReader next.data 
-     classReader.parse(@loaded, this)
+     classReader.parse(@loaded, this, next.waitingThreads)
      
     true
 
@@ -54,19 +59,20 @@ class this.ClassLoader
   Neccessary due to Async AJAX request during find
   Adds class to Method Area and loads class dependancies
   ###
-  loaded : (_class, self) ->
-    # notify JVM that class has been loaded
-    messenger.postMessage( { 'action' : 'class', 'classname' : _class.get_name(), '_class' : _class} )
-    # load dependancies
+  loaded : (_class, self, waitingThreads) ->
+    # load dependancies, this way super class Object will always be the first class loaded.
     self.find _class.get_super()
-    # initialise class
-    #self.clinit(_class)    
+    
+    # notify JVM that class has been loaded
+    messenger.postMessage( { 'action' : 'class', 'classname' : _class.get_name(), '_class' : _class, 'waitingThreads' : waitingThreads} )
+ 
     yes
     
   ###
   Finds a class on the classpath
   ###
-  find : (class_name) ->
+  find : (class_name, waitingThreads = false) ->
+    #messenger.postMessage( { 'action' : 'log', 'message' : class_name + ' waiting? ' + waitingThreads })
     # java/lang/Object super class will be undefined
     if typeof class_name is 'undefined'
       return 
@@ -81,10 +87,9 @@ class this.ClassLoader
       req.send null
       if req.status isnt 200
         throw 'NoClassDefFoundError'
-    return @add req.responseText, class_name
+    return @add req.responseText, class_name, waitingThreads
 
-  defineClass : () ->
-  
+ 
     
     
 ###
@@ -98,7 +103,7 @@ class ClassReader
     @console = { println : -> yes 
     writeConstant : -> yes}
     
-  parse : (callback, classLoader) ->
+  parse : (whenFinished, classLoader, waitingThreads) ->
     _class = new JavaClass()  
     @parseClassVars _class 
     @parseConstantPool _class
@@ -106,7 +111,7 @@ class ClassReader
     @parseInterfaces _class
     @parseFields _class
     @parseMethods _class
-    callback _class, classLoader
+    whenFinished _class, classLoader, waitingThreads
 
   read : (length) ->
     switch length
@@ -180,6 +185,7 @@ class ClassReader
     @console.println('this class: '+_class.this_class = @read(2), 2)
     _class.super_class = @read(2)
     @console.println('super class: '+_class.super_class, 2)
+    _class.real_name = _class.constant_pool[_class.constant_pool[_class.this_class]]
     yes
    
   parseInterfaces : (_class) ->
@@ -193,7 +199,8 @@ class ClassReader
     @console.println 'fields count: ' + _class.fields_count = @read(2), 2
     i = -1
     while ++i < _class.fields_count
-      _class.fields[i] = @readFieldInfo(_class)
+      field = @readFieldInfo(_class)
+      _class.fields[field.real_name] = field
     yes
     
   parseMethods : (_class) ->
@@ -263,6 +270,7 @@ class ClassReader
     @console.println '  descriptor index: ' + field_info.descriptor_index = @read(2), 2
     @console.println '  atrribute count: ' + field_info.attribute_count = @read(2), 2
    	field_info.attributes = new Array(field_info.attribute_count);
+   	field_info.real_name = _class.constant_pool[field_info.name_index]
     i = 0
     while i++ < field_info.attribute_count
       field_info.attributes[i] = @readAttribute _class
@@ -602,9 +610,8 @@ class this.JavaClass
 	  @attributes_count = 0
 	  @attributes = []
 	  @dependancies = []
-  
-  init : () ->
-    
+    @real_name = 'None'
+        
   get_super : -> 
     super_ref = @constant_pool[@super_class];
     @constant_pool[super_ref];
@@ -640,7 +647,7 @@ class this.JavaClass
     
 classLoader = new ClassLoader()
 @onmessage = (e) -> 
-  classLoader.find e.data.param
+  classLoader.find e.data.param, e.data.waitingThreads
   classLoader.start()
 
 

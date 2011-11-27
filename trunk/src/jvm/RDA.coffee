@@ -6,7 +6,8 @@ Runtime Data Area of the JVM. Stores all class, method and stack data.
 class this.RDA 
   constructor : ->
     
-   #opcodes = new OpCodes()
+    # threads that are currently waiting on a lock
+    @waiting = new Array()
     
     # All parsed class information is stored in the method area
     @method_area = {}
@@ -23,36 +24,43 @@ class this.RDA
   addClass : (classname, raw_class) ->
     @method_area[classname] = raw_class
     
+    @clinit(classname, raw_class)
     if raw_class.methods['main']?
-      @createThread classname      
+      @createThread classname, 'main'
             
-  createThread : (mainClassName) ->
+  createThread : (mainClassName, method) ->
     # TODO Thread ID?
     that = @
-    t = new Thread(@method_area[mainClassName], @)
+    t = new Thread(@method_area[mainClassName], @, method)
     @threads.push(t)
     thread_id = @threads.length-1
     # start the thread. Callback removes the thread from the pool when it terminates
     t.start( -> that.threads.splice(thread_id, thread_id+1))
     this
   
-  clinit : (raw_class) ->
-    # create class instance
-    clinit = raw_class.methods[clinit]
-    if clinit?
-      for opcode in clinit.attributes.Code.code
-        opcode.do() 
+  clinit : (classname, raw_class) ->
+    # create class instance variables
+    clsini= raw_class.methods['<clinit>']
+    if clsini?
+      @createThread classname, '<clinit>'
     yes
     
-    
-  
+  notifyAll : (notifierName) ->
+    for lock,thread of @waiting
+      if(lock == notifierName)
+        thread['continue'](notifierName)
+    yes
+      
 
 class this.Thread 
-  constructor : (_class, @RDA) ->
+  constructor : (_class, @RDA, startMethod) ->
 
+    @opcodes = new OpCodes(@)
     # pointers to the current executing structures
-    @current_frame = {}
+    #@current_frame = {}
     @current_class = _class
+    @methods = @current_class.methods
+    @current_frame = new Frame(@methods[startMethod], @current_class)
     
     @pc = 0
     # The JVM stack consists of one frame for each method executing or queued.
@@ -67,16 +75,14 @@ class this.Thread
     this
   
   start : (destroy) ->
-    @opcodes = new OpCodes(@)
-    methods = @current_class.methods
-    @current_frame = new Frame(methods.main, @current_class)
-    len  = @jvm_stack.push(@current_frame);
     
     while @current_frame?
-      @current_frame.execute(@pc, @opcodes)
+      if(!@current_frame.execute(@pc, @opcodes)) then return false
       @pc++
-    # end gracefully
-    destroy()
+    
+    yes  
+    # end gracefully TODO (line 36, maybe Garbage collect?)
+    #destroy()
     
   ###
   Called when a method is invoked. Allocates a section of 
@@ -100,7 +106,23 @@ class this.Thread
     # terminate gracefully on completion
     yes
       
-  
+  resolveClass : (index) ->
+    name = @current_class.constant_pool[index]
+    if @RDA.method_area[name] == undefined
+      # request the ClassLoader loads the class this thread needs and say we are waiting
+      @RDA.JVM.load(name, true)
+      # tell the RDA that this thread is currently waiting
+      @RDA.waiting[name] = @
+      # set the return index in the constant pool
+      @index = index
+   
+  ###
+  Called when waiting threads are notified by the RDA. Will continue opcode 
+  loop
+  ### 
+  continue : (name) ->
+    @current_class.constant_pool[@index] = @RDA.method_area[name]
+    @start()
  
   
     
@@ -115,19 +137,22 @@ class this.Frame
     @method_stack = method.attributes.Code.code
     @op_stack = new Array()
     @constant_pool = cls.constant_pool
-    @resolveClass(cls)
+    @resolveSelf(cls)
 
     @locals = {}
     
     this
 
-  execute : (@pc, opcodes) ->
-    op = @method_stack[@pc]
-    opcodes[op].do(@)
-    return @pc
+  execute : (pc, opcodes) ->
+    op = @method_stack[pc]
+    if(!opcodes[op].do(@)) then return false
+    return yes
   
-  resolveClass : (cls) ->
+  resolveSelf : (cls) ->
     @constant_pool[cls.this_class] = cls
+  
+  
+    
   
   resolveMethod : (cls, name) ->
     cls_ref = @constant_pool[cls]

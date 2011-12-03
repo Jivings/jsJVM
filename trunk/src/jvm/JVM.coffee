@@ -32,7 +32,7 @@ class this.JVM
       @classLoader = new Worker('http://localhost/js-jvm/trunk/bin/js/classloader/ClassLoader.js')
       @classLoader.onmessage = @message
       
-      @JNI = new InternalJNI()
+      @JNI = new InternalJNI(@)
       
 
   ###

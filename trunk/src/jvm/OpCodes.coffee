@@ -542,10 +542,12 @@ class this.OpCodes
       # TODO check method returns void 
       thread.jvm_stack.pop()
       thread.current_frame = thread.jvm_stack.peek()
+      if thread.current_frame?
+        thread.pc = thread.current_frame.pc 
     )
     @[178] = new OpCode('getstatic', 'Fetch static field from class', (frame) -> 
-      indexByte1 = frame.method_stack[++thread.pc]
-      indexByte2 = frame.method_stack[++thread.pc]
+      indexByte1 = frame.method_stack[thread.pc+1]
+      indexByte2 = frame.method_stack[thread.pc+2]
       ref = indexByte1 << 8 | indexByte2
       class_field_ref = thread.current_class.constant_pool[ref]
       
@@ -556,15 +558,17 @@ class this.OpCodes
         thread.resolveClass(class_ref)
         # break opcode execution until class is resolved
         return false
-              
+          
       field_name_type = thread.current_class.constant_pool[class_field_ref[1]]
-      frame.op_stack.push(cls.fields[field_name_type[0]].value)
+      field_name = thread.current_class.constant_pool[field_name_type[0]]
+      frame.op_stack.push(cls.fields[field_name].value)
+      thread.pc += 2
       yes
     # not yet implemented
     yes )
     @[179] = new OpCode('putstatic', 'Set static field in class', (frame) -> 
-      indexByte1 = frame.method_stack[++thread.pc]
-      indexByte2 = frame.method_stack[++thread.pc]
+      indexByte1 = frame.method_stack[thread.pc+1]
+      indexByte2 = frame.method_stack[thread.pc+2]
       ref = indexByte1 << 8 | indexByte2
       class_field_ref = thread.current_class.constant_pool[ref]
       
@@ -579,6 +583,7 @@ class this.OpCodes
         # break opcode execution until class is resolved
         return false
         
+      thread.pc += 2
       value = frame.op_stack.pop()
       # set field value
       cls.fields[field_name].value = value
@@ -614,7 +619,7 @@ class this.OpCodes
       
       thread.current_class = class_ref
       # set frame pc to skip operands, and machine pc to nil for new method
-      thread.pc += 2
+      frame.pc += 2
       thread.pc = -1
       
       # create new frame for the static method

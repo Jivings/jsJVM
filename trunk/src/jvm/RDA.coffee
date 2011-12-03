@@ -71,7 +71,7 @@ class this.Thread
     # The native stack consists of currently executing native methods.
     @native_stack = new Array()
     # Variable Stack
-    #@stack = new Array()
+    @jvm_stack.push(@current_frame)
     this
   
   start : (destroy) ->
@@ -130,11 +130,18 @@ class this.Thread
 A stack frame contains the state of one method invocation. When a method is invoked, 
 a new frame is pushed onto the threads stack.
 ###
-class this.Frame
+class this.Frame extends Method_Access_Flags
   
   constructor : (method, cls) -> 
   
-    @method_stack = method.attributes.Code.code
+    # if native
+    if (method.access_flags & @NATIVE) isnt 0
+      
+    # if abstract
+    else if (method.access_flags & @ABSTRACT) isnt 0
+    # else
+    else
+      @method_stack = method.attributes.Code.code
     @op_stack = new Array()
     @constant_pool = cls.constant_pool
     @resolveSelf(cls)
@@ -143,8 +150,8 @@ class this.Frame
     
     this
 
-  execute : (pc, opcodes) ->
-    op = @method_stack[pc]
+  execute : (@pc, opcodes) ->
+    op = @method_stack[@pc]
     if(!opcodes[op].do(@)) then return false
     return yes
   

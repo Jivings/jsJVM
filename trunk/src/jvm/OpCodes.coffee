@@ -539,9 +539,18 @@ class this.OpCodes
     # not yet implemented
     yes )
     @[177] = new OpCode('return', 'Return void from method', (frame) -> 
-      # TODO check method returns void 
-      thread.jvm_stack.pop()
-      thread.current_frame = thread.jvm_stack.peek()
+      
+      # get the appropriate return frame
+      if(typeof thread.current_frame is NativeFrame)
+        thread.native_stack.pop()
+        if(thread.native_stack.peek()?)
+          thread.current_frame = thread.native_stack.peek()  
+        else
+          thread.current_frame = thread.jvm_stack.peek()
+      else
+        thread.jvm_stack.pop()
+        thread.current_frame = thread.jvm_stack.peek()
+        
       if thread.current_frame?
         thread.pc = thread.current_frame.pc 
     )
@@ -623,15 +632,12 @@ class this.OpCodes
       thread.pc = -1
       
       # create new frame for the static method
-      newframe = new Frame(method, thread.current_class)
+      newframe = thread.createFrame(method, thread.current_class)
       # pop the args off the current op_stack into the local vars of the new frame
       arg_num = 0
       while frame.op_stack.length > 0
         newframe.locals[arg_num++] = frame.op_stack.pop()
             
-      # set the current frame to our new method frame
-      thread.current_frame = newframe
-      thread.jvm_stack.push(thread.current_frame)
       yes 
     )
     @[185] = new OpCode('', '', (frame) -> 

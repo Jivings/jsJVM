@@ -1,7 +1,6 @@
 ###
 Runtime Data Area of the JVM. Stores all class, method and stack data.
 ###
-#opcodes = 0
 
 class this.RDA 
   constructor : ->
@@ -38,13 +37,16 @@ class this.RDA
     t.start( -> that.threads.splice(thread_id, thread_id+1))
     this
   
+  # Execute the clinit method of a class.
   clinit : (classname, raw_class) ->
     # create class instance variables
     clsini= raw_class.methods['<clinit>']
     if clsini?
       @createThread classname, '<clinit>'
     yes
-    
+  
+  # notify all threads waiting on a particular notifier object
+  # threads will continue executing from where they were paused.
   notifyAll : (notifierName) ->
     for lock,thread of @waiting
       if(lock == notifierName)
@@ -56,11 +58,10 @@ class this.Thread
   constructor : (_class, @RDA, startMethod) ->
 
     @opcodes = new OpCodes(@)
+    @methodFactory = new MethodFactory(@)
     # pointers to the current executing structures
-    #@current_frame = {}
     @current_class = _class
     @methods = @current_class.methods
-    @current_frame = new Frame(@methods[startMethod], @current_class)
     
     @pc = 0
     # The JVM stack consists of one frame for each method executing or queued.
@@ -70,12 +71,13 @@ class this.Thread
       return @[@length-1]
     # The native stack consists of currently executing native methods.
     @native_stack = new Array()
-    # Variable Stack
-    @jvm_stack.push(@current_frame)
+    @current_frame = @createFrame(@methods[startMethod], @current_class)  
     this
   
-  start : (destroy) ->
+  createFrame : (method, cls) ->
+    @methodFactory.createFrame(method, cls)
     
+  start : (destroy) ->
     while @current_frame?
       if(!@current_frame.execute(@pc, @opcodes)) then return false
       @pc++
@@ -133,15 +135,8 @@ a new frame is pushed onto the threads stack.
 class this.Frame extends Method_Access_Flags
   
   constructor : (method, cls) -> 
-  
-    # if native
-    if (method.access_flags & @NATIVE) isnt 0
-      
-    # if abstract
-    else if (method.access_flags & @ABSTRACT) isnt 0
-    # else
-    else
-      @method_stack = method.attributes.Code.code
+    
+    @method_stack = method.attributes.Code.code
     @op_stack = new Array()
     @constant_pool = cls.constant_pool
     @resolveSelf(cls)
@@ -158,9 +153,7 @@ class this.Frame extends Method_Access_Flags
   resolveSelf : (cls) ->
     @constant_pool[cls.this_class] = cls
   
-  
-    
-  
+   
   resolveMethod : (cls, name) ->
     cls_ref = @constant_pool[cls]
     method_ref = @constant_pool[name]

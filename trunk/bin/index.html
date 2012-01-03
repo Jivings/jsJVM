@@ -1,7 +1,7 @@
 <html>
 <head>
 	<link rel="stylesheet" type="text/css" href="css/style.css" >
-	<script type="text/javascript" src="http://code.jquery.com/jquery-1.6.4.min.js"></script>
+	<script type="text/javascript" src="js/jquery-1.7.min.js"></script>
 	
 	
 </head>
@@ -11,7 +11,21 @@
 		<p>Java ready. Type 'help' for a list of available commands.</p>
 		<p class="line"><span class="prompt">$</span><input type="text" class="command" value="java HelloWorld" /></p>
 	</div>
+	
+	
+	<div id="right-pane">
+	  <a href="#" id="handle" ><strong>Open Debug</strong></a>
+	  <div id="jvm-debug">
+	    
+	    <h3>JVM Debug</h3>
+	    
+	    <h4>RDA</h4>
+	    <table id="rda">
+	    </table>
+  	</div>
+	</div>
 </body>
+
 
 <script type="text/javascript" src="js/jvm/JVM.js"></script>
 
@@ -29,6 +43,7 @@
 <script type="text/javascript" src="js/jvm/JavaNativeInterface.js"></script>
 <script type="text/javascript" src="js/jvm/MethodFactory.js"></script>
 <script type="text/javascript" src="js/jvm/NativeFrame.js"></script>
+<script type="text/javascript" src="js/classloader/ClassLoaderSync.js"></script>
 
 
 

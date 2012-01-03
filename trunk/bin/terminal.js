@@ -25,6 +25,23 @@ $('.command').live('keyup', function(e) {
 	}
 });
 
+var right = '0', shown = false;
+$('#handle').live('click', function(e) {
+  $('#right-pane').animate( { right: right } , 700, function() {
+    shown = !shown;
+    if(shown) {
+      $('#handle').html('<strong>Hide Debug</strong>');      
+      right = '-35%';
+    }
+    else {
+      $('#handle').html('<strong>Show Debug</strong>');      
+      right = '0';
+    }
+    
+    
+  });
+});
+
 
 var stdin = {
 	stream : [],
@@ -76,6 +93,8 @@ function executeCommand(c, finished) {
 	}
 };
 
+var jvm;
+
 function runJava(options, classname, args, finished) {
 	
 	var parameters = {
@@ -90,10 +109,25 @@ function runJava(options, classname, args, finished) {
 		else if(options[index] === '-version') parameters.version = 'true'
 		else if(options[index] === '-help' || options[index] === '-?') parameters.help = 'true';
 	}
-	var jvm = new JVM(parameters)
+	setInterval("updateDebug()", 100);
+	
+	jvm = new JVM(parameters)
 		.setCallBack(finished)
 		.load(classname, args)
 		
 	
 }
 
+
+function updateDebug() {
+  var loaded_classes = jvm.RDA.method_area
+  for(index in loaded_classes) {
+    var cls = loaded_classes[index];
+    addRow('rda', cls);
+  }
+}
+
+function addRow(struct, content) {
+  $('#'+struct).append('<tr><td>'+content+'<td></tr>');
+
+}

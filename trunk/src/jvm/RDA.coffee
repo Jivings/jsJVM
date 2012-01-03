@@ -42,7 +42,8 @@ class this.RDA
     # create class instance variables
     clsini= raw_class.methods['<clinit>']
     if clsini?
-      @createThread classname, '<clinit>'
+      t = new Thread(raw_class, @, '<clinit>')
+      t.start()
     yes
   
   # notify all threads waiting on a particular notifier object
@@ -85,6 +86,31 @@ class this.Thread
     yes  
     # end gracefully TODO (line 36, maybe Garbage collect?)
     #destroy()
+ 
+  resolveClass : (index) ->
+    name = @current_class.constant_pool[index]
+    if @RDA.method_area[name] == undefined
+      # request the ClassLoader loads the class this thread needs and say we are waiting
+      @RDA.JVM.load(name, true)
+      # tell the RDA that this thread is currently waiting
+      @RDA.waiting[name] = @
+      # set the return index in the constant pool
+      @index = index
+   
+  ###
+  Called when waiting threads are notified by the RDA. Will continue opcode 
+  loop
+  ### 
+  continue : (name) ->
+    @current_class.constant_pool[@index] = @RDA.method_area[name]
+    @start()
+ 
+ 
+ 
+ 
+ 
+ 
+ 
     
   ###
   Called when a method is invoked. Allocates a section of 
@@ -108,23 +134,7 @@ class this.Thread
     # terminate gracefully on completion
     yes
       
-  resolveClass : (index) ->
-    name = @current_class.constant_pool[index]
-    if @RDA.method_area[name] == undefined
-      # request the ClassLoader loads the class this thread needs and say we are waiting
-      @RDA.JVM.load(name, true)
-      # tell the RDA that this thread is currently waiting
-      @RDA.waiting[name] = @
-      # set the return index in the constant pool
-      @index = index
-   
-  ###
-  Called when waiting threads are notified by the RDA. Will continue opcode 
-  loop
-  ### 
-  continue : (name) ->
-    @current_class.constant_pool[@index] = @RDA.method_area[name]
-    @start()
+  
  
   
     

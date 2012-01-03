@@ -217,7 +217,7 @@ JVM.JVM_FindClassFromClass = (env, name, init, from) ->
 # Find a loaded class cached by the VM 
 
 JVM.JVM_FindLoadedClass = (env, loader, name) ->
-  reutrn @RDA.method_area[name]
+  return @RDA.method_area[name]
 
 # Define a class 
 

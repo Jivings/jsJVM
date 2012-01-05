@@ -18,6 +18,11 @@ class this.RDA
       younggen : {}
     }
     
+    @heap.allocate = function(object_detail) {
+      this[@length] = object_detail
+      return @length
+    }
+    
     @threads = new Array()
   
   addClass : (classname, raw_class) ->
@@ -59,7 +64,7 @@ class this.Thread
   constructor : (_class, @RDA, startMethod) ->
 
     @opcodes = new OpCodes(@)
-    @methodFactory = new MethodFactory(@)
+    @methodFactory = new MethodFactory(@, @RDA.JVM)
     # pointers to the current executing structures
     @current_class = _class
     @methods = @current_class.methods
@@ -72,6 +77,9 @@ class this.Thread
       return @[@length-1]
     # The native stack consists of currently executing native methods.
     @native_stack = new Array()
+    @native_stack.peek = () ->
+      return @[@length-1]
+      
     @current_frame = @createFrame(@methods[startMethod], @current_class)  
     this
   
@@ -142,7 +150,7 @@ class this.Thread
 A stack frame contains the state of one method invocation. When a method is invoked, 
 a new frame is pushed onto the threads stack.
 ###
-class this.Frame extends Method_Access_Flags
+class this.Frame
   
   constructor : (method, cls) -> 
     

@@ -120,11 +120,13 @@ function runJava(options, classname, args, finished) {
 
 
 function updateDebug() {
+/*
   var loaded_classes = jvm.RDA.method_area
   for(index in loaded_classes) {
     var cls = loaded_classes[index];
     addRow('rda', cls);
   }
+  */
 }
 
 function addRow(struct, content) {

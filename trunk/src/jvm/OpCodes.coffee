@@ -72,7 +72,7 @@ class this.OpCodes
     # not yet implemented
     yes )
     @[25] = new OpCode('aload', 'Load reference from local variable', (frame) -> 
-      
+      frame.op_stack.push(frame.locals[getIndexByte(1)])
     yes )
     @[26] = new OpCode('iload0', 'Load int from local variable 0', (frame) -> 
       frame.op_stack.push(frame.locals[0])
@@ -123,16 +123,16 @@ class this.OpCodes
     # not yet implemented
     yes )
     @[42] = new OpCode('aload_0', 'Load reference from local variable 0', (frame) -> 
-    # not yet implemented
+      frame.op_stack.push(frame.locals[0])
     yes )
     @[43] = new OpCode('aload_1', 'Load reference from local variable 1', (frame) -> 
-    # not yet implemented
+      frame.op_stack.push(frame.locals[1])
     yes )
     @[44] = new OpCode('aload_2', 'Load reference from local variable 2', (frame) -> 
-    # not yet implemented
+      frame.op_stack.push(frame.locals[2])
     yes )
     @[45] = new OpCode('aload_3', 'Load reference from local variable 3', (frame) -> 
-    # not yet implemented
+      frame.op_stack.push(frame.locals[3])
     yes )
     @[46] = new OpCode('', '', (frame) -> 
     # not yet implemented
@@ -147,7 +147,10 @@ class this.OpCodes
     # not yet implemented
     yes )
     @[50] = new OpCode('aaload', 'Load reference from array', (frame) -> 
-    # not yet implemented
+      arrayref = op_stack.pop()
+      arrayindex = op_stack.pop()
+      ref = thread.RDA.heap[arrayref][arrayindex]
+      frame.op_stack.push(ref)
     yes )
     @[51] = new OpCode('', '', (frame) -> 
     # not yet implemented
@@ -246,7 +249,14 @@ class this.OpCodes
     # not yet implemented
     yes )
     @[83] = new OpCode('aastore', 'Store reference into Array', (frame) -> 
-    # not yet implemented
+      arrayref = op_stack.pop()
+      arrayindex = op_stack.pop()
+      value = op_stack.pop()
+      #TODO value must be compatable with the arraytype
+      array = thread.RDA.heap[arrayref]
+      if array === null
+        no #TODO throw exception
+      array[arrayindex] = value
     yes )
     @[84] = new OpCode('', '', (frame) -> 
     # not yet implemented
@@ -541,7 +551,7 @@ class this.OpCodes
     @[177] = new OpCode('return', 'Return void from method', (frame) -> 
       
       # get the appropriate return frame
-      if(typeof thread.current_frame is NativeFrame)
+      if(thread.current_frame.env?)
         thread.native_stack.pop()
         if(thread.native_stack.peek()?)
           thread.current_frame = thread.native_stack.peek()  
@@ -652,8 +662,17 @@ class this.OpCodes
     @[188] = new OpCode('', '', (frame) -> 
     # not yet implemented
     yes )
-    @[189] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[189] = new OpCode('anewarray', 'Create new array of reference', (frame) -> 
+      count = frame.op_stack.pop()
+      cpindex = @constructIndex(frame)
+      cls = thred.current_class.constant_pool[cpindex]
+      if(!@validate(cls, 'CONSTANT_Class'))
+        return false
+      if(count < 0)
+        # TODO throw NegativeArraySizeException
+        return false;
+      arrayref = thread.RDA.heap.allocate( { 'object' : new Array(count), 'type' : cls } )
+      return arrayref
     yes )
     @[190] = new OpCode('', '', (frame) -> 
     # not yet implemented
@@ -855,9 +874,20 @@ class this.OpCodes
     yes )
         
     
-
-    
+  getIndexByte : (index, frame) ->
+    return frame.method_stack[thread.pc+index]
   
+  constructIndex : (frame) ->  
+    indexbyte1 = getIndexByte(1, frame)
+    indexbyte2 = getIndexByte(2, frame)
+    return indexbyte1 << 8 | indexbyte2
+  
+  validate : (ref, type) ->
+    if typeof class_ref is 'number'
+      thread.resolveClass(class_ref)
+      # break opcode execution until class is resolved
+      return false
+    
 class OpCode
   constructor : (@mnemonic, @description, @do) ->
     this

@@ -2,6 +2,9 @@ class this.OpCodes
       
   constructor : (thread) ->    
   
+    @fromHeap = (ref) ->
+      return thread.RDA.heap[ref]
+      
     @[0] = new OpCode('nop', 'Does nothing', (frame) -> yes )
     
     @[1] = new OpCode('aconst_null', 'Push null object reference', (frame) -> 
@@ -147,16 +150,45 @@ class this.OpCodes
     # not yet implemented
     yes )
     @[50] = new OpCode('aaload', 'Load reference from array', (frame) -> 
-      arrayref = op_stack.pop()
-      arrayindex = op_stack.pop()
+      arrayref = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
       ref = thread.RDA.heap[arrayref][arrayindex]
       frame.op_stack.push(ref)
     yes )
-    @[51] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[51] = new OpCode('baload', 'Load byte or boolean from array', (frame) -> 
+      arrayref = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
+      if not arrayref instanceof JVM_Reference
+        # throw runtimeexception
+        return false
+      if arrayref == null
+        #throw nullpointerexception
+        return false
+      array = fromHeap(arrayref)
+      if arrayindex >= array.length or arrayindex < 0
+        #throw ArrayIndexOutOfBounds
+        return false
+      frame.op_stack.push(array[arrayindex])      
     yes )
-    @[52] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[52] = new OpCode('caload', 'Load char from array', (frame) -> 
+      arrayref = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
+      if not arrayref instanceof JVM_Reference
+        # throw runtimeexception
+        return false
+      if arrayref == null
+        #throw nullpointerexception
+        return false
+      array = fromHeap(arrayref)
+      # array must be of type 'char' 
+      if array.type != 'char'
+        #do something..?
+        # throw runtimeexception
+        return false
+      if arrayindex >= array.length or arrayindex < 0
+        #throw ArrayIndexOutOfBounds
+        return false
+      frame.op_stack.push(array[arrayindex])
     yes )
     @[53] = new OpCode('', '', (frame) -> 
     # not yet implemented
@@ -173,8 +205,12 @@ class this.OpCodes
     @[57] = new OpCode('', '', (frame) -> 
     # not yet implemented
     yes )
-    @[58] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[58] = new OpCode('astore', 'Store reference into local variable', (frame) -> 
+      index = @getIndexByte(1)
+      objectref = frame.op_stack.pop()
+      # TODO objectref must be of type returnAddress or Reference
+      # index must be a valid local index
+      frame.locals[index] = objectref
     yes )
     @[59] = new OpCode('', '', (frame) -> 
     # not yet implemented
@@ -224,17 +260,21 @@ class this.OpCodes
     @[74] = new OpCode('', '', (frame) -> 
     # not yet implemented
     yes )
-    @[75] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[75] = new OpCode('astore_0', 'Store reference into local var 0', (frame) -> 
+      objectref = frame.op_stack.pop()
+      frame.locals[0] = objectref
     yes )
-    @[76] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[76] = new OpCode('astore_1', 'Store reference into local var 1', (frame) -> 
+      objectref = frame.op_stack.pop()
+      frame.locals[1] = objectref
     yes )
-    @[77] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[77] = new OpCode('astore_2', 'Store reference into local var 2', (frame) -> 
+      objectref = frame.op_stack.pop()
+      frame.locals[2] = objectref
     yes )
-    @[78] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[78] = new OpCode('astore_3', 'Store reference into local var 3', (frame) -> 
+      objectref = frame.op_stack.pop()
+      frame.locals[3] = objectref
     yes )
     @[79] = new OpCode('', '', (frame) -> 
     # not yet implemented
@@ -249,20 +289,33 @@ class this.OpCodes
     # not yet implemented
     yes )
     @[83] = new OpCode('aastore', 'Store reference into Array', (frame) -> 
-      arrayref = op_stack.pop()
-      arrayindex = op_stack.pop()
-      value = op_stack.pop()
+      arrayref = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
+      value = frame.op_stack.pop()
       #TODO value must be compatable with the arraytype
+      
       array = thread.RDA.heap[arrayref]
-      if array === null
+      if array == null
         no #TODO throw exception
       array[arrayindex] = value
     yes )
-    @[84] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[84] = new OpCode('bastore', 'Store into byte or boolean Array', (frame) -> 
+      arrayref = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
+      value = frame.op_stack.pop()
+      array = @fromHeap(arrayref)
+      if array == null
+        no # throw nullpointerexception
+      array[arrayindex] = value
     yes )
-    @[85] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[85] = new OpCode('castore', 'Store into char array', (frame) -> 
+      arrayref = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
+      value = frame.op_stack.pop()
+      array = @fromHeap(arrayref)
+      if array == null
+        no # throw nullpointerexception
+      array[arrayindex] = value
     yes )
     @[86] = new OpCode('', '', (frame) -> 
     # not yet implemented
@@ -546,7 +599,16 @@ class this.OpCodes
     # not yet implemented
     yes )
     @[176] = new OpCode('areturn', 'Return reference', (frame) -> 
-    # not yet implemented
+      # get the ref to return
+      returnref = frame.op_stack.pop()
+      # pop the current method to discard
+      thread.jvm_stack.pop()
+      # push the ref to the stack of the invoking method.
+      invoker = thread.jvm_stack.peek()
+      invoker.op_stack.push(returnref)
+      # make invoker current and set pc to where invoker was left off
+      thread.current_frame = invoker
+      thread.pc = invoker.pc
     yes )
     @[177] = new OpCode('return', 'Return void from method', (frame) -> 
       
@@ -656,32 +718,66 @@ class this.OpCodes
     @[186] = new OpCode('', '', (frame) -> 
     # not yet implemented
     yes )
-    @[187] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[187] = new OpCode('new', 'Create new Object', (frame) -> 
+      index = @constructIndex(frame, thread)
+      clsref = thread.current_class.constant_pool[index]
+      cls = thread.current_class.constant_pool[clsref]
+      # TODO check if interface, array or abstract and throw instantiationException
+      if not (cls instanceof CONSTANT_Class)
+        # resolve
+        thread.resolveClass(clsref)
+        return false
+        
+      thread.RDA.heap.allocate(new JVM_Object(cls))
+      
     yes )
     @[188] = new OpCode('', '', (frame) -> 
     # not yet implemented
     yes )
     @[189] = new OpCode('anewarray', 'Create new array of reference', (frame) -> 
       count = frame.op_stack.pop()
-      cpindex = @constructIndex(frame)
-      cls = thred.current_class.constant_pool[cpindex]
+      cpindex = @constructIndex(frame, thread)
+      cls = thread.current_class.constant_pool[cpindex]
       if(!@validate(cls, 'CONSTANT_Class'))
         return false
       if(count < 0)
         # TODO throw NegativeArraySizeException
         return false;
       arrayref = thread.RDA.heap.allocate( { 'object' : new Array(count), 'type' : cls } )
-      return arrayref
+      frame.op_stack.push(arrayref.pointer)
     yes )
-    @[190] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[190] = new OpCode('arraylength', 'Get length of array', (frame) -> 
+      arrayref = frame.op_stack.pop()
+      if arrayref == null 
+        # TODO throw NullPointerException
+        return false
+      array = thread.RDA.heap[arrayref.pointer]
+      len = array.length
+      frame.op_stack.push(len)    
     yes )
-    @[191] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[191] = new OpCode('athrow', 'Throw exception or error', (frame) -> 
+      objectref = frame.op_stack.pop()
+      if ojectref == null
+        # throw NullPointerException instead of objectref
+        return false
+      #TODO... something here...  
+      
     yes )
-    @[192] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[192] = new OpCode('checkcast', 'Check if object is of a given type', (frame) -> 
+      # do not alter the op stack
+      objectref = frame.op_stack.peek()
+      cls = constructIndex(frame, thread)
+      # s comes from heap, T from the class constant pool
+      S = @fromHeap(objectref)
+      T = thread.current_class.constant_pool[cls]
+      if not T instanceof CONSTANT_Class
+        thread.resolveClass(T)
+        return false
+      if objectref == null
+        return true
+      # TODO check shit here pg 175
+     
+        
     yes )
     @[193] = new OpCode('', '', (frame) -> 
     # not yet implemented
@@ -873,23 +969,25 @@ class this.OpCodes
     # not yet implemented
     yes )
         
-    
-  getIndexByte : (index, frame) ->
-    return frame.method_stack[thread.pc+index]
   
-  constructIndex : (frame) ->  
-    indexbyte1 = getIndexByte(1, frame)
-    indexbyte2 = getIndexByte(2, frame)
-    return indexbyte1 << 8 | indexbyte2
   
-  validate : (ref, type) ->
-    if typeof class_ref is 'number'
-      thread.resolveClass(class_ref)
-      # break opcode execution until class is resolved
-      return false
     
 class OpCode
   constructor : (@mnemonic, @description, @do) ->
     this
+    
+  getIndexByte : (index, frame, thread) ->
+    return frame.method_stack[thread.pc+index]
+  
+  constructIndex : (frame, thread) ->  
+    indexbyte1 = @getIndexByte(1, frame, thread)
+    indexbyte2 = @getIndexByte(2, frame, thread)
+    return indexbyte1 << 8 | indexbyte2
+  
+  validate : (ref, type) ->
+    if not ref instanceof type
+      thread.resolveClass(class_ref)
+      # break opcode execution until class is resolved
+      return false
   
   

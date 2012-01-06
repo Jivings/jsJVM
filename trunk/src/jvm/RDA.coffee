@@ -16,12 +16,13 @@ class this.RDA
       permgen : {}
       oldgen : {}
       younggen : {}
+      id : 0
     }
     
-    @heap.allocate = function(object_detail) {
-      this[@length] = object_detail
-      return @length
-    }
+    @heap.allocate = (object) -> 
+      ref = ++@id
+      this[ref] = object
+      return new JVM_Reference(ref)
     
     @threads = new Array()
   
@@ -98,12 +99,15 @@ class this.Thread
   resolveClass : (index) ->
     name = @current_class.constant_pool[index]
     if @RDA.method_area[name] == undefined
-      # request the ClassLoader loads the class this thread needs and say we are waiting
-      @RDA.JVM.load(name, true)
+      
       # tell the RDA that this thread is currently waiting
       @RDA.waiting[name] = @
       # set the return index in the constant pool
       @index = index
+      # request the ClassLoader loads the class this thread needs and say we are waiting
+      @RDA.JVM.load(name, true)
+      
+      
    
   ###
   Called when waiting threads are notified by the RDA. Will continue opcode 
@@ -156,6 +160,8 @@ class this.Frame
     
     @method_stack = method.attributes.Code.code
     @op_stack = new Array()
+    @op_stack.peek = () ->
+      return @[@length-1]
     @constant_pool = cls.constant_pool
     @resolveSelf(cls)
 

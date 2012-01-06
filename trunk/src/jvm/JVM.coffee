@@ -42,10 +42,10 @@ class this.JVM
   When the RDA requests a class to be loaded, a callback method will be provided. 
   This is so that opcode execution can continue after the class is loaded.
   ###
-  load : (classname, callback) ->
+  load : (classname, bool) ->
     if @classLoader? 
       if classname? && classname.length > 0
-        @classLoader.postMessage({ 'classname' : classname , 'waitingThreads': callback })
+        @classLoader.postMessage({ 'classname' : classname , 'waitingThreads': bool })
         
       else 
         @stdout.write @helpText()

@@ -1,4 +1,27 @@
 
+  class this.JVM_Object
+    constructor : (@cls) ->
+    
+  
+  class JVM_Reference
+    constructor : (@pointer) ->
+    
+  class JVM_Array extends Array
+    type = null
+    
+  class CONSTANT_Integer
+    @int = 0
+  
+  class CONSTANT_Float
+    @float = 0
+    
+  class CONSTANT_Long
+    @long = 0
+  
+  class CONSTANT_Double
+    @double = 0
+  
+     
   ### 
   Additional JVM functions exported from the main VM.
   Add support for native methods interacting with the VM.
@@ -11,6 +34,15 @@
       jclass.native[name] = JVM::[JVM_MethodName]
     yes
     
+    
+  # Our own Java Data Structures. These provide an extra 'type' var to allow 
+  # our typeless language to still follow strict Java typing.
+  
+  JVM::Array = () ->
+    type = ""
+  
+  JVM::Reference = () ->
+    ref = 0
     
   # Objects
 

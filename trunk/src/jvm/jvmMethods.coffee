@@ -1,26 +1,54 @@
 
   class this.JVM_Object
     constructor : (@cls) ->
-    
-  
-  class JVM_Reference
+      @fields = {}
+      for field of @cls.fields
+        fld = @cls.fields[field]
+        @fields[fld.info.real_name] = fld.value
+      @methods = @cls.methods
+      
+  class this.JVM_Reference
     constructor : (@pointer) ->
     
-  class JVM_Array extends Array
+  class this.JVM_Array extends Array
     type = null
+      
+  class this.CONSTANT_Array
+    value = null
     
-  class CONSTANT_Integer
-    @int = 0
+  class this.CONSTANT_Object
+    constructor : (@classname) ->
+      @value = null
+      
+  class this.CONSTANT_Integer
+    constructor : () ->
+      @value = 0
   
-  class CONSTANT_Float
-    @float = 0
+  class this.CONSTANT_Float
+    constructor : () ->
+      @value = 0
     
-  class CONSTANT_Long
-    @long = 0
+  class this.CONSTANT_Long
+    constructor : () ->
+      @value = 0
   
-  class CONSTANT_Double
-    @double = 0
+  class this.CONSTANT_Double
+    constructor : () ->
+      @value = 0
   
+  class this.CONSTANT_Char
+    constructor : () ->
+      @value = '\u0000'
+  
+  class this.CONSTANT_Byte 
+    constructor : () ->
+      @value = 0
+    
+  class this.CONSTANT_Boolean
+    constructor : () ->
+      @value = false
+    
+  class 
      
   ### 
   Additional JVM functions exported from the main VM.
@@ -321,13 +349,15 @@
     JVM_ACC_STRICT        :   0
     JVM_ACC_SYNTHETIC     :   0
   }
-  ###
-  #define JVM_RECOGNIZED_CLASS_MODIFIERS (JVM_ACC_PUBLIC | \
-                                          JVM_ACC_FINAL | \
-                                          JVM_ACC_SUPER | \
-                                          JVM_ACC_INTERFACE | \
-                                          JVM_ACC_ABSTRACT | \
-                                          JVM_ACC_ANNOTATION | \
+  
+  JVM::JVM_RECOGNIZED_CLASS_MODIFIERS = {
+    JVM_ACC_PUBLIC    : 0x0001
+    JVM_ACC_FINAL     : 0x0010
+    JVM_ACC_SUPER     : 0x0020
+    JVM_ACC_INTERFACE : 0x0200
+    JVM_ACC_ABSTRACT  : 0x0400
+  }
+  ###                                        JVM_ACC_ANNOTATION | \
                                           JVM_ACC_ENUM | \
                                           JVM_ACC_SYNTHETIC)
 

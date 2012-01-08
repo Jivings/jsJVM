@@ -2,9 +2,6 @@ class this.OpCodes
       
   constructor : (thread) ->    
   
-    @fromHeap = (ref) ->
-      return thread.RDA.heap[ref]
-      
     @[0] = new OpCode('nop', 'Does nothing', (frame) -> yes )
     
     @[1] = new OpCode('aconst_null', 'Push null object reference', (frame) -> 
@@ -13,15 +10,20 @@ class this.OpCodes
     @[2] = new OpCode('iconst_m1', 'Push int constant -1', (frame) -> 
       frame.op_stack.push(-1)
     )
-    @[3] = new OpCode('', '', (frame) -> 
+    @[3] = new OpCode('iconst_0', 'Push int constant 0', (frame) -> 
+      frame.op_stack.push(0)
     )
-    @[4] = new OpCode('', '', (frame) -> 
+    @[4] = new OpCode('iconst_1', 'Push int constant 1', (frame) -> 
+      frame.op_stack.push(1)  
     )
-    @[5] = new OpCode('', '', (frame) -> 
+    @[5] = new OpCode('iconst_2', 'Push int constant 2', (frame) -> 
+      frame.op_stack.push(2)
     )
-    @[6] = new OpCode('', '', (frame) -> 
+    @[6] = new OpCode('iconst_3', 'Push int constant 3', (frame) -> 
+      frame.op_stack.push(3)
     )
-    @[7] = new OpCode('', '', (frame) -> 
+    @[7] = new OpCode('iconst_4', 'Push int constant 4', (frame) -> 
+      frame.op_stack.push(4)
     )
     @[8] = new OpCode('iconst_5', 'Pushes int constant 5 to the frame.op_stack.', (frame) -> 
       frame.op_stack.push(5)
@@ -326,9 +328,9 @@ class this.OpCodes
     @[88] = new OpCode('', '', (frame) -> 
     # not yet implemented
     yes )
-    @[89] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
+    @[89] = new OpCode('dup', 'Duplicate top operand stack word', (frame) -> 
+      frame.op_stack.push(frame.op_stack.peek())
+    )
     @[90] = new OpCode('', '', (frame) -> 
     # not yet implemented
     yes )
@@ -633,15 +635,15 @@ class this.OpCodes
       class_field_ref = thread.current_class.constant_pool[ref]
       
       # get the class the owns the static field 
-      class_ref = thread.current_class.constant_pool[class_field_ref[0]]
+      class_ref = thread.current_class.constant_pool[class_field_ref.class_index]
       cls = thread.current_class.constant_pool[class_ref]
       if typeof cls isnt 'object'
         thread.resolveClass(class_ref)
         # break opcode execution until class is resolved
         return false
           
-      field_name_type = thread.current_class.constant_pool[class_field_ref[1]]
-      field_name = thread.current_class.constant_pool[field_name_type[0]]
+      field_name_type = thread.current_class.constant_pool[class_field_ref.descriptor_index]
+      field_name = thread.current_class.constant_pool[field_name_type.name_index]
       frame.op_stack.push(cls.fields[field_name].value)
       thread.pc += 2
       yes
@@ -654,12 +656,12 @@ class this.OpCodes
       class_field_ref = thread.current_class.constant_pool[ref]
       
       # get the class the owns the static field 
-      cls = thread.current_class.constant_pool[class_field_ref[0]]
-      field_ref = thread.current_class.constant_pool[class_field_ref[1]]
-      field_name = thread.current_class.constant_pool[field_ref[0]]
-      field_type = thread.current_class.constant_pool[field_ref[1]]
+      cls = thread.current_class.constant_pool[class_field_ref.class_index]
+      field_ref = thread.current_class.constant_pool[class_field_ref.name_and_type_index]
+      field_name = thread.current_class.constant_pool[field_ref.name_index]
+      field_type = thread.current_class.constant_pool[field_ref.descriptor_index]
       #cls = thread.current_class.constant_pool[class_ref]
-      if typeof cls isnt 'object'
+      if not(cls instanceof CONSTANT_Class)
         thread.resolveClass(class_ref)
         # break opcode execution until class is resolved
         return false
@@ -678,9 +680,39 @@ class this.OpCodes
     @[182] = new OpCode('', '', (frame) -> 
     # not yet implemented
     yes )
-    @[183] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
+    @[183] = new OpCode('invokespecial', 'Invoke instance method', (frame) -> 
+      # get method ref from operands
+      methodref = @fromClass(@constructIndex(frame, thread), thread)
+      cls_index = @fromClass(methodref.class_index, thread)
+      cls = @fromClass(cls_index, thread)
+      if not(methodref instanceof CONSTANT_Methodref_info)
+        throw 'Opcode 183 error.'
+      if not(cls instanceof CONSTANT_Class) 
+        if(cls = thread.resolveClass(cls_index)) == null
+          return false
+              
+      method_name_and_type = @fromClass(methodref.name_and_type_index, thread)
+      method_name = @fromClass(method_name_and_type.name_index, thread)
+      method = cls.methods[method_name]
+      
+      #if thread.current_class == cls && cls.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_CLASS_MODIFIERS.JVM_ACC_SUPER 
+      #return true
+        
+      # set frame and class
+      newframe = thread.createFrame(method, cls)
+      thread.current_class = cls
+      
+      # set frame pc to skip operands, and machine pc to nil for new method
+      frame.pc += 2
+      thread.pc = -1
+      # pop the args off the current op_stack into the local vars of the new frame
+      arg_num = 0
+      while frame.op_stack.length > 0
+        newframe.locals[arg_num++] = frame.op_stack.pop()
+        
+      yes
+      
+    )
     @[184] = new OpCode('invokestatic', 'Invoke a class (static) method', (frame) -> 
       # cp ref
       indexByte1 = frame.method_stack[++thread.pc]
@@ -688,15 +720,15 @@ class this.OpCodes
       ref = indexByte1 << 8 | indexByte2
       
       method_ref = thread.current_class.constant_pool[ref]
-      class_ref = thread.current_class.constant_pool[method_ref[0]]
-      method_detail = thread.current_class.constant_pool[method_ref[1]]
+      class_ref = thread.current_class.constant_pool[method_ref.class_index]
+      method_detail = thread.current_class.constant_pool[method_ref.name_and_type_index]
       
       if typeof class_ref is 'number'
         thread.resolveClass(class_ref)
         # break opcode execution until class is resolved
         return false
         
-      method = class_ref.methods[thread.current_class.constant_pool[method_detail[0]]]
+      method = class_ref.methods[thread.current_class.constant_pool[method_detail.name_index]]
       
       thread.current_class = class_ref
       # set frame pc to skip operands, and machine pc to nil for new method
@@ -727,8 +759,9 @@ class this.OpCodes
         # resolve
         thread.resolveClass(clsref)
         return false
-        
-      thread.RDA.heap.allocate(new JVM_Object(cls))
+      thread.pc += 2  
+      objectref = thread.RDA.heap.allocate(new JVM_Object(cls))
+      frame.op_stack.push(objectref)
       
     yes )
     @[188] = new OpCode('', '', (frame) -> 
@@ -738,9 +771,10 @@ class this.OpCodes
       count = frame.op_stack.pop()
       cpindex = @constructIndex(frame, thread)
       cls = thread.current_class.constant_pool[cpindex]
-      if(!@validate(cls, 'CONSTANT_Class'))
+      if not(cls instanceof CONSTANT_Class)
+        thread.resolveClass(cls)
         return false
-      if(count < 0)
+      if count < 0
         # TODO throw NegativeArraySizeException
         return false;
       arrayref = thread.RDA.heap.allocate( { 'object' : new Array(count), 'type' : cls } )
@@ -982,12 +1016,10 @@ class OpCode
   constructIndex : (frame, thread) ->  
     indexbyte1 = @getIndexByte(1, frame, thread)
     indexbyte2 = @getIndexByte(2, frame, thread)
-    return indexbyte1 << 8 | indexbyte2
-  
-  validate : (ref, type) ->
-    if not ref instanceof type
-      thread.resolveClass(class_ref)
-      # break opcode execution until class is resolved
-      return false
-  
-  
+    return indexbyte1 << 8 | indexbyte2  
+    
+  fromHeap : (ref, thread) ->
+    return thread.RDA.heap[ref]
+      
+  fromClass : (index, thread) ->
+    thread.current_class.constant_pool[index]

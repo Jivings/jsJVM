@@ -52,8 +52,10 @@ class this.JVM
     this
    
   loaded : (classname, classdata, waitingThreads) ->
-    scopedJVM.RDA.addClass(classname, classdata)
-    console.log('Loaded class ['+classname+']')
+    if(classdata != null)
+      scopedJVM.RDA.addClass(classname, classdata)
+      console.log('Loaded class ['+classname+']')
+    
     if(waitingThreads) 
       scopedJVM.RDA.notifyAll(classname)
  

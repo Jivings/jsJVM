@@ -106,7 +106,8 @@ class this.Thread
       @index = index
       # request the ClassLoader loads the class this thread needs and say we are waiting
       @RDA.JVM.load(name, true)
-      
+      return null
+    return @RDA.method_area[name]  
       
    
   ###

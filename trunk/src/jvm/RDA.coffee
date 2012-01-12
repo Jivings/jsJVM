@@ -157,15 +157,15 @@ a new frame is pushed onto the threads stack.
 ###
 class this.Frame
   
-  constructor : (method, cls) -> 
+  constructor : (method, @cls) -> 
     
     @method_stack = method.attributes.Code.code
     @op_stack = new Array()
     @op_stack.peek = () ->
       return @[@length-1]
-    @constant_pool = cls.constant_pool
-    @resolveSelf(cls)
-
+    @constant_pool = @cls.constant_pool
+    @resolveSelf(@cls)
+    @name = method.name
     @locals = {}
     
     this
@@ -177,8 +177,7 @@ class this.Frame
   
   resolveSelf : (cls) ->
     @constant_pool[cls.this_class] = cls
-  
-   
+     
   resolveMethod : (cls, name) ->
     cls_ref = @constant_pool[cls]
     method_ref = @constant_pool[name]

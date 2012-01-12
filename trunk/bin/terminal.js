@@ -1,6 +1,11 @@
 var history = [];
 var current = 0;
 
+function noError(err, url, line) {
+  console.log(err)
+}
+window.onerror = noError;
+
 //$('.command').focus().val('');
 
 $(document).keydown(function() {

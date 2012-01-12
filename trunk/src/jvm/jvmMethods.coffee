@@ -9,47 +9,43 @@
       
   class this.JVM_Reference
     constructor : (@pointer) ->
-    
-  class this.JVM_Array extends Array
-    type = null
-      
+          
   class this.CONSTANT_Array
-    value = null
-    
+    constructor : (@type) ->
+            
   class this.CONSTANT_Object
     constructor : (@classname) ->
       @value = null
       
   class this.CONSTANT_Integer
-    constructor : () ->
-      @value = 0
-  
+    constructor : (val = 0) ->
+      @value = new Number(val)     
+      
   class this.CONSTANT_Float
-    constructor : () ->
-      @value = 0
-    
+    constructor : (val = 0.0) ->
+      @value = new Number(val)
+      
   class this.CONSTANT_Long
-    constructor : () ->
-      @value = 0
+    constructor : (val = 0) ->
+      @value = new Number(val)
   
   class this.CONSTANT_Double
-    constructor : () ->
-      @value = 0
+    constructor : (val = 0) ->
+      @value = new Number(val)
   
   class this.CONSTANT_Char
-    constructor : () ->
-      @value = '\u0000'
+    constructor : (@value = '\u0000') ->
+      @value = @value.charCodeAt();
   
+  class this.CONSTANT_Short
+    constructor : (@value = 0) ->
+    
   class this.CONSTANT_Byte 
-    constructor : () ->
-      @value = 0
+    constructor : (@value = 0) ->
     
   class this.CONSTANT_Boolean
-    constructor : () ->
-      @value = false
-    
-  class 
-     
+    constructor : (@value = false) ->
+         
   ### 
   Additional JVM functions exported from the main VM.
   Add support for native methods interacting with the VM.
@@ -88,7 +84,7 @@
   # java.lang.System
 
   JVM::JVM_CurrentTimeMillis = (env, ignoredJClass) ->
-    new Date().getTime()
+    return new CONSTANT_Long(new Date().getTime())
     
   JVM::JVM_NanoTime = (env, ignoredJClass) ->
 
@@ -156,6 +152,7 @@
   # java.lang.Throwable
 
   JVM::JVM_FillInStackTrace = (env, throwable) ->
+    console.log('filling in stacktrace!')
 
   JVM::JVM_PrintStackTrace = (env, throwable, printable) ->
 
@@ -360,14 +357,31 @@
   ###                                        JVM_ACC_ANNOTATION | \
                                           JVM_ACC_ENUM | \
                                           JVM_ACC_SYNTHETIC)
-
-  #define JVM_RECOGNIZED_FIELD_MODIFIERS (JVM_ACC_PUBLIC | \
-                                          JVM_ACC_PRIVATE | \
-                                          JVM_ACC_PROTECTED | \
-                                          JVM_ACC_STATIC | \
-                                          JVM_ACC_FINAL | \
-                                          JVM_ACC_VOLATILE | \
-                                          JVM_ACC_TRANSIENT | \
-                                          JVM_ACC_ENUM | \
-                                          JVM_ACC_SYNTHETIC)
                                           ###
+
+  JVM::JVM_RECOGNIZED_FIELD_MODIFIERS = {
+    JVM_ACC_PUBLIC    : 0x0000
+    JVM_ACC_PRIVATE   : 0x0000
+    JVM_ACC_PROTECTED : 0x0000
+    JVM_ACC_STATIC    : 0x0000
+    JVM_ACC_FINAL     : 0x0000
+    JVM_ACC_VOLATILE  : 0x0000
+    JVM_ACC_TRANSIENT : 0x0000
+    JVM_ACC_ENUM      : 0x0000
+    JVM_ACC_SYNTHETIC : 0x0000
+  }
+  
+  JVM::FIELD_DESCRIPTORS = {
+    'B'   :   CONSTANT_Byte
+    'C'   :   CONSTANT_Char
+    'D'   :   CONSTANT_Double
+    'F'   :   CONSTANT_Float
+    'I'   :   CONSTANT_Integer
+    'J'   :   CONSTANT_Long
+    'L'   :   CONSTANT_Class
+    'S'   :   CONSTANT_Short
+    '['   :   CONSTANT_Array
+  }
+                                          
+                                          
+

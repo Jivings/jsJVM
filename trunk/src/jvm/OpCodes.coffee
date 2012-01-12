@@ -28,158 +28,215 @@ class this.OpCodes
     @[8] = new OpCode('iconst_5', 'Pushes int constant 5 to the frame.op_stack.', (frame) -> 
       frame.op_stack.push(5)
     )
-    @[9] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
+    @[9] = new OpCode('lconst_0', 'Push long constant 0', (frame) -> 
+      frame.op_stack.push(new CONSTANT_Long())
+    )
     @[10] = new OpCode('lconst_1', 'Push long constant 1', (frame) -> 
-    # not yet implemented
-    yes )
-    @[11] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[12] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[13] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[14] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[15] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
+      frame.op_stack.push(new CONSTANT_Long(1))
+    )
+    @[11] = new OpCode('fconst_0', 'Push float 0', (frame) -> 
+      frame.op_stack.push(new CONSTANT_Float())
+    )
+    @[12] = new OpCode('fconst_1', 'Push float 1', (frame) -> 
+      frame.op_stack.push(new CONSTANT_Float(1.0))
+    )
+    @[13] = new OpCode('fconst_2', 'Push float 2', (frame) -> 
+      frame.op_stack.push(new CONSTANT_Float(2.0))
+    )
+    @[14] = new OpCode('dconst_0', 'Push double 0', (frame) -> 
+      frame.op_stack.push(new CONSTANT_Double(0.0))
+    )
+    @[15] = new OpCode('dconst_1', 'Push double 1', (frame) -> 
+      frame.op_stack.push(new CONSTANT_Double(1.0))
+    )
     @[16] = new OpCode('bipush', 'Push 8 bit signed integer', (frame) -> 
       frame.op_stack.push(frame.method_stack[++thread.pc])
-    yes )
-    @[17] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[18] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[19] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[20] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[21] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[22] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[23] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[24] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
+    )
+    @[17] = new OpCode('sipush', 'Push short', (frame) -> 
+      byte1 = @getIndexByte(1, frame, thread)
+      byte2 = @getIndexByte(2, frame, thread)
+      short = (byte1 << 8) | byte2
+      frame.op_stack.push(short)
+    )
+    @[18] = new OpCode('ldc', 'Push item from constant pool', (frame) -> 
+      item = thread.current_class.constant_pool[@getIndexByte(1, frame, thread)]
+      # TODO check item is valid
+      frame.op_stack.push(item)
+    )
+    @[19] = new OpCode('ldc_w', 'Push item from constant pool (wide index)', (frame) -> 
+      index = @constructIndex(frame, thread)
+      item = thread.current_class.constant_pool[index]
+      # TODO check item is valid
+      frame.op_stack.push(item)
+    )
+    @[20] = new OpCode('ldc2_w', 'Push long or double from constant pool (wide index)', (frame) -> 
+      index = @constructIndex(frame, thread)
+      item = thread.current_class.constant_pool[index]
+      # TODO check item is long or double
+      frame.op_stack.push(item)
+    )
+    @[21] = new OpCode('iload', 'Load int from local variable', (frame) -> 
+      frame.op_stack.push(frame.locals[@getIndexByte(1, frame, thread)])  
+    )
+    @[22] = new OpCode('lload', 'Load long from local variable', (frame) ->
+      frame.op_stack.push(frame.locals[@getIndexByte(1, frame, thread)])
+      frame.op_stack.push(frame.locals[@getIndexByte(1, frame, thread)])
+    )
+    @[23] = new OpCode('fload', 'Load float from local variable', (frame) -> 
+      frame.op_stack.push(frame.locals[@getIndexByte(1, frame, thread)])
+    )
+    @[24] = new OpCode('dload', 'Load double from local variable', (frame) -> 
+      frame.op_stack.push(frame.locals[@getIndexByte(1, frame, thread)])
+    )
     @[25] = new OpCode('aload', 'Load reference from local variable', (frame) -> 
-      frame.op_stack.push(frame.locals[getIndexByte(1)])
-    yes )
-    @[26] = new OpCode('iload0', 'Load int from local variable 0', (frame) -> 
+      frame.op_stack.push(frame.locals[@getIndexByte(1, frame, thread)])
+    )
+    @[26] = new OpCode('iload_0', 'Load int from local variable 0', (frame) -> 
       frame.op_stack.push(frame.locals[0])
     )
-    @[27] = new OpCode('iload1', 'Load int from local variable 1', (frame) -> 
+    @[27] = new OpCode('iload_1', 'Load int from local variable 1', (frame) -> 
       frame.op_stack.push(frame.locals[1])
     )
-    @[28] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[29] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[30] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[31] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[32] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[33] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[34] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[35] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[36] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[37] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[38] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[39] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[40] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[41] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
+    @[28] = new OpCode('iload_2', 'Load int from local variable 2', (frame) -> 
+      frame.op_stack.push(frame.locals[2])
+    )
+    @[29] = new OpCode('iload_3', 'Load int from local variable 3', (frame) -> 
+      frame.op_stack.push(frame.locals[3])
+    )
+    @[30] = new OpCode('lload_0', 'Load long from local variable 0', (frame) -> 
+      frame.op_stack.push(frame.locals[0])
+    )
+    @[31] = new OpCode('lload_1', 'Load long from local variable 1', (frame) -> 
+      frame.op_stack.push(frame.locals[1])
+    )
+    @[32] = new OpCode('lload_2', 'Load long from local variable 2', (frame) -> 
+      frame.op_stack.push(frame.locals[2])
+    )
+    @[33] = new OpCode('lload_3', 'Load long from local variable 3', (frame) -> 
+      frame.op_stack.push(frame.locals[3])
+    )
+    @[34] = new OpCode('fload_0', 'Load float from local var 0', (frame) -> 
+      frame.op_stack.push(frame.locals[0])
+    )
+    @[35] = new OpCode('fload_1', 'Load float from local var 1', (frame) -> 
+      frame.op_stack.push(frame.locals[1])
+    )
+    @[36] = new OpCode('fload_2', 'Load float from local var 2', (frame) -> 
+      frame.op_stack.push(frame.locals[2])
+    )
+    @[37] = new OpCode('fload_3', 'Load float from local var 3', (frame) -> 
+      frame.op_stack.push(frame.locals[3])
+    )
+    @[38] = new OpCode('dload_0', 'Load double from local variable', (frame) -> 
+      halfDouble = frame.locals[0]
+      secHalfDouble = frame.locals[1]  
+      frame.op_stack.push(halfDouble)
+      frame.op_stack.push(secHalfDouble)
+      # TODO Maybe use IEEE floating point doubles...?      
+    )
+    @[39] = new OpCode('dload_1', 'Load double from local variable', (frame) -> 
+      halfDouble = frame.locals[0]
+      secHalfDouble = frame.locals[1]  
+      frame.op_stack.push(halfDouble)
+      frame.op_stack.push(secHalfDouble)
+    )
+    @[40] = new OpCode('dload_2', 'Load double from local variable', (frame) -> 
+      halfDouble = frame.locals[0]
+      secHalfDouble = frame.locals[1]  
+      frame.op_stack.push(halfDouble)
+      frame.op_stack.push(secHalfDouble)
+    )
+    @[41] = new OpCode('dload_3', 'Load double from local variable', (frame) -> 
+      halfDouble = frame.locals[0]
+      secHalfDouble = frame.locals[1]  
+      frame.op_stack.push(halfDouble)
+      frame.op_stack.push(secHalfDouble)
+    )
     @[42] = new OpCode('aload_0', 'Load reference from local variable 0', (frame) -> 
       frame.op_stack.push(frame.locals[0])
-    yes )
+    )
     @[43] = new OpCode('aload_1', 'Load reference from local variable 1', (frame) -> 
       frame.op_stack.push(frame.locals[1])
-    yes )
+    )
     @[44] = new OpCode('aload_2', 'Load reference from local variable 2', (frame) -> 
       frame.op_stack.push(frame.locals[2])
-    yes )
+    )
     @[45] = new OpCode('aload_3', 'Load reference from local variable 3', (frame) -> 
       frame.op_stack.push(frame.locals[3])
-    yes )
-    @[46] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[47] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[48] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[49] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
+    )
+    @[46] = new OpCode('iaload', 'Load int from array', (frame) -> 
+      arrayref = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
+      if arrayref is null
+        athrow('NullPointerException')
+      array = thread.RDA.heap[arrayref]
+      if arrayindex > array.length
+        athrow('ArrayIndexOutOfBoundsException')
+      int = array[arrayindex]
+      frame.op_stack.push(int)
+    )
+    @[47] = new OpCode('laload', 'Load long from array', (frame) -> 
+      arrayref = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
+      if arrayref is null
+        athrow('NullPointerException')
+      array = thread.RDA.heap[arrayref]
+      if arrayindex > array.length
+        athrow('ArrayIndexOutOfBoundsException')
+      long = array[arrayindex]
+      frame.op_stack.push(long)
+    )
+    @[48] = new OpCode('faload', 'Load float from array', (frame) -> 
+      arrayref = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
+      if arrayref is null
+        athrow('NullPointerException')
+      array = thread.RDA.heap[arrayref]
+      if arrayindex > array.length
+        athrow('ArrayIndexOutOfBoundsException')
+      float = array[arrayindex]
+      frame.op_stack.push(float)
+    )
+    @[49] = new OpCode('daload', 'Load double from array', (frame) -> 
+      arrayref = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
+      if arrayref is null
+        athrow('NullPointerException')
+      array = thread.RDA.heap[arrayref]
+      if arrayindex > array.length
+        athrow('ArrayIndexOutOfBoundsException')
+      double = array[arrayindex]
+      frame.op_stack.push(double)
+    )
     @[50] = new OpCode('aaload', 'Load reference from array', (frame) -> 
       arrayref = frame.op_stack.pop()
       arrayindex = frame.op_stack.pop()
       ref = thread.RDA.heap[arrayref][arrayindex]
       frame.op_stack.push(ref)
-    yes )
+    )
     @[51] = new OpCode('baload', 'Load byte or boolean from array', (frame) -> 
       arrayref = frame.op_stack.pop()
       arrayindex = frame.op_stack.pop()
       if not arrayref instanceof JVM_Reference
-        # throw runtimeexception
+        athrow('RuntimeException')
         return false
       if arrayref == null
-        #throw nullpointerexception
+        athrow('NullPointerException')
         return false
       array = fromHeap(arrayref)
       if arrayindex >= array.length or arrayindex < 0
-        #throw ArrayIndexOutOfBounds
+        athrow('ArrayIndexOutOfBounds')
         return false
       frame.op_stack.push(array[arrayindex])      
-    yes )
+    )
     @[52] = new OpCode('caload', 'Load char from array', (frame) -> 
       arrayref = frame.op_stack.pop()
       arrayindex = frame.op_stack.pop()
       if not arrayref instanceof JVM_Reference
-        # throw runtimeexception
+        athrow('RuntimeException')
         return false
       if arrayref == null
-        #throw nullpointerexception
+        athrow('NullPointerException')
         return false
       array = fromHeap(arrayref)
       # array must be of type 'char' 
@@ -188,108 +245,182 @@ class this.OpCodes
         # throw runtimeexception
         return false
       if arrayindex >= array.length or arrayindex < 0
-        #throw ArrayIndexOutOfBounds
+        athrow('ArrayIndexOutOfBounds')
         return false
       frame.op_stack.push(array[arrayindex])
-    yes )
-    @[53] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[54] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[55] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[56] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[57] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
+    )
+    @[53] = new OpCode('saload', 'Load short from array', (frame) -> 
+      arrayref = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
+      if not arrayref instanceof JVM_Reference
+        athrow('RuntimeException')
+        return false
+      if arrayref == null
+        athrow('NullPointerException')
+        return false
+      array = fromHeap(arrayref)
+      # array must be of type 'char' 
+      if arrayindex >= array.length or arrayindex < 0
+        athrow('ArrayIndexOutOfBounds')
+        return false
+      frame.op_stack.push(array[arrayindex])      
+    )
+    @[54] = new OpCode('istore', 'Store int into local variable', (frame) -> 
+      index = @getIndexByte(1, frame, thread)
+      int = frame.op_stack.pop()
+      frame.locals[index] = int
+    )
+    @[55] = new OpCode('lstore', 'Store long into local variable', (frame) -> 
+      index = @getIndexByte(1, frame, thread)
+      long = frame.op_stack.pop()
+      frame.locals[index] = long
+    )
+    @[56] = new OpCode('fstore', 'Store float into local variable', (frame) -> 
+      index = @getIndexByte(1, frame, thread)
+      float = frame.op_stack.pop()
+      frame.locals[index] = float  
+    )
+    @[57] = new OpCode('dstore', 'Store double into local variable', (frame) -> 
+      d = frame.op_stack.pop()
+      d1 = frame.op_stack.pop()
+      index = @getIndexByte(1, frame, thread)
+      frame.locals[index] = d      
+    )
     @[58] = new OpCode('astore', 'Store reference into local variable', (frame) -> 
-      index = @getIndexByte(1)
+      index = @getIndexByte(1, frame, thread)
       objectref = frame.op_stack.pop()
       # TODO objectref must be of type returnAddress or Reference
       # index must be a valid local index
       frame.locals[index] = objectref
-    yes )
-    @[59] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
+    )
+    @[59] = new OpCode('istore_0', 'Store int from opstack to local variable 0', (frame) -> 
+      frame.locals[0] = frame.op_stack.pop()
+    )
     @[60] = new OpCode('istore_1', 'Store int from opstack to local variable 1', (frame) -> 
       frame.locals[1] = frame.op_stack.pop()
-    yes )
-    @[61] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[62] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[63] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[64] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[65] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[66] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[67] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[68] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[69] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[70] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[71] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[72] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[73] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[74] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
+    )
+    @[61] = new OpCode('istore_2', 'Store int from opstack to local variable 2', (frame) -> 
+      frame.locals[2] = frame.op_stack.pop()
+    )
+    @[62] = new OpCode('istore_3', 'Store int from opstack to local variable 3', (frame) -> 
+      frame.locals[3] = frame.op_stack.pop()
+    )
+    @[63] = new OpCode('lstore_0', 'Store long into local variable 0', (frame) -> 
+      frame.locals[0] = frame.op_stack.pop()
+      frame.locals[1] = frame.op_stack.pop()
+    )
+    @[64] = new OpCode('lstore_1', 'Store long into local variable 1', (frame) -> 
+      frame.locals[1] = frame.op_stack.pop()
+      frame.locals[2] = frame.op_stack.pop()
+    )
+    @[65] = new OpCode('lstore_2', 'Store long into local variable 2', (frame) -> 
+      frame.locals[2] = frame.op_stack.pop()
+      frame.locals[3] = frame.op_stack.pop()
+    )
+    @[66] = new OpCode('lstore_3', 'Store long into local variable 3', (frame) -> 
+      frame.locals[3] = frame.op_stack.pop()
+      frame.locals[4] = frame.op_stack.pop()
+    )
+    @[67] = new OpCode('fstore_0', 'Store float into local variable 0', (frame) -> 
+      frame.locals[0] = frame.op_stack.pop()
+    )
+    @[68] = new OpCode('fstore_1', 'Store float into local variable 1', (frame) -> 
+      frame.locals[1] = frame.op_stack.pop()
+    )
+    @[69] = new OpCode('fstore_2', 'Store float into local variable 2', (frame) -> 
+      frame.locals[2] = frame.op_stack.pop()
+    )
+    @[70] = new OpCode('fstore_3', 'Store float into local variable 3', (frame) -> 
+      frame.locals[3] = frame.op_stack.pop()
+    )
+    @[71] = new OpCode('dstore_0', 'Store double to local var 0', (frame) -> 
+      d = frame.op_stack.pop()
+      d1 = frame.op_stack.pop()
+      frame.locals[0] = d
+      frame.locals[1] = d1
+    )
+    @[72] = new OpCode('dstore_1', 'Store double to local var 1', (frame) -> 
+      d = frame.op_stack.pop()
+      d1 = frame.op_stack.pop()
+      frame.locals[1] = d
+      frame.locals[2] = d1
+    )
+    @[73] = new OpCode('dstore_2', 'Store double to local var 2', (frame) -> 
+      d = frame.op_stack.pop()
+      d1 = frame.op_stack.pop()
+      frame.locals[2] = d
+      frame.locals[3] = d1
+    )
+    @[74] = new OpCode('dstore_3', 'Store double to local var 3', (frame) -> 
+      d = frame.op_stack.pop()
+      d1 = frame.op_stack.pop()
+      frame.locals[3] = d
+      frame.locals[4] = d1
+    )
     @[75] = new OpCode('astore_0', 'Store reference into local var 0', (frame) -> 
       objectref = frame.op_stack.pop()
       frame.locals[0] = objectref
-    yes )
+    )
     @[76] = new OpCode('astore_1', 'Store reference into local var 1', (frame) -> 
       objectref = frame.op_stack.pop()
       frame.locals[1] = objectref
-    yes )
+    )
     @[77] = new OpCode('astore_2', 'Store reference into local var 2', (frame) -> 
       objectref = frame.op_stack.pop()
       frame.locals[2] = objectref
-    yes )
+    )
     @[78] = new OpCode('astore_3', 'Store reference into local var 3', (frame) -> 
       objectref = frame.op_stack.pop()
       frame.locals[3] = objectref
-    yes )
-    @[79] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[80] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[81] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[82] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
+    )
+    @[79] = new OpCode('iastore', 'Store into int array', (frame) -> 
+      arrayref = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
+      value = frame.op_stack.pop()
+      
+      array = thread.RDA.heap[arrayref]
+      if array is null
+        athrow('NullPointerException')
+      if arrayindex > array.length
+        athrow('ArrayIndexOutOfBoundsException')
+      array[arrayindex] = value
+    )
+    @[80] = new OpCode('lastore', 'Store into long array', (frame) -> 
+      arrayref = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
+      value = frame.op_stack.pop()
+      
+      array = thread.RDA.heap[arrayref]
+      if array is null
+        athrow('NullPointerException')
+      if arrayindex > array.length
+        athrow('ArrayIndexOutOfBoundsException')
+      array[arrayindex] = value
+    )
+    @[81] = new OpCode('fastore', 'Store into float array', (frame) -> 
+      arrayref = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
+      value = frame.op_stack.pop()
+      
+      array = thread.RDA.heap[arrayref]
+      if array is null
+        athrow('NullPointerException')
+      if arrayindex > array.length
+        athrow('ArrayIndexOutOfBoundsException')
+      array[arrayindex] = value
+    )
+    @[82] = new OpCode('dastore', 'Store double into array', (frame) -> 
+      arrayref = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
+      value = frame.op_stack.pop()
+      
+      array = thread.RDA.heap[arrayref]
+      if array is null
+        athrow('NullPointerException')
+      if arrayindex > array.length
+        athrow('ArrayIndexOutOfBoundsException')
+      array[arrayindex] = value
+    )
     @[83] = new OpCode('aastore', 'Store reference into Array', (frame) -> 
       arrayref = frame.op_stack.pop()
       arrayindex = frame.op_stack.pop()
@@ -297,325 +428,732 @@ class this.OpCodes
       #TODO value must be compatable with the arraytype
       
       array = thread.RDA.heap[arrayref]
-      if array == null
-        no #TODO throw exception
+      if array is null
+        athrow('NullPointerException')
+      if arrayindex > array.length
+        athrow('ArrayIndexOutOfBoundsException')
       array[arrayindex] = value
-    yes )
+    )
     @[84] = new OpCode('bastore', 'Store into byte or boolean Array', (frame) -> 
       arrayref = frame.op_stack.pop()
       arrayindex = frame.op_stack.pop()
       value = frame.op_stack.pop()
       array = @fromHeap(arrayref)
-      if array == null
-        no # throw nullpointerexception
+      if array is null
+        athrow('NullPointerException')
+      if arrayindex > array.length
+        athrow('ArrayIndexOutOfBoundsException')
       array[arrayindex] = value
-    yes )
+    )
     @[85] = new OpCode('castore', 'Store into char array', (frame) -> 
       arrayref = frame.op_stack.pop()
       arrayindex = frame.op_stack.pop()
       value = frame.op_stack.pop()
       array = @fromHeap(arrayref)
-      if array == null
-        no # throw nullpointerexception
+      if array is null
+        athrow('NullPointerException')
+      if arrayindex > array.length
+        athrow('ArrayIndexOutOfBoundsException')
       array[arrayindex] = value
-    yes )
-    @[86] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
+    )
+    @[86] = new OpCode('sastore', 'Store into short array', (frame) -> 
+      arrayref = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
+      value = frame.op_stack.pop()
+      array = @fromHeap(arrayref)
+      if array is null
+        athrow('NullPointerException')
+      if arrayindex > array.length
+        athrow('ArrayIndexOutOfBoundsException')
+      array[arrayindex] = value
+    )
     @[87] = new OpCode('pop', 'Pops top stack word', (frame) -> 
       frame.op_stack.pop() 
     )
-    @[88] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
+    @[88] = new OpCode('pop2', 'Pops top two operand stack words', (frame) -> 
+      frame.op_stack.pop()
+      frame.op_stack.pop()
+    )
     @[89] = new OpCode('dup', 'Duplicate top operand stack word', (frame) -> 
       frame.op_stack.push(frame.op_stack.peek())
     )
-    @[90] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[91] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[92] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[93] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[94] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[95] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
+    @[90] = new OpCode('dup_x1', 'Duplicate top op stack word and put two down', (frame) -> 
+      dupword = frame.op_stack.pop()
+      word1 = frame.op_stack.pop()
+      frame.op_stack.push(dupword)
+      frame.op_stack.push(word1)
+      frame.op_stack.push(dupword)
+    )
+    @[91] = new OpCode('dup_x2', 'Duplicate top op stack word and put three down', (frame) -> 
+      dupword = frame.op_stack.pop()
+      word2 = frame.op_stack.pop()
+      word3 = frame.op_stack.pop()
+      frame.op_stack.push(dupword)
+      frame.op_stack.push(word3)
+      frame.op_stack.push(word2)
+      frame.op_stack.push(dupword)
+      
+    )
+    @[92] = new OpCode('dup2', 'Duplicate top op stack words', (frame) -> 
+      word1 = frame.op_stack.pop()    
+      word2 = frame.op_stack.pop()    
+      frame.op_stack.push(word2)
+      frame.op_stack.push(word1)
+      frame.op_stack.push(word2)
+      frame.op_stack.push(word1)
+    )
+    @[93] = new OpCode('dup2_x1', 'Duplicate top two op stack words and put three down', (frame) -> 
+      word1 = frame.op_stack.pop()
+      word2 = frame.op_stack.pop()
+      word3 = frame.op_stack.pop() 
+      frame.op_stack.push(word2)
+      frame.op_stack.push(word1)
+      frame.op_stack.push(word3)
+      frame.op_stack.push(word2)
+      frame.op_stack.push(word1)
+    )
+    @[94] = new OpCode('dup2_x2', 'Duplicate top two op stack words and put four down', (frame) -> 
+      word1 = frame.op_stack.pop()
+      word2 = frame.op_stack.pop()
+      word3 = frame.op_stack.pop() 
+      word4 = frame.op_stack.pop()
+      frame.op_stack.push(word2)
+      frame.op_stack.push(word1)
+      frame.op_stack.push(word4)
+      frame.op_stack.push(word3)
+      frame.op_stack.push(word2)
+      frame.op_stack.push(word1)
+    )
+    @[95] = new OpCode('swap', 'Swap top two operand stack words', (frame) -> 
+      word1 = frame.op_stack.pop()
+      word2 = frame.op_stack.pop()
+      frame.op_stack.push(word1)
+      frame.op_stack.push(word2)
+    )
     @[96] = new OpCode('iadd', 'Pops two values from the stack, adds them and pushes the result.', (frame) -> 
       i1 = frame.op_stack.pop()
       i2 = frame.op_stack.pop()
-      frame.op_stack.push(i1 + i2) 
+      if isNaN(i1.value) or isNaN(i2.value)
+        frame.op_stack.push(new CONSTANT_Integer(Number.NaN))
+        return true
+      frame.op_stack.push(new CONSTANT_Integer(i1 + i2)) 
     )
-    @[97] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[98] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[99] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[100] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[101] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[102] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[103] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[104] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[105] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[106] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[107] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[108] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[109] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[110] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[111] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[112] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[113] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[114] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[115] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[116] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[117] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[118] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[119] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[120] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[121] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[122] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[123] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[124] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[125] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[126] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[127] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[128] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[129] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[130] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[131] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[132] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[133] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[134] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[135] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[136] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[137] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[138] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[139] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[140] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[141] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[142] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[143] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[144] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[145] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[146] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[147] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[148] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[149] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[150] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[151] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[152] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[153] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[154] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[155] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[156] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[157] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[158] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[159] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[160] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[161] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[162] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[163] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[164] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[165] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[166] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[167] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[168] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[169] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[170] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[171] = new OpCode('', '', (frame) -> 
+    @[97] = new OpCode('ladd', 'Add long', (frame) -> 
+      long1a = frame.op_stack.pop().value  
+      long1b = frame.op_stack.pop().value
+      
+      long2a = frame.op_stack.pop().value
+      long2b = frame.op_stack.pop().value
+      
+      if isNaN(long1a.value) or isNaN(long2a.value)
+        frame.op_stack.push(new CONSTANT_Long(Number.NaN))
+        frame.op_stack.push(new CONSTANT_Long(Number.NaN))
+        return true
+      frame.op_stack.push(new CONSTANT_Long(long1a + long2a)) 
+      frame.op_stack.push(new CONSTANT_Long(long1a + long2a)) 
+    )
+    @[98] = new OpCode('fadd', 'Add float', (frame) -> 
+      float1 = frame.op_stack.pop().value  
+      float2 = frame.op_stack.pop().value
+      if isNaN(float1.value) or isNaN(float2.value)
+        frame.op_stack.push(new CONSTANT_Float(Number.NaN))
+        return true
+      result = float2.value + float1.value
+      frame.op_stack.push(new CONSTANT_Float(result))
+    )
+    @[99] = new OpCode('dadd', 'Add double', (frame) -> 
+      da1 = frame.op_stack.pop().value
+      da2 = frame.op_stack.pop().value
+      db1 = frame.op_stack.pop().value
+      db2 = frame.op_stack.pop().value
+      if isNaN(float1.value) or isNaN(float2.value)
+        frame.op_stack.push(new CONSTANT_Double(Number.NaN))
+        frame.op_stack.push(new CONSTANT_Double(Number.NaN))
+        return true
+      result = da1 + db1
+      frame.op_stack.push(new CONSTANT_Double(result))
+      frame.op_stack.push(new CONSTANT_Double(result))
+    )
+    @[100] = new OpCode('isub', 'Subtract int', (frame) -> 
+      i2 = frame.op_stack.pop().value  
+      i1 = frame.op_stack.pop().value
+      result = i1 - i2
+      frame.op_stack.push(new CONSTANT_Integer(result))
+    )
+    @[101] = new OpCode('lsub', 'Subtract long', (frame) -> 
+      ia1 = frame.op_stack.pop().value  
+      ia2 = frame.op_stack.pop().value
+      ib1 = frame.op_stack.pop().value  
+      ib2 = frame.op_stack.pop().value
+      result = ib1 - ia1
+      frame.op_stack.push(new CONSTANT_Long(result))
+      frame.op_stack.push(new CONSTANT_Long(result))
+    )
+    @[102] = new OpCode('fsub', 'Subtract float', (frame) -> 
+      f2 = frame.op_stack.pop().value  
+      f1 = frame.op_stack.pop().value
+      result = f1 - f2
+      frame.op_stack.push(new CONSTANT_Float(result))
+    )
+    @[103] = new OpCode('dsub', 'Subtract double', (frame) -> 
+      d = frame.op_stack.pop().value
+      d1 = frame.op_stack.pop().value
+      d2 = frame.op_stack.pop().value
+      d3 = frame.op_stack.pop().value
+      result = d - d2
+      frame.op_stack.push(new CONSTANT_Double(result))
+      frame.op_stack.push(new CONSTANT_Double(result))
+    )
+    @[104] = new OpCode('imul', 'Multiply int', (frame) -> 
+      f2 = frame.op_stack.pop().value  
+      f1 = frame.op_stack.pop().value
+      result = f1 * f2
+      frame.op_stack.push(new CONSTANT_Integer(result))
+    )
+    @[105] = new OpCode('lmul', 'Multiple long', (frame) -> 
+      la1 = frame.op_stack.pop().value  
+      la2 = frame.op_stack.pop().value
+      lb1 = frame.op_stack.pop().value  
+      lb2 = frame.op_stack.pop().value
+      if isNan(value1) or isNaN(value2)
+        frame.op_stack.push(new CONSTANT_Long(Number.NaN))  
+        frame.op_stack.push(new CONSTANT_Long(Number.NaN))  
+      result = lb1 * la1
+      frame.op_stack.push(new CONSTANT_Long(result))
+      frame.op_stack.push(new CONSTANT_Long(result))
+    )
+    @[106] = new OpCode('fmul', 'Multiply float', (frame) -> 
+      value2 = frame.op_stack.pop().value
+      value1 = frame.op_stack.pop().value
+      result = value1 * value2
+      if isNan(value1) or isNaN(value2)
+        frame.op_stack.push(new CONSTANT_Float(Number.NaN))  
+      frame.op_stack.push(new CONSTANT_Float(result))
+    )
+    @[107] = new OpCode('dmul', 'Multiply double', (frame) -> 
+      d = frame.op_stack.pop().value
+      d1 = frame.op_stack.pop().value
+      d2 = frame.op_stack.pop().value
+      d3 = frame.op_stack.pop().value
+      result = d * d2
+      frame.op_stack.push(new CONSTANT_Double(result))
+      frame.op_stack.push(new CONSTANT_Double(result))
+    )
+    @[108] = new OpCode('idiv', 'Divide int', (frame) -> 
+      value2 = frame.op_stack.pop().value
+      value1 = frame.op_stack.pop().value
+      if isNaN(value1) or isNaN(value2)
+        frame.op_stack.push(new CONSTANT_Integer(Integer.NaN))
+      if value2 is 0
+        athrow('ArithmeticException')
+      result = value1 / value2
+      frame.op_stack.push(new CONSTANT_Integer(result))
+    )
+    @[109] = new OpCode('ldiv', 'Divide long', (frame) -> 
+      l2 = frame.op_stack.pop()
+      l2a = frame.op_stack.pop()
+      l1 = frame.op_stack.pop()
+      l1a = frame.op_stack.pop()
+      if isNaN(l1) or isNaN(l2)
+        frame.op_stack.push(new CONSTANT_Long(Integer.NaN))
+        frame.op_stack.push(new CONSTANT_Long(Integer.NaN))
+      if l2 is 0
+        athrow('ArithmeticException')
+      result = l1 / l2
+      frame.op_stack.push(new CONSTANT_Long(result))
+    )
+    @[110] = new OpCode('fdiv', 'Divide float', (frame) -> 
+      value2 = frame.op_stack.pop()
+      value1 = frame.op_stack.pop()
+      if isNaN(value1) or isNaN(value2)
+        frame.op_stack.push(new CONSTANT_Float(Integer.NaN))
+      if value2 is 0
+        athrow('ArithmeticException')
+      result = value1 / value2
+      frame.op_stack.push(new CONSTANT_Float(result))
+    ) 
+    @[111] = new OpCode('ddiv', 'Divide Double', (frame) -> 
+      d2 = frame.op_stack.pop()
+      d2a = frame.op_stack.pop()
+      d1 = frame.op_stack.pop()
+      d1a = frame.op_stack.pop()
+      if isNaN(value1) or isNaN(value2)
+        frame.op_stack.push(new CONSTANT_Double(Integer.NaN))
+        frame.op_stack.push(new CONSTANT_Double(Integer.NaN))
+      if d2 is 0
+        athrow('ArithmeticException')
+      result = d1 / d2
+      frame.op_stack.push(new CONSTANT_Double(result))
+      frame.op_stack.push(new CONSTANT_Double(result))
+      # TODO check result abides by IEEE arithmetic  
+    )
+    @[112] = new OpCode('irem', 'Remainder int', (frame) -> 
+      i2 = frame.op_stack.pop().value
+      i1 = frame.op_stack.pop().value
+      if i2 is 0
+        athrow('ArithmeticException')
+      result = i1 - (i1 / i2) * i2
+      frame.op_stack.push(new CONSTANT_Int(result))
+    )
+    @[113] = new OpCode('lrem', 'Remainder long', (frame) -> 
+      l2 = frame.op_stack.pop().value
+      l1 = frame.op_stack.pop().value
+      if l2 is 0
+        athrow('ArithmeticException')
+      result = l1 - (l1 / l2) * l2  
+      frame.op_stack.push(new CONSTANT_Long(result))
+    )
+    @[114] = new OpCode('frem', 'Remainder float', (frame) -> 
+      console.log('frem not implemented')
+    )
+    @[115] = new OpCode('drem', 'Remainder double', (frame) -> 
+      console.log('drem not implemented')
+    )
+    @[116] = new OpCode('ineg', 'Negate int', (frame) -> 
+      value = frame.op_stack.pop().value
+      result = (~value) + 1
+      frame.op_stack.push(new CONSTANT_Integer(result))
+    )
+    @[117] = new OpCode('lneg', 'Negate long', (frame) -> 
+      la = frame.op_stack.pop().value
+      lb = frame.op_stack.pop().value
+      result = (~la) + 1
+      frame.op_stack.push(new CONSTANT_Long(result))
+      frame.op_stack.push(new CONSTANT_Long(result))
+    )
+    @[118] = new OpCode('fneg', 'Negate float', (frame) -> 
+      value = frame.op_stack.pop().value
+      result = new CONSTANT_Double(~(value.value) + 1)
+      frame.op_stack.push(result)
+    )
+    @[119] = new OpCode('dneg', 'Negate double', (frame) -> 
+      d1 = frame.op_stack.pop().value
+      d2 = frame.op_stack.pop().value
+      result = new CONSTANT_Double(~(d1.value) + 1)
+      frame.op_stack.push(result)
+      frame.op_stack.push(result)
+    )
+    @[120] = new OpCode('ishl', 'Arithmetic shift left int', (frame) -> 
+      value1 = frame.op_stack.pop().value
+      value2 = frame.op_stack.pop().value
+      s = value2 & 0x1f
+      result = value1 << s
+      frame.op_stack.push(new CONSTANT_Intger(result))
+    )
+    @[121] = new OpCode('lshl', 'Arithmetic shift left long', (frame) -> 
+      value1 = frame.op_stack.pop().value
+      frame.op_stack.pop().value
+      value2 = frame.op_stack.pop().value
+      s = value2 & 0x3f
+      result = value1 << s
+      frame.op_stack.push(new CONSTANT_Long(result))
+      frame.op_stack.push(new CONSTANT_Long(result))
+    )
+    @[122] = new OpCode('ishr', 'Arithmetic shift right int', (frame) -> 
+      value1 = frame.op_stack.pop().value
+      value2 = frame.op_stack.pop().value
+      s = value2 & 0x1f
+      result = value1 >> s
+      frame.op_stack.push(new CONSTANT_Intger(result))
+    )
+    @[123] = new OpCode('lshr', 'Arithmetic shift right long', (frame) -> 
+      value1 = frame.op_stack.pop().value
+      frame.op_stack.pop().value
+      value2 = frame.op_stack.pop().value
+      s = value2 & 0x3f
+      result = value1 >> s
+      frame.op_stack.push(new CONSTANT_Long(result))
+      frame.op_stack.push(new CONSTANT_Long(result))
+    )
+    @[124] = new OpCode('iushr', 'Logical shift right int', (frame) -> 
+      value1 = frame.op_stack.pop().value
+      value2 = frame.op_stack.pop().value
+      s = value2 & 0x1f
+      if value1 > 0
+        result = value1 >> s
+      else 
+        result = (value1 >> s) + (2 << ~s)
+      frame.op_stack.push(new CONSTANT_Integer(result))
+    )
+    @[125] = new OpCode('lushr', 'Logical shift right long', (frame) -> 
+      value1 = frame.op_stack.pop().value
+      frame.op_stack.pop().value
+      value2 = frame.op_stack.pop().value
+      s = value2 & 0x1f
+      if value1 > 0
+        result = value1 >> s
+      else 
+        result = (value1 >> s) + (2 << ~s)
+        
+      frame.op_stack.push(new CONSTANT_Long(result))     
+      frame.op_stack.push(new CONSTANT_Long(result))
+    )
+    @[126] = new OpCode('iand', 'Boolean AND int', (frame) -> 
+      value1 = frame.op_stack.pop().value
+      value2 = frame.op_stack.pop().value
+      result = value1 & value2
+      frame.op_stack.push(new CONSTANT_Integer(result))
+    )
+    @[127] = new OpCode('land', 'Boolean ', (frame) -> 
+      value1 = frame.op_stack.pop().value
+      value2 = frame.op_stack.pop().value
+      result = value1 & value2
+      frame.op_stack.push(new CONSTANT_Long(result))
+    )
+    @[128] = new OpCode('ior', '', (frame) -> 
+      value1 = frame.op_stack.pop().value
+      value2 = frame.op_stack.pop().value
+      result = value1 | value2
+      frame.op_stack.push(new CONSTANT_Integer(result))
+    )
+    @[129] = new OpCode('lor', 'Boolean OR long', (frame) -> 
+      l1 = frame.op_stack.pop().value
+      l2 = frame.op_stack.pop().value
+      result = l1 | l2  
+      frame.op_stack.push(new CONSTANT_Long(result))
+    )
+    @[130] = new OpCode('ixor', 'Boolean XOR int', (frame) -> 
+      value1 = frame.op_stack.pop().value
+      value2 = frame.op_stack.pop().value
+      result = value1 ^ value2
+      frame.op_stack.push(new CONSTANT_Integer(result))
+    )
+    @[131] = new OpCode('lxor', 'Boolean XOR long', (frame) -> 
+      value1 = frame.op_stack.pop().value
+      value2 = frame.op_stack.pop().value
+      result = value1 ^ value2
+      frame.op_stack.push(new CONSTANT_Long(result))
+    )
+    @[132] = new OpCode('iinc', 'Increment local variable by constant', (frame) -> 
+      index = getIndexByte(1, frame, thread)
+      consta = getIndexByte(2, frame, thread)
+      result = index + consta
+      frame.op_stack.push(new CONSTANT_Integer(result))
+    )
+    @[133] = new OpCode('i2l', 'Convert int to long', (frame) -> 
+      value = frame.op_stack.pop().value
+      long = new CONSTANT_Long(value)
+      frame.op_stack.push(long)
+    )
+    @[134] = new OpCode('i2f', 'Convert int to float', (frame) -> 
+      value = frame.op_stack.pop().value
+      float = new CONSTANT_Float(value)
+      frame.op_stack.push(float)
+    )
+    @[135] = new OpCode('i2d', 'Convert int to double', (frame) -> 
+      value = frame.op_stack.pop().value
+      double = new CONSTANT_Double(value)
+      frame.op_stack.push(double)
+    )
+    @[136] = new OpCode('l2i', 'Convert long to int', (frame) -> 
+      value = frame.op_stack.pop().value
+      int = new CONSTANT_Integer(value.toFixed())
+      frame.op_stack.push(int)
+    )
+    @[137] = new OpCode('l2f', 'Convert long to float', (frame) -> 
+      value = frame.op_stack.pop().value
+      float = new CONSTANT_Float(value)
+      frame.op_stack.push(float)
+    )
+    @[138] = new OpCode('l2d', 'Convert long to double', (frame) -> 
+      value = frame.op_stack.pop().value
+      double = new CONSTANT_Double(value)
+      frame.op_stack.push(double)
+    )
+    @[139] = new OpCode('f2i', 'Convert float to int', (frame) -> 
+      float = frame.op_stack.pop().value
+      int = new CONSTANT_Integer(float.value.toFixed())
+      frame.op_stack.push(int)
+    )
+    @[140] = new OpCode('f2l', 'Convert Float to long', (frame) -> 
+      float = frame.op_stack.pop().value
+      long = new CONSTANT_Long(float.value.toFixed())
+      frame.op_stack.push(long)
+      frame.op_stack.push(long)
+    )
+    @[141] = new OpCode('f2d', 'Convert float to double', (frame) -> 
+      float = frame.op_stack.pop().value
+      double = new CONSTANT_Double(float.value)
+      frame.op_stack.push(double)
+      frame.op_stack.push(double)
+    )
+    @[142] = new OpCode('d2i', 'Convert double to int', (frame) -> 
+      double = frame.op_stack.pop().value
+      int = new CONSTANT_Integer(float.value.toFixed())
+      frame.op_stack.push(int)
+    )
+    @[143] = new OpCode('d2l', 'Convert double to long', (frame) -> 
+      double = frame.op_stack.pop().value
+      frame.op_stack.pop()
+      long = new CONSTANT_Float(long.toFixed())
+      frame.op_stack.push(long)
+      frame.op_stack.push(long)
+    )
+    @[144] = new OpCode('d2f', 'Convert double to float', (frame) -> 
+      double = frame.op_stack.pop().value
+      frame.op_stack.pop()
+      float = new CONSTANT_Float(double)
+      frame.op_stack.push(float)
+    )
+    @[145] = new OpCode('i2b', 'Convert int to byte', (frame) -> 
+      int = frame.op_stack.pop().value
+      byte = new CONSTANT_Byte(int)
+      frame.op_stack.push(byte)
+    )
+    @[146] = new OpCode('i2c', 'Convert int to char', (frame) -> 
+      int = frame.op_stack.pop().value;
+      char = new CONSTANT_Char(int)
+      frame.op_stack.push(char)
+    )
+    @[147] = new OpCode('i2s', 'Convert int to short', (frame) -> 
+      int = frame.op_stack.pop().value
+      short = new CONSTANT_Short(int)
+      frame.op_stack.push(short)
+    )
+    @[148] = new OpCode('lcmp', 'Compare long', (frame) -> 
+      value2a = frame.op_stack.pop().value
+      value2b = frame.op_stack.pop().value
+      value1a = frame.op_stack.pop().value
+      value1b = frame.op_stack.pop().value
+      if value1a > value2a
+        frame.op_stack.push(1)
+      if value1a == value2a
+        frame.op_stack.push(0)
+      if value1a < value2a 
+        frame.op_stack.push(-1)
+    )
+    @[149] = new OpCode('fcmpl', 'Compare float, push -1 for NaN', (frame) -> 
+      value2 = frame.op_stack.pop().value
+      value1 = frame.op_stack.pop().value          
+      if isNaN(value1) || isNaN(value2)
+        frame.op_stack.push(-1) 
+      else if value1 > value2
+        frame.op_stack.push(1)
+      else if value1 == value2
+        frame.op_stack.push(0)
+      else if value1 < value2
+        frame.op_stack.push(-1)
+    )
+    @[150] = new OpCode('fcmpg', 'Compare float, push 1 for NaN', (frame) -> 
+      value2 = frame.op_stack.pop().value
+      value1 = frame.op_stack.pop().value          
+      if isNaN(value1) || isNaN(value2)
+        frame.op_stack.push(1) 
+      else if value1 > value2
+        frame.op_stack.push(1)
+      else if value1 == value2
+        frame.op_stack.push(0)
+      else if value1 < value2
+        frame.op_stack.push(-1)  
+    )
+    @[151] = new OpCode('dcmpl', 'Compare double, push -1 for NaN', (frame) -> 
+      value2a = frame.op_stack.pop().value
+      value2b = frame.op_stack.pop().value
+      value1a = frame.op_stack.pop().value
+      value1b = frame.op_stack.pop().value
+      if isNaN(value1a) || isNaN(value2a)
+        frame.op_stack.push(-1) 
+      else if value1a > value2a
+        frame.op_stack.push(1)
+      else if value1a == value2a
+        frame.op_stack.push(0)
+      else if value1a < value2a
+        frame.op_stack.push(-1)
+    )
+    @[152] = new OpCode('dcmpg', 'Compare double, push 1 for NaN', (frame) -> 
+      value2a = frame.op_stack.pop().value
+      value2b = frame.op_stack.pop().value
+      value1a = frame.op_stack.pop().value
+      value1b = frame.op_stack.pop().value
+      if isNaN(value1a) || isNaN(value2a)
+        frame.op_stack.push(1) 
+      else if value1a > value2a
+        frame.op_stack.push(1)
+      else if value1a == value2a
+        frame.op_stack.push(0)
+      else if value1a < value2a
+        frame.op_stack.push(-1)
+    )
+    @[153] = new OpCode('ifeq', '', (frame) -> 
+      console.log('153 called')
+    yes )
+    @[154] = new OpCode('ifne', '', (frame) -> 
+      console.log('154 called')
+    yes )
+    @[155] = new OpCode('iflt', '', (frame) -> 
+      console.log('155 called')
+    yes )
+    @[156] = new OpCode('ifge', '', (frame) -> 
+      console.log('156 called')
+    yes )
+    @[157] = new OpCode('ifgt', '', (frame) -> 
+      console.log('157 called')
+    yes )
+    @[158] = new OpCode('ifle', '', (frame) -> 
+      console.log('158 called')
+    yes )
+    @[159] = new OpCode('if_icmpeq', '', (frame) -> 
+      console.log('159 called')
+    yes )
+    @[160] = new OpCode('if_icmpne', '', (frame) -> 
+      console.log('160 called')
+    yes )
+    @[161] = new OpCode('if_icmplt', '', (frame) -> 
+      console.log('161 called')
+    yes )
+    @[162] = new OpCode('if_icmpge', '', (frame) -> 
+      console.log('162 called')
+    yes )
+    @[163] = new OpCode('if_icmpgt', '', (frame) -> 
+      console.log('163 called')
+    yes )
+    @[164] = new OpCode('if_icmple', '', (frame) -> 
+      console.log('164 called')
+    yes )
+    @[165] = new OpCode('if_acmpeq', '', (frame) -> 
+      console.log('165 called')
+    yes )
+    @[166] = new OpCode('if_acmpne', '', (frame) -> 
+      console.log('166 called')
+    yes )
+    @[167] = new OpCode('goto', 'Branch always', (frame) -> 
+      offset = @constructIndex(frame, thread)
+      thread.pc += offset
+    )
+    @[168] = new OpCode('jsr', 'Jump to subroutine', (frame) -> 
+      # push the next operation for return
+      frame.op_stack.push(thread.pc)
+      # get the branch offset
+      offset = @constructIndex(frame, thread)
+      thread.pc += offset
+    )
+    @[169] = new OpCode('ret', 'Return from subroutine', (frame) -> 
+      index = @getByteIndex(1)
+      thread.pc = frame.locals[index]
+    )
+    @[170] = new OpCode('tableswitch', '', (frame) -> 
+    # not yet implemented
+    yes )
+    @[171] = new OpCode('lookupswitch', '', (frame) -> 
     # not yet implemented
     yes )
     @[172] = new OpCode('ireturn', 'Return an int', (frame) -> 
       # get the int to return
       ireturn = frame.op_stack.pop()
       # pop the current method to discard
-      thread.jvm_stack.pop()
+      if(thread.current_frame instanceof NativeFrame)
+        thread.native_stack.pop()
+        if(thread.native_stack.peek()?)
+          thread.current_frame = thread.native_stack.peek()  
+        else
+          thread.current_frame = thread.jvm_stack.peek()
+      else    
+        # pop the current method to discard
+        thread.jvm_stack.pop()
+        
       # get the invoking method and push the int to its stack
       invoker = thread.jvm_stack.peek()
       invoker.op_stack.push(ireturn)
       # make invoker current and set pc to where invoker was left off
       thread.current_frame = invoker
+      thread.current_class = invoker.cls
       thread.pc = invoker.pc    
     )
-    @[173] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[174] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[175] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
+    @[173] = new OpCode('lreturn', 'Return long from method', (frame) -> 
+      
+      # get long
+      retfloat = frame.op_stack.pop()
+      # pop the current method to discard
+      if(thread.current_frame instanceof NativeFrame)
+        thread.native_stack.pop()
+        if(thread.native_stack.peek()?)
+          thread.current_frame = thread.native_stack.peek()  
+        else
+          thread.current_frame = thread.jvm_stack.peek()
+      else    
+        # pop the current method to discard
+        thread.jvm_stack.pop()
+        
+      # push the ref to the stack of the invoking method.
+      invoker = thread.jvm_stack.peek()
+      invoker.op_stack.push(retfloat)
+      # make invoker current and set pc to where invoker was left off
+      thread.current_frame = invoker
+      thread.current_class = invoker.cls
+      thread.pc = invoker.pc
+    )
+    @[174] = new OpCode('freturn', 'Return float from method', (frame) -> 
+      # get float
+      retfloat = frame.op_stack.pop()
+      # pop the current method to discard
+      if(thread.current_frame instanceof NativeFrame)
+        thread.native_stack.pop()
+        if(thread.native_stack.peek()?)
+          thread.current_frame = thread.native_stack.peek()  
+        else
+          thread.current_frame = thread.jvm_stack.peek()
+      else    
+        # pop the current method to discard
+        thread.jvm_stack.pop()
+        
+      # push the ref to the stack of the invoking method.
+      invoker = thread.jvm_stack.peek()
+      invoker.op_stack.push(retfloat)
+      # make invoker current and set pc to where invoker was left off
+      thread.current_frame = invoker
+      thread.current_class = invoker.cls
+      thread.pc = invoker.pc
+    )
+    @[175] = new OpCode('dreturn', 'Return double from method', (frame) -> 
+      
+      # get double
+      retdouble = frame.op_stack.pop()
+      # pop the current method to discard
+      if(thread.current_frame instanceof NativeFrame)
+        thread.native_stack.pop()
+        if(thread.native_stack.peek()?)
+          thread.current_frame = thread.native_stack.peek()  
+        else
+          thread.current_frame = thread.jvm_stack.peek()
+      else    
+        # pop the current method to discard
+        thread.jvm_stack.pop()
+        
+      # push the ref to the stack of the invoking method.
+      invoker = thread.jvm_stack.peek()
+      invoker.op_stack.push(retdouble)
+      # make invoker current and set pc to where invoker was left off
+      thread.current_frame = invoker
+      thread.current_class = invoker.cls
+      thread.pc = invoker.pc
+    )
     @[176] = new OpCode('areturn', 'Return reference', (frame) -> 
+      
       # get the ref to return
       returnref = frame.op_stack.pop()
-      # pop the current method to discard
-      thread.jvm_stack.pop()
+      if(thread.current_frame instanceof NativeFrame)
+        thread.native_stack.pop()
+        if(thread.native_stack.peek()?)
+          thread.current_frame = thread.native_stack.peek()  
+        else
+          thread.current_frame = thread.jvm_stack.peek()
+      else    
+        # pop the current method to discard
+        thread.jvm_stack.pop()
+        
       # push the ref to the stack of the invoking method.
       invoker = thread.jvm_stack.peek()
       invoker.op_stack.push(returnref)
       # make invoker current and set pc to where invoker was left off
       thread.current_frame = invoker
+      thread.current_class = invoker.cls
       thread.pc = invoker.pc
-    yes )
+      
+    )
     @[177] = new OpCode('return', 'Return void from method', (frame) -> 
       
       # get the appropriate return frame
-      if(thread.current_frame.env?)
+      if(thread.current_frame instanceof NativeFrame)
         thread.native_stack.pop()
         if(thread.native_stack.peek()?)
           thread.current_frame = thread.native_stack.peek()  
@@ -623,10 +1161,14 @@ class this.OpCodes
           thread.current_frame = thread.jvm_stack.peek()
       else
         thread.jvm_stack.pop()
-        thread.current_frame = thread.jvm_stack.peek()
-        
+
+      invoker = thread.jvm_stack.peek()
+      thread.current_frame = invoker
+      thread.current_class = invoker.cls
       if thread.current_frame?
-        thread.pc = thread.current_frame.pc 
+        thread.pc = thread.current_frame.pc
+        
+      
     )
     @[178] = new OpCode('getstatic', 'Fetch static field from class', (frame) -> 
       indexByte1 = frame.method_stack[thread.pc+1]
@@ -637,10 +1179,9 @@ class this.OpCodes
       # get the class the owns the static field 
       class_ref = thread.current_class.constant_pool[class_field_ref.class_index]
       cls = thread.current_class.constant_pool[class_ref]
-      if typeof cls isnt 'object'
-        thread.resolveClass(class_ref)
-        # break opcode execution until class is resolved
-        return false
+      if not(cls instanceof CONSTANT_Class) 
+        if(cls = thread.resolveClass(cls_ref)) == null
+          return false
           
       field_name_type = thread.current_class.constant_pool[class_field_ref.descriptor_index]
       field_name = thread.current_class.constant_pool[field_name_type.name_index]
@@ -661,25 +1202,76 @@ class this.OpCodes
       field_name = thread.current_class.constant_pool[field_ref.name_index]
       field_type = thread.current_class.constant_pool[field_ref.descriptor_index]
       #cls = thread.current_class.constant_pool[class_ref]
-      if not(cls instanceof CONSTANT_Class)
-        thread.resolveClass(class_ref)
-        # break opcode execution until class is resolved
-        return false
+      if not(cls instanceof CONSTANT_Class) 
+        if(cls = thread.resolveClass(class_field_ref.class_index)) == null
+          return false
         
       thread.pc += 2
       value = frame.op_stack.pop()
       # set field value
       cls.fields[field_name].value = value
-    yes )
-    @[180] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[181] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
-    @[182] = new OpCode('', '', (frame) -> 
-    # not yet implemented
-    yes )
+    )
+    @[180] = new OpCode('getfield', '', (frame) -> 
+      objectref = frame.op_stack.pop()
+      index = @constructIndex(frame, thread)
+      fieldref = @fromClass(index, thread)
+      if objectref is null
+        athrow('NullPointerException')
+      nameandtype = @fromClass(fieldref.name_and_type_index, thread)
+      fieldname = @fromClass(nameandtype.name_index, thread)
+      descriptor = @fromClass(nameandtype.descriptor_index, thread)
+      field = @fromHeap(objectref.pointer.fields[fieldname])
+      frame.op_stack.push(field)
+      thread.pc += 2
+      yes
+      # TODO check method stuff (protected etc)
+    )
+    @[181] = new OpCode('putfield', '', (frame) -> 
+      value =   frame.op_stack.pop()
+      objectref = frame.op_stack.pop() 
+      index = @constructIndex(frame, thread)
+      fieldref = @fromClass(index, thread)
+      if objectref is null
+        athrow('NullPointerException')
+      nameandtype = @fromClass(fieldref.name_and_type_index, thread)
+      fieldname = @fromClass(nameandtype.name_index, thread)
+      descriptor = @fromClass(nameandtype.descriptor_index, thread)
+      object = @fromHeap(objectref.pointer, thread)
+      object.fields[fieldname] = value      
+      thread.pc += 2
+      yes
+      # TODO check method stuff (protected etc)
+    )
+    @[182] = new OpCode('invokevirtual', 'Invoke instance method; dispatch based on class', (frame) -> 
+      index = @constructIndex(frame, thread)
+      methodref = @fromClass(index, thread)
+      objectref = frame.op_stack.pop()
+      methodnameandtype = @fromClass(methodref.name_and_type_index, thread)
+      cls = @fromClass(methodref.class_index, thread)
+      if not(cls instanceof CONSTANT_Class) 
+        if(cls = thread.resolveClass(methodref.class_index)) == null
+          return false
+          
+      method_name = @fromClass(methodnameandtype.name_index, thread)
+      method = @resolveMethod(method_name, cls)
+      
+      if method.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_STATIC
+        athrow('IncompatibleClassChangeError')
+      if method.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_ABSTRACT
+        athrow('AbstractMethodError')
+        
+      object = @fromHeap(objectref.pointer, thread)
+      
+      newframe = thread.createFrame(method, cls)
+      thread.current_class = cls
+      frame.pc += 2
+      thread.pc = -1
+      
+      arg_num = 0
+      while arg_num < method.nargs
+        newframe.locals[arg_num++] = frame.op_stack.pop()
+      yes 
+    )
     @[183] = new OpCode('invokespecial', 'Invoke instance method', (frame) -> 
       # get method ref from operands
       methodref = @fromClass(@constructIndex(frame, thread), thread)
@@ -693,7 +1285,7 @@ class this.OpCodes
               
       method_name_and_type = @fromClass(methodref.name_and_type_index, thread)
       method_name = @fromClass(method_name_and_type.name_index, thread)
-      method = cls.methods[method_name]
+      method = @resolveMethod(method_name, cls)
       
       #if thread.current_class == cls && cls.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_CLASS_MODIFIERS.JVM_ACC_SUPER 
       #return true
@@ -707,30 +1299,25 @@ class this.OpCodes
       thread.pc = -1
       # pop the args off the current op_stack into the local vars of the new frame
       arg_num = 0
-      while frame.op_stack.length > 0
+      while arg_num <= method.nargs
         newframe.locals[arg_num++] = frame.op_stack.pop()
-        
       yes
-      
     )
     @[184] = new OpCode('invokestatic', 'Invoke a class (static) method', (frame) -> 
       # cp ref
-      indexByte1 = frame.method_stack[++thread.pc]
-      indexByte2 = frame.method_stack[++thread.pc]
-      ref = indexByte1 << 8 | indexByte2
+      methodref = @fromClass(@constructIndex(frame, thread), thread)
+      cls_index = @fromClass(methodref.class_index, thread)
+      cls = @fromClass(cls_index, thread)
       
-      method_ref = thread.current_class.constant_pool[ref]
-      class_ref = thread.current_class.constant_pool[method_ref.class_index]
-      method_detail = thread.current_class.constant_pool[method_ref.name_and_type_index]
+      if not(cls instanceof CONSTANT_Class) 
+        if(cls = thread.resolveClass(cls_index)) == null
+          return false
+         
+      method_name_and_type = @fromClass(methodref.name_and_type_index, thread)
+      method_name = @fromClass(method_name_and_type.name_index, thread)   
+      method = @resolveMethod(method_name, cls)
       
-      if typeof class_ref is 'number'
-        thread.resolveClass(class_ref)
-        # break opcode execution until class is resolved
-        return false
-        
-      method = class_ref.methods[thread.current_class.constant_pool[method_detail.name_index]]
-      
-      thread.current_class = class_ref
+      thread.current_class = cls
       # set frame pc to skip operands, and machine pc to nil for new method
       frame.pc += 2
       thread.pc = -1
@@ -739,10 +1326,10 @@ class this.OpCodes
       newframe = thread.createFrame(method, thread.current_class)
       # pop the args off the current op_stack into the local vars of the new frame
       arg_num = 0
-      while frame.op_stack.length > 0
+      while arg_num <= method.nargs
         newframe.locals[arg_num++] = frame.op_stack.pop()
-            
-      yes 
+      yes
+       
     )
     @[185] = new OpCode('', '', (frame) -> 
     # not yet implemented
@@ -755,31 +1342,31 @@ class this.OpCodes
       clsref = thread.current_class.constant_pool[index]
       cls = thread.current_class.constant_pool[clsref]
       # TODO check if interface, array or abstract and throw instantiationException
-      if not (cls instanceof CONSTANT_Class)
-        # resolve
-        thread.resolveClass(clsref)
-        return false
+      if not(cls instanceof CONSTANT_Class) 
+        if(cls = thread.resolveClass(clsref)) == null
+          return false
       thread.pc += 2  
       objectref = thread.RDA.heap.allocate(new JVM_Object(cls))
       frame.op_stack.push(objectref)
       
-    yes )
+    )
     @[188] = new OpCode('', '', (frame) -> 
     # not yet implemented
-    yes )
+    )
     @[189] = new OpCode('anewarray', 'Create new array of reference', (frame) -> 
       count = frame.op_stack.pop()
       cpindex = @constructIndex(frame, thread)
       cls = thread.current_class.constant_pool[cpindex]
-      if not(cls instanceof CONSTANT_Class)
-        thread.resolveClass(cls)
-        return false
+      if not(cls instanceof CONSTANT_Class) 
+        if(cls = thread.resolveClass(cpindex)) == null
+          return false
+          
       if count < 0
         # TODO throw NegativeArraySizeException
         return false;
       arrayref = thread.RDA.heap.allocate( { 'object' : new Array(count), 'type' : cls } )
       frame.op_stack.push(arrayref.pointer)
-    yes )
+    )
     @[190] = new OpCode('arraylength', 'Get length of array', (frame) -> 
       arrayref = frame.op_stack.pop()
       if arrayref == null 
@@ -788,31 +1375,39 @@ class this.OpCodes
       array = thread.RDA.heap[arrayref.pointer]
       len = array.length
       frame.op_stack.push(len)    
-    yes )
+    )
     @[191] = new OpCode('athrow', 'Throw exception or error', (frame) -> 
       objectref = frame.op_stack.pop()
       if ojectref == null
-        # throw NullPointerException instead of objectref
+        athrow("NullPointerException")
         return false
-      #TODO... something here...  
+      # while a catch clause is not found
+      caught = false
+      while not caught
+        thread.current_frame.att
+        thread.jvm_stack.pop()
+        thread.current_frame = thread.jvm_stack.peek()
+      #TODO...  something here... 
       
-    yes )
+      
+    )
     @[192] = new OpCode('checkcast', 'Check if object is of a given type', (frame) -> 
       # do not alter the op stack
       objectref = frame.op_stack.peek()
       cls = constructIndex(frame, thread)
       # s comes from heap, T from the class constant pool
-      S = @fromHeap(objectref)
+      S = @fromHeap(objectref, thread)
       T = thread.current_class.constant_pool[cls]
-      if not T instanceof CONSTANT_Class
-        thread.resolveClass(T)
-        return false
+      
+      if not(T instanceof CONSTANT_Class) 
+        if(T = thread.resolveClass(cls)) == null
+          return false
+          
       if objectref == null
         return true
       # TODO check shit here pg 175
-     
-        
-    yes )
+             
+    )
     @[193] = new OpCode('', '', (frame) -> 
     # not yet implemented
     yes )
@@ -1010,6 +1605,27 @@ class OpCode
   constructor : (@mnemonic, @description, @do) ->
     this
     
+  resolveMethod : (name, cls) ->
+    method = cls.methods[name]
+    descriptor = cls.constant_pool[method.descriptor_index]
+    args = descriptor.substring(descriptor.indexOf('(')+1, descriptor.indexOf(')'))
+    method.args = new Array()
+    nargs = 0
+    count = 0
+    for index in args
+      if index is 'L'
+        arg = args.substring(count, args.indexOf(';', count))
+        count = args.indexOf(';', count)
+        method.args.push(arg)
+      else
+        method.args.push(index)
+      ++nargs
+      ++count
+      if count == args.length then break
+    method.returntype = descriptor.substring(descriptor.indexOf(')')+1)
+    method.nargs = nargs
+    return method
+    
   getIndexByte : (index, frame, thread) ->
     return frame.method_stack[thread.pc+index]
   
@@ -1023,3 +1639,6 @@ class OpCode
       
   fromClass : (index, thread) ->
     thread.current_class.constant_pool[index]
+  
+  athrow : (exception) ->
+    yes

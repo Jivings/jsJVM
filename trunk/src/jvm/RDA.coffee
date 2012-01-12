@@ -96,18 +96,29 @@ class this.Thread
     # end gracefully TODO (line 36, maybe Garbage collect?)
     #destroy()
  
-  resolveClass : (index) ->
-    name = @current_class.constant_pool[index]
-    if @RDA.method_area[name] == undefined
+  resolveClass : (clsname) ->
+    
+    # resolve index until we get a String or Class 
+    while typeof clsname is 'number'
+      clsname = @current_class.constant_pool[clsname]
+    # if a class, resolution done      
+    if clsname instanceof CONSTANT_Class
+      return clsname
+      
+    # if a string then we need to resolve 
+    # if already in the method_area, then return that instance. 
+    if @RDA.method_area[clsname] == undefined
       
       # tell the RDA that this thread is currently waiting
-      @RDA.waiting[name] = @
+      @RDA.waiting[clsname] = @
       # set the return index in the constant pool
-      @index = index
+      # @index = index
       # request the ClassLoader loads the class this thread needs and say we are waiting
-      @RDA.JVM.load(name, true)
+      @RDA.JVM.load(clsname, true)
+      # return null so opcode knows to pause execution
       return null
-    return @RDA.method_area[name]  
+      
+    return @RDA.method_area[clsname]  
       
    
   ###

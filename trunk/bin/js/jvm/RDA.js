@@ -90,16 +90,19 @@
       }
       return true;
     };
-    Thread.prototype.resolveClass = function(index) {
-      var name;
-      name = this.current_class.constant_pool[index];
-      if (this.RDA.method_area[name] === void 0) {
-        this.RDA.waiting[name] = this;
-        this.index = index;
-        this.RDA.JVM.load(name, true);
+    Thread.prototype.resolveClass = function(clsname) {
+      while (typeof clsname === 'number') {
+        clsname = this.current_class.constant_pool[clsname];
+      }
+      if (clsname instanceof CONSTANT_Class) {
+        return clsname;
+      }
+      if (this.RDA.method_area[clsname] === void 0) {
+        this.RDA.waiting[clsname] = this;
+        this.RDA.JVM.load(clsname, true);
         return null;
       }
-      return this.RDA.method_area[name];
+      return this.RDA.method_area[clsname];
     };
     /*
       Called when waiting threads are notified by the RDA. Will continue opcode 

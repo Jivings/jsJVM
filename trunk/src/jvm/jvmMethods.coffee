@@ -4,34 +4,39 @@
       @fields = {}
       for field of @cls.fields
         fld = @cls.fields[field]
-        @fields[fld.info.real_name] = fld.value
+        @fields[fld.info.real_name] = fld
       @methods = @cls.methods
       
   class this.JVM_Reference
     constructor : (@pointer) ->
           
+  class JVM_Number
+    constructor : (@val) ->
+    valueOf : () ->
+      return @val
+    
   class this.CONSTANT_Array
     constructor : (@type) ->
-            
+      
   class this.CONSTANT_Object
     constructor : (@classname) ->
       @value = null
       
-  class this.CONSTANT_Integer
+  class this.CONSTANT_Integer extends JVM_Number
     constructor : (val = 0) ->
-      @value = new Number(val)     
+      super val    
       
-  class this.CONSTANT_Float
+  class this.CONSTANT_Float extends JVM_Number
     constructor : (val = 0.0) ->
-      @value = new Number(val)
+      super val
       
-  class this.CONSTANT_Long
+  class this.CONSTANT_Long extends JVM_Number
     constructor : (val = 0) ->
-      @value = new Number(val)
+      super val
   
-  class this.CONSTANT_Double
-    constructor : (val = 0) ->
-      @value = new Number(val)
+  class this.CONSTANT_Double extends JVM_Number
+    constructor : (val = 0.0) ->
+      super val
   
   class this.CONSTANT_Char
     constructor : (@value = '\u0000') ->
@@ -44,7 +49,7 @@
     constructor : (@value = 0) ->
     
   class this.CONSTANT_Boolean
-    constructor : (@value = false) ->
+    constructor : (@value = 0) ->
          
   ### 
   Additional JVM functions exported from the main VM.
@@ -96,6 +101,11 @@
 
   JVM::JVM_OnExit = (func) ->
 
+  JVM::GetStaticFieldID = (env, cls, fieldname, returnType) ->
+    # TODO should be a field id!
+    return fieldname
+  JVM::SetStaticObjectField = (env,cls,fieldId,stream) ->
+    cls.fields[fieldId].value = stream
 
   # java.lang.Runtime
 
@@ -150,7 +160,7 @@
     return isNaN(double)
 
   # java.lang.Throwable
-
+system
   JVM::JVM_FillInStackTrace = (env, throwable) ->
     console.log('filling in stacktrace!')
 
@@ -372,15 +382,15 @@
   }
   
   JVM::FIELD_DESCRIPTORS = {
-    'B'   :   CONSTANT_Byte
-    'C'   :   CONSTANT_Char
-    'D'   :   CONSTANT_Double
-    'F'   :   CONSTANT_Float
-    'I'   :   CONSTANT_Integer
-    'J'   :   CONSTANT_Long
-    'L'   :   CONSTANT_Class
-    'S'   :   CONSTANT_Short
-    '['   :   CONSTANT_Array
+    'B'   :   'CONSTANT_Byte'
+    'C'   :   'CONSTANT_Char'
+    'D'   :   'CONSTANT_Double'
+    'F'   :   'CONSTANT_Float'
+    'I'   :   'CONSTANT_Integer'
+    'J'   :   'CONSTANT_Long'
+    'L'   :   'CONSTANT_Class'
+    'S'   :   'CONSTANT_Short'
+    '['   :   'CONSTANT_Array'
   }
                                           
                                           

@@ -1,4 +1,4 @@
-class this.NativeFrame extends Frame
+class this.NativeFrame
   constructor : (method, @cls, @env) ->
     @name = method.name 
       
@@ -31,6 +31,7 @@ class this.NativeFrame extends Frame
       when 'F' 
         opcodes[174].do(@)
       when 'J'
+        @op_stack.push(returnval) 
         opcodes[173].do(@)
       when 'L', '['
         opcodes[176].do(@)

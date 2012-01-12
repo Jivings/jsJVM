@@ -3,6 +3,7 @@ var current = 0;
 
 function noError(err, url, line) {
   console.log(err)
+  // Uncaught RangeError: Maximum call stack size exceeded
 }
 window.onerror = noError;
 

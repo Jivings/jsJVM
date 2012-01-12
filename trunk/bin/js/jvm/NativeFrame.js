@@ -1,14 +1,5 @@
 (function() {
-  var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
-    for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
-    function ctor() { this.constructor = child; }
-    ctor.prototype = parent.prototype;
-    child.prototype = new ctor;
-    child.__super__ = parent.prototype;
-    return child;
-  };
   this.NativeFrame = (function() {
-    __extends(NativeFrame, Frame);
     function NativeFrame(method, cls, env) {
       var descriptor_index;
       this.cls = cls;
@@ -45,6 +36,7 @@
         case 'F':
           return opcodes[174]["do"](this);
         case 'J':
+          this.op_stack.push(returnval);
           return opcodes[173]["do"](this);
         case 'L':
         case '[':

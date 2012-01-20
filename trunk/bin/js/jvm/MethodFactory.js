@@ -8,7 +8,7 @@
     MethodFactory.prototype.createFrame = function(method, cls) {
       var frame;
       if (method.access_flags & this.method_modifiers.JVM_ACC_NATIVE) {
-        frame = new NativeFrame(method, cls, this.JVM_env);
+        frame = new NativeFrame(method, cls, this.JVM_env, this.thread);
         this.thread.current_frame = frame;
         this.thread.native_stack.push(frame);
         return frame;

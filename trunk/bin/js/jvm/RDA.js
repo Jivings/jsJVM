@@ -19,11 +19,15 @@
       };
       this.threads = new Array();
     }
+    RDA.prototype.addNative = function(name, raw_class) {
+      return this.method_area[name] = raw_class;
+    };
     RDA.prototype.addClass = function(classname, raw_class) {
+      var method;
       this.method_area[classname] = raw_class;
       this.clinit(classname, raw_class);
-      if (raw_class.methods['main'] != null) {
-        return this.createThread(classname, 'main');
+      if ((method = this.JVM.JVM_ResolveMethod(raw_class, 'main', '([Ljava/lang/String;)V')) != null) {
+        return this.createThread(classname, method);
       }
     };
     RDA.prototype.createThread = function(mainClassName, method) {
@@ -39,9 +43,9 @@
     };
     RDA.prototype.clinit = function(classname, raw_class) {
       var clsini, t;
-      clsini = raw_class.methods['<clinit>'];
+      clsini = this.JVM.JVM_ResolveMethod(raw_class, '<clinit>', '()V');
       if (clsini != null) {
-        t = new Thread(raw_class, this, '<clinit>');
+        t = new Thread(raw_class, this, clsini);
         t.start();
       }
       return true;
@@ -75,14 +79,22 @@
       this.native_stack.peek = function() {
         return this[this.length - 1];
       };
-      this.current_frame = this.createFrame(this.methods[startMethod], this.current_class);
+      this.current_frame = this.createFrame(startMethod, this.current_class);
       this;
     }
     Thread.prototype.createFrame = function(method, cls) {
       return this.methodFactory.createFrame(method, cls);
     };
     Thread.prototype.start = function(destroy) {
+      var opcode, value;
       while (this.current_frame != null) {
+        if (this.current_frame instanceof Frame) {
+          opcode = this.opcodes[this.current_frame.method_stack[this.pc]];
+          value = this.current_frame.method_stack[this.pc];
+          console.log(this.current_class.real_name + '-' + this.current_frame.name + '\t\t' + value + '\t\t' + opcode.description);
+        } else {
+          console.log(this.current_class.real_name + '-' + this.current_frame.name);
+        }
         if (!this.current_frame.execute(this.pc, this.opcodes)) {
           return false;
         }
@@ -91,18 +103,10 @@
       return true;
     };
     Thread.prototype.resolveClass = function(clsname) {
-      while (typeof clsname === 'number') {
-        clsname = this.current_class.constant_pool[clsname];
-      }
-      if (clsname instanceof CONSTANT_Class) {
-        return clsname;
-      }
-      if (this.RDA.method_area[clsname] === void 0) {
-        this.RDA.waiting[clsname] = this;
-        this.RDA.JVM.load(clsname, true);
-        return null;
-      }
-      return this.RDA.method_area[clsname];
+      return this.RDA.JVM.JVM_ResolveClass(clsname, this);
+    };
+    Thread.prototype.resolveMethod = function(name, cls, type) {
+      return this.RDA.JVM.JVM_ResolveMethod(cls, name, type);
     };
     /*
       Called when waiting threads are notified by the RDA. Will continue opcode 

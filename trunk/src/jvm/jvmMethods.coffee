@@ -59,8 +59,8 @@
   # Register Global JVM methods to jclass for runtime access.
   JVM::RegisterNatives = (env, jclass, methods) -> 
     for name of methods 
-      JVM_MethodName = methods[name][1]
-      jclass.native[name] = JVM::[JVM_MethodName]
+      JVM_MethodName = methods[name].name
+      jclass[name] = JVM::[JVM_MethodName]
     yes
     
     
@@ -104,6 +104,7 @@
   JVM::GetStaticFieldID = (env, cls, fieldname, returnType) ->
     # TODO should be a field id!
     return fieldname
+    
   JVM::SetStaticObjectField = (env,cls,fieldId,stream) ->
     cls.fields[fieldId].value = stream
 
@@ -160,7 +161,7 @@
     return isNaN(double)
 
   # java.lang.Throwable
-system
+
   JVM::JVM_FillInStackTrace = (env, throwable) ->
     console.log('filling in stacktrace!')
 
@@ -270,10 +271,79 @@ system
 
   # Link the class
 
-  JVM::JVM_ResolveClass = (env, cls) ->
+  JVM::JVM_ResolveClass = (clsname, thread) ->
+    index = clsname
+    # resolve index until we get a String or Class 
+    while typeof clsname is 'number'
+      clsname = thread.current_class.constant_pool[clsname]
+    # if a class, resolution done      
+    if clsname instanceof CONSTANT_Class
+      return clsname
+      
+    # if a string then we need to resolve 
+    # if already in the method_area, then return that instance. 
+    if @RDA.method_area[clsname] == undefined
+      
+      # tell the RDA that this thread is currently waiting
+      @RDA.waiting[clsname] = thread
+     
+      # request the ClassLoader loads the class this thread needs and say we are waiting
+      @load(clsname, true)
+      # return null so opcode knows to pause execution
+      return null
+     
+    # actually resolve the class reference so this doesn't need to occur next time
+    cls = @RDA.method_area[clsname] 
+    cls.constant_pool[index] = cls
+    return @RDA.method_area[clsname]
+   
+  JVM::JVM_ResolveNativeClass = (cls, thread) ->
+    name = cls.real_name
+    nativeName = 'native/' + name
+    if @RDA.method_area[name].native == undefined
+      @RDA.waiting[nativeName] = thread
+      @loadNative(name)
+      return null
+      
+    _native = @RDA.method_area[nativeName]
+    return _native
+    
+        
+  JVM::JVM_ResolveNativeMethod = (cls, name, type) ->
+  
+  
+  JVM::JVM_ResolveMethod = (cls, name, type) ->
+    if cls.methods[name+type]?
+      return cls.methods[name+type]
+      
+    for index of cls.methods
+      method = cls.methods[index]
+      descriptor = method.descriptor = cls.constant_pool[method.descriptor_index]
+      if method.name is name and descriptor = type
+        # resolve the method return type and arguments
+        args = descriptor.substring(descriptor.indexOf('(')+1, descriptor.indexOf(')'))
+        method.args = new Array()
+        nargs = 0
+        count = 0
+        for index in args
+          if index is 'L'
+            arg = args.substring(count, args.indexOf(';', count))
+            count = args.indexOf(';', count)
+            method.args.push(arg)
+          else
+            method.args.push(index)
+          ++nargs
+          ++count
+          if count == args.length then break
+        method.returntype = descriptor.substring(descriptor.indexOf(')')+1)
+        method.nargs = nargs
+        cls.methods[method.name + descriptor] = method
+        return method
 
   # Find a class from a boot class loader. Returns NULL if class not found.
    
+  
+    
   JVM::JVM_FindClassFromBootLoader = (env, name) ->
     if classname? && classname.length > 0
       @classLoader.postMessage({ 'action' : 'find' , 'param' : classname })

@@ -1,24 +1,33 @@
 class this.NativeFrame
-  constructor : (method, @cls, @env) ->
-    @name = method.name 
-      
-    try 
-      @method = @cls.native[method.name]
-    catch err
-      console.log('UnsatisfiedLinkError: '+ @cls.real_name + '...' + method.name)
-      return false
-    
-    descriptor_index = @cls.methods[method.name].descriptor_index
-    
-    @descriptor = @cls.constant_pool[descriptor_index]
-    @args = @descriptor.substring(@descriptor.indexOf('(')+1, @descriptor.indexOf(')'))
-    @returntype = @descriptor.substring(@descriptor.indexOf(')')+1)
+
+
+  constructor : (@method, @cls, @env, @thread) ->
     @op_stack = new Array()
+    @resolved = true
+    @clsname = 'native/' + @cls.real_name
+    @args = @method.args
+    @returntype = @method.returntype
+    @name = @method.name
     
   execute : (pc, opcodes) ->
     
+   # if @resolved is false
+    #   console.log('UnsatisfiedLinkError: '+ @cls.real_name + '...' + method.name)
+    nativeCls = @thread.RDA.method_area[@clsname]
+        
+    if nativeCls is undefined
+      @env.JVM_ResolveNativeClass(@cls, @thread)
+      return false
+      
+    nMethod = nativeCls[@method.name]
+    
+    if nMethod is undefined
+      @env.JVM_ResolveNativeMethod(@cls, @method.name)
+      return false
+      
     # Exectute the Native Method 
-    returnval = @method.call(@cls.native, @env, @cls)
+    returnval = nMethod.call(nativeCls, @env, nativeCls, @args)
+    
     if returnval?
       @op_stack.push(returnval) 
       

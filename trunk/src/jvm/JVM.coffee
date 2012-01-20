@@ -10,7 +10,7 @@ class this.JVM
     Initialise JVM options
   ###
   
-  constructor : (params) ->
+  constructor : (params, @debugWindow) ->
     scopedJVM = this
     @VERSION_ID = "0.10"
     @JAVA_VERSION = "1.6.0_22"
@@ -29,7 +29,7 @@ class this.JVM
       @RDA = new RDA()
       @RDA.JVM = @
       
-      @classLoader = new ClassLoader(@loaded)
+      (@classLoader = new ClassLoader(@loaded, @loadedNative)).init()
       # Create ClassLoader WORKER TODO
       #@classLoader = new Worker('http://localhost/js-jvm/trunk/bin/js/classloader/ClassLoader.js')
       #@classLoader.onmessage = @message
@@ -50,11 +50,20 @@ class this.JVM
       else 
         @stdout.write @helpText()
     this
+    
+  loadNative : (classname) ->
+    @classLoader.findNative(classname)
+  
+  loadedNative : (classname, nativedata) ->
+    if nativedata != null
+      scopedJVM.RDA.addNative(classname, nativedata)
+      #console.log('Loaded class ['+classname+']')
+      scopedJVM.RDA.notifyAll(classname)
    
   loaded : (classname, classdata, waitingThreads) ->
     if(classdata != null)
       scopedJVM.RDA.addClass(classname, classdata)
-      console.log('Loaded class ['+classname+']')
+      #console.log('Loaded class ['+classname+']')
     
     if(waitingThreads) 
       scopedJVM.RDA.notifyAll(classname)
@@ -74,7 +83,7 @@ class this.JVM
         scopedJVM.console.println(e.data.message)
       when 'class'
         scopedJVM.RDA.addClass(e.data.classname, e.data._class)
-        scopedJVM.console.println "Loaded #{ e.data.classname }", 1
+        #scopedJVM.console.println "Loaded #{ e.data.classname }", 1
        
         #scopedJVM.RDA.clinit(e.data._class)
         # notify any threads waiting on this class
@@ -101,4 +110,5 @@ class this.JVM
 
   setCallBack : (@callback) ->
     this
+    
   

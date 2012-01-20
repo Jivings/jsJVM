@@ -8,6 +8,15 @@ function noError(err, url, line) {
 window.onerror = noError;
 
 //$('.command').focus().val('');
+var debugWindow;
+
+$('#handle').click(function() {
+  debugWindow=window.open('debug.html','Dubug Window','height=200,width=150');
+	if (window.focus) {debugWindow.focus()}
+	return false;
+});
+
+
 
 $(document).keydown(function() {
 	$('.command:last').focus();
@@ -31,7 +40,7 @@ $('.command').live('keyup', function(e) {
 	}
 });
 
-var right = '0', shown = false;
+/*var right = '0', shown = false;
 $('#handle').live('click', function(e) {
   $('#right-pane').animate( { right: right } , 700, function() {
     shown = !shown;
@@ -46,7 +55,7 @@ $('#handle').live('click', function(e) {
     
     
   });
-});
+});*/
 
 
 var stdin = {
@@ -117,9 +126,10 @@ function runJava(options, classname, args, finished) {
 	}
 	setInterval("updateDebug()", 100);
 	
-	jvm = new JVM(parameters)
+	jvm = new JVM(parameters, debugWindow)
 		.setCallBack(finished)
 		.load(classname, args)
+		
 		
 	
 }

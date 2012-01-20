@@ -1,25 +1,30 @@
 (function() {
   this.NativeFrame = (function() {
-    function NativeFrame(method, cls, env) {
-      var descriptor_index;
+    function NativeFrame(method, cls, env, thread) {
+      this.method = method;
       this.cls = cls;
       this.env = env;
-      this.name = method.name;
-      try {
-        this.method = this.cls["native"][method.name];
-      } catch (err) {
-        console.log('UnsatisfiedLinkError: ' + this.cls.real_name + '...' + method.name);
-        return false;
-      }
-      descriptor_index = this.cls.methods[method.name].descriptor_index;
-      this.descriptor = this.cls.constant_pool[descriptor_index];
-      this.args = this.descriptor.substring(this.descriptor.indexOf('(') + 1, this.descriptor.indexOf(')'));
-      this.returntype = this.descriptor.substring(this.descriptor.indexOf(')') + 1);
+      this.thread = thread;
       this.op_stack = new Array();
+      this.resolved = true;
+      this.clsname = 'native/' + this.cls.real_name;
+      this.args = this.method.args;
+      this.returntype = this.method.returntype;
+      this.name = this.method.name;
     }
     NativeFrame.prototype.execute = function(pc, opcodes) {
-      var returnval;
-      returnval = this.method.call(this.cls["native"], this.env, this.cls);
+      var nMethod, nativeCls, returnval;
+      nativeCls = this.thread.RDA.method_area[this.clsname];
+      if (nativeCls === void 0) {
+        this.env.JVM_ResolveNativeClass(this.cls, this.thread);
+        return false;
+      }
+      nMethod = nativeCls[this.method.name];
+      if (nMethod === void 0) {
+        this.env.JVM_ResolveNativeMethod(this.cls, this.method.name);
+        return false;
+      }
+      returnval = nMethod.call(nativeCls, this.env, nativeCls, this.args);
       if (returnval != null) {
         this.op_stack.push(returnval);
       }

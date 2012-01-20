@@ -933,9 +933,9 @@ class this.OpCodes
       value1b = frame.op_stack.pop().valueOf()
       if value1a > value2a
         frame.op_stack.push(1)
-      if value1a == value2a
+      else if value1a == value2a
         frame.op_stack.push(0)
-      if value1a < value2a 
+      else if value1a < value2a 
         frame.op_stack.push(-1)
     )
     @[149] = new OpCode('fcmpl', 'Compare float, push -1 for NaN', (frame) -> 
@@ -1078,7 +1078,8 @@ class this.OpCodes
     @[173] = new OpCode('lreturn', 'Return long from method', (frame) -> 
       
       # get long
-      retfloat = frame.op_stack.pop()
+      retlong = frame.op_stack.pop()
+      frame.op_stack.pop()
       # pop the current method to discard
       if(thread.current_frame instanceof NativeFrame)
         thread.native_stack.pop()
@@ -1092,8 +1093,8 @@ class this.OpCodes
         
       # push the ref to the stack of the invoking method.
       invoker = thread.jvm_stack.peek()
-      invoker.op_stack.push(retfloat)
-      invoker.op_stack.push(retfloat)
+      invoker.op_stack.push(retlong)
+      invoker.op_stack.push(retlong)
       # make invoker current and set pc to where invoker was left off
       thread.current_frame = invoker
       thread.current_class = invoker.cls
@@ -1270,7 +1271,8 @@ class this.OpCodes
         return false
           
       method_name = @fromClass(methodnameandtype.name_index, thread)
-      method = @resolveMethod(method_name, cls)
+      type = @fromClass(method_name_and_type.descriptor_index, thread)
+      method = thread.resolveMethod(method_name, cls, type)
       
       if method.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_STATIC
         athrow('IncompatibleClassChangeError')
@@ -1303,7 +1305,8 @@ class this.OpCodes
               
       method_name_and_type = @fromClass(methodref.name_and_type_index, thread)
       method_name = @fromClass(method_name_and_type.name_index, thread)
-      method = @resolveMethod(method_name, cls)
+      type = @fromClass(method_name_and_type.descriptor_index, thread)
+      method = thread.resolveMethod(method_name, cls, type)
       
       #if thread.current_class == cls && cls.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_CLASS_MODIFIERS.JVM_ACC_SUPER 
       #return true
@@ -1330,7 +1333,8 @@ class this.OpCodes
          
       method_name_and_type = @fromClass(methodref.name_and_type_index, thread)
       method_name = @fromClass(method_name_and_type.name_index, thread)   
-      method = @resolveMethod(method_name, cls)
+      type = @fromClass(method_name_and_type.descriptor_index, thread)
+      method = thread.resolveMethod(method_name, cls, type)
       
       thread.current_class = cls
       # set frame pc to skip operands, and machine pc to nil for new method
@@ -1618,26 +1622,7 @@ class OpCode
   constructor : (@mnemonic, @description, @do) ->
     this
     
-  resolveMethod : (name, cls) ->
-    method = cls.methods[name]
-    descriptor = cls.constant_pool[method.descriptor_index]
-    args = descriptor.substring(descriptor.indexOf('(')+1, descriptor.indexOf(')'))
-    method.args = new Array()
-    nargs = 0
-    count = 0
-    for index in args
-      if index is 'L'
-        arg = args.substring(count, args.indexOf(';', count))
-        count = args.indexOf(';', count)
-        method.args.push(arg)
-      else
-        method.args.push(index)
-      ++nargs
-      ++count
-      if count == args.length then break
-    method.returntype = descriptor.substring(descriptor.indexOf(')')+1)
-    method.nargs = nargs
-    return method
+  
     
   getIndexByte : (index, frame, thread) ->
     return frame.method_stack[thread.pc+index]

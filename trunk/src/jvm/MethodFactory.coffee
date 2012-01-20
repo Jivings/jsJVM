@@ -6,7 +6,7 @@ class this.MethodFactory
   createFrame : (method, cls) ->
   
     if method.access_flags & @method_modifiers.JVM_ACC_NATIVE 
-      frame = new NativeFrame(method, cls, @JVM_env)
+      frame = new NativeFrame(method, cls, @JVM_env, @thread)
       @thread.current_frame = frame
       @thread.native_stack.push(frame)
       return frame

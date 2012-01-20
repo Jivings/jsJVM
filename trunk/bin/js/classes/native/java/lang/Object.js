@@ -1,10 +1,10 @@
 function() {
   this.nativeMethods = {
-        "hashCode ()I" : 'JVM_IHashCode',
-        "wait (J)V" : 'JVM_MonitorWait',
-        "notify ()V" : 'JVM_MonitorNotify',
-        "notifyAll ()V" : 'JVM_MonitorNotifyAll',
-        "clone ()Ljava/lang/Object;" : 'JVM_Clone'
+        "hashCode"  : { "name" : "JVM_IHashCode", "descriptor" : "()I" },
+        "wait"      : { "name" : "JVM_MonitorWait", "descriptor" : "(J)V" },
+        "notify"    : { "name" : "JVM_MonitorNotify", "descriptor" : "()V" },
+        "notifyAll" : { "name" : "JVM_MonitorNotifyAll", "descriptor": "()V" },
+        "clone"     : { "name" : "JVM_Clone", "descriptor" : "()Ljava/lang/Object;" }
     }
   
   this.registerNatives = function(env, jclass) {

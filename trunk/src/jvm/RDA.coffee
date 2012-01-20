@@ -25,13 +25,16 @@ class this.RDA
       return new JVM_Reference(ref)
     
     @threads = new Array()
+    
+  addNative : (name, raw_class) ->
+    @method_area[name] = raw_class
   
   addClass : (classname, raw_class) ->
     @method_area[classname] = raw_class
     
     @clinit(classname, raw_class)
-    if raw_class.methods['main']?
-      @createThread classname, 'main'
+    if (method = @JVM.JVM_ResolveMethod(raw_class, 'main', '([Ljava/lang/String;)V'))?
+      @createThread classname, method      
             
   createThread : (mainClassName, method) ->
     # TODO Thread ID?
@@ -46,9 +49,9 @@ class this.RDA
   # Execute the clinit method of a class.
   clinit : (classname, raw_class) ->
     # create class instance variables
-    clsini= raw_class.methods['<clinit>']
+    clsini= @JVM.JVM_ResolveMethod(raw_class, '<clinit>', '()V')
     if clsini?
-      t = new Thread(raw_class, @, '<clinit>')
+      t = new Thread(raw_class, @, clsini)
       t.start()
     yes
   
@@ -81,7 +84,8 @@ class this.Thread
     @native_stack.peek = () ->
       return @[@length-1]
       
-    @current_frame = @createFrame(@methods[startMethod], @current_class)  
+    @current_frame = @createFrame(startMethod, @current_class)  
+    #@RDA.JVM.debugWindow.addFrame(@current_frame)
     this
   
   createFrame : (method, cls) ->
@@ -89,6 +93,16 @@ class this.Thread
     
   start : (destroy) ->
     while @current_frame?
+      #@RDA.JVM.debugWindow.addFrame(@current_frame)
+      #console.log(@current_frame)
+      # debug
+      if @current_frame instanceof Frame
+        opcode = @opcodes[@current_frame.method_stack[@pc]]
+        value = @current_frame.method_stack[@pc]
+        #@RDA.JVM.debugWindow.addOpcode(opcode, value)
+        console.log(@current_class.real_name + '-' + @current_frame.name + '\t\t' + value + '\t\t'+ opcode.description )
+      else 
+        console.log(@current_class.real_name + '-' + @current_frame.name)
       if(!@current_frame.execute(@pc, @opcodes)) then return false
       @pc++
     
@@ -97,29 +111,10 @@ class this.Thread
     #destroy()
  
   resolveClass : (clsname) ->
-    
-    # resolve index until we get a String or Class 
-    while typeof clsname is 'number'
-      clsname = @current_class.constant_pool[clsname]
-    # if a class, resolution done      
-    if clsname instanceof CONSTANT_Class
-      return clsname
-      
-    # if a string then we need to resolve 
-    # if already in the method_area, then return that instance. 
-    if @RDA.method_area[clsname] == undefined
-      
-      # tell the RDA that this thread is currently waiting
-      @RDA.waiting[clsname] = @
-      # set the return index in the constant pool
-      # @index = index
-      # request the ClassLoader loads the class this thread needs and say we are waiting
-      @RDA.JVM.load(clsname, true)
-      # return null so opcode knows to pause execution
-      return null
-      
-    return @RDA.method_area[clsname]  
-      
+    @RDA.JVM.JVM_ResolveClass(clsname, @)
+     
+  resolveMethod : (name, cls, type) ->
+    @RDA.JVM.JVM_ResolveMethod(cls, name, type)    
    
   ###
   Called when waiting threads are notified by the RDA. Will continue opcode 

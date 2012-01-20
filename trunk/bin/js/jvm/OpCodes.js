@@ -1058,12 +1058,10 @@
         value1a = frame.op_stack.pop().valueOf();
         value1b = frame.op_stack.pop().valueOf();
         if (value1a > value2a) {
-          frame.op_stack.push(1);
-        }
-        if (value1a === value2a) {
-          frame.op_stack.push(0);
-        }
-        if (value1a < value2a) {
+          return frame.op_stack.push(1);
+        } else if (value1a === value2a) {
+          return frame.op_stack.push(0);
+        } else if (value1a < value2a) {
           return frame.op_stack.push(-1);
         }
       });
@@ -1207,8 +1205,9 @@
         return thread.pc = invoker.pc;
       });
       this[173] = new OpCode('lreturn', 'Return long from method', function(frame) {
-        var invoker, retfloat;
-        retfloat = frame.op_stack.pop();
+        var invoker, retlong;
+        retlong = frame.op_stack.pop();
+        frame.op_stack.pop();
         if (thread.current_frame instanceof NativeFrame) {
           thread.native_stack.pop();
           if ((thread.native_stack.peek() != null)) {
@@ -1220,8 +1219,8 @@
           thread.jvm_stack.pop();
         }
         invoker = thread.jvm_stack.peek();
-        invoker.op_stack.push(retfloat);
-        invoker.op_stack.push(retfloat);
+        invoker.op_stack.push(retlong);
+        invoker.op_stack.push(retlong);
         thread.current_frame = invoker;
         thread.current_class = invoker.cls;
         return thread.pc = invoker.pc;
@@ -1369,7 +1368,7 @@
         return true;
       });
       this[182] = new OpCode('invokevirtual', 'Invoke instance method; dispatch based on class', function(frame) {
-        var arg_num, cls, index, method, method_name, methodnameandtype, methodref, newframe, object, objectref;
+        var arg_num, cls, index, method, method_name, methodnameandtype, methodref, newframe, object, objectref, type;
         index = this.constructIndex(frame, thread);
         methodref = this.fromClass(index, thread);
         objectref = frame.op_stack.pop();
@@ -1378,7 +1377,8 @@
           return false;
         }
         method_name = this.fromClass(methodnameandtype.name_index, thread);
-        method = this.resolveMethod(method_name, cls);
+        type = this.fromClass(method_name_and_type.descriptor_index, thread);
+        method = thread.resolveMethod(method_name, cls, type);
         if (method.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_STATIC) {
           athrow('IncompatibleClassChangeError');
         }
@@ -1398,7 +1398,7 @@
         return true;
       });
       this[183] = new OpCode('invokespecial', 'Invoke instance method', function(frame) {
-        var arg_num, cls, method, method_name, method_name_and_type, methodref, newframe;
+        var arg_num, cls, method, method_name, method_name_and_type, methodref, newframe, type;
         methodref = this.fromClass(this.constructIndex(frame, thread), thread);
         if (!(methodref instanceof CONSTANT_Methodref_info)) {
           throw 'Opcode 183 error.';
@@ -1408,7 +1408,8 @@
         }
         method_name_and_type = this.fromClass(methodref.name_and_type_index, thread);
         method_name = this.fromClass(method_name_and_type.name_index, thread);
-        method = this.resolveMethod(method_name, cls);
+        type = this.fromClass(method_name_and_type.descriptor_index, thread);
+        method = thread.resolveMethod(method_name, cls, type);
         newframe = thread.createFrame(method, cls);
         thread.current_class = cls;
         frame.pc += 2;
@@ -1420,14 +1421,15 @@
         return true;
       });
       this[184] = new OpCode('invokestatic', 'Invoke a class (static) method', function(frame) {
-        var arg_num, cls, method, method_name, method_name_and_type, methodref, newframe;
+        var arg_num, cls, method, method_name, method_name_and_type, methodref, newframe, type;
         methodref = this.fromClass(this.constructIndex(frame, thread), thread);
         if ((cls = thread.resolveClass(methodref.class_index)) === null) {
           return false;
         }
         method_name_and_type = this.fromClass(methodref.name_and_type_index, thread);
         method_name = this.fromClass(method_name_and_type.name_index, thread);
-        method = this.resolveMethod(method_name, cls);
+        type = this.fromClass(method_name_and_type.descriptor_index, thread);
+        method = thread.resolveMethod(method_name, cls, type);
         thread.current_class = cls;
         frame.pc += 2;
         thread.pc = -1;
@@ -1581,33 +1583,6 @@
       this["do"] = _do;
       this;
     }
-    OpCode.prototype.resolveMethod = function(name, cls) {
-      var arg, args, count, descriptor, index, method, nargs, _i, _len;
-      method = cls.methods[name];
-      descriptor = cls.constant_pool[method.descriptor_index];
-      args = descriptor.substring(descriptor.indexOf('(') + 1, descriptor.indexOf(')'));
-      method.args = new Array();
-      nargs = 0;
-      count = 0;
-      for (_i = 0, _len = args.length; _i < _len; _i++) {
-        index = args[_i];
-        if (index === 'L') {
-          arg = args.substring(count, args.indexOf(';', count));
-          count = args.indexOf(';', count);
-          method.args.push(arg);
-        } else {
-          method.args.push(index);
-        }
-        ++nargs;
-        ++count;
-        if (count === args.length) {
-          break;
-        }
-      }
-      method.returntype = descriptor.substring(descriptor.indexOf(')') + 1);
-      method.nargs = nargs;
-      return method;
-    };
     OpCode.prototype.getIndexByte = function(index, frame, thread) {
       return frame.method_stack[thread.pc + index];
     };

@@ -2,9 +2,9 @@ function() {
   this.OBJ = "Ljava/lang/Object;";
   
   this.nativeMethods = {
-    "currentTimeMillis" : [ "()J", "JVM_CurrentTimeMillis" ],
-    "nanoTime"          : [ "()J", "JVM_NanoTime" ],
-    "arraycopy"         : [ "(" + this.OBJ + "I" + this.OBJ + "II)V", "JVM_ArrayCopy"]
+    "currentTimeMillis" : { "descriptor" : "()J", "name" : "JVM_CurrentTimeMillis" },
+    "nanoTime"          : { "descriptor" : "()J", "name" : "JVM_NanoTime" },
+    "arraycopy"         : { "descriptor" : "(" + this.OBJ + "I" + this.OBJ + "II)V", "name" : "JVM_ArrayCopy" }
   };
   
   this.registerNatives = function(env, cls) {

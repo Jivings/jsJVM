@@ -13,9 +13,9 @@
       Constructor 
       Set runtime data area and grab console from global scope
       */
-    function ClassLoader(returnMethod) {
-      var cls, _i, _len, _ref;
+    function ClassLoader(returnMethod, returnNative) {
       this.returnMethod = returnMethod;
+      this.returnNative = returnNative;
       this.console = {
         debug: function(message) {
           return console.log(message);
@@ -24,12 +24,21 @@
           return console.log(message);
         }
       };
+    }
+    /*
+        Seperate to Constructor so that the JVM can resolve native classes for 
+        the required.
+      */
+    ClassLoader.prototype.init = function() {
+      var cls, _i, _len, _ref, _results;
       _ref = this.required_classes;
+      _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         cls = _ref[_i];
-        this.find(cls);
+        _results.push(this.find(cls));
       }
-    }
+      return _results;
+    };
     /*
       doAction : (message) -> 
         
@@ -55,13 +64,22 @@
       classReader = new ClassReader(hexstream);
       return classReader.parse(this.loaded, this, waitingThreads);
     };
-    ClassLoader.prototype.findNative = function(class_name) {
-      var req;
+    ClassLoader.prototype.findNative = function(class_name, waitingThreads) {
+      var name, req, _native;
+      name = 'native/' + class_name;
+      _native = null;
       req = new XMLHttpRequest();
-      req.open('GET', "js/classes/native/" + class_name + ".js", false);
+      req.open('GET', "js/classes/" + name + ".js", false);
       req.send(null);
       if (req.status === 200) {
-        return req.responseText;
+        try {
+          eval("_native = (" + req.responseText + ")");
+        } catch (err) {
+          console.log("" + name);
+          throw err;
+        }
+        _native = new _native();
+        this.returnNative(name, _native);
       }
       return null;
     };
@@ -71,13 +89,7 @@
     Adds class to Method Area and loads class dependancies
     */
     ClassLoader.prototype.loaded = function(_class, self, waitingThreads) {
-      var _native;
       self.find(_class.get_super());
-      _native = self.findNative(_class.get_name());
-      if (_native != null) {
-        eval("_class.native = (" + _native + ")");
-        _class["native"] = new _class["native"]();
-      }
       self.loaded_classes[_class.get_name()] = 'Loaded';
       self.returnMethod(_class.get_name(), _class, waitingThreads);
       return true;
@@ -91,7 +103,7 @@
         waitingThreads = false;
       }
       if ((this.loaded_classes[class_name] != null)) {
-        this.returnMethod(class_name, null, waitingThreads);
+        return;
       }
       if (typeof class_name === 'undefined') {
         return;
@@ -249,7 +261,7 @@
       i = -1;
       while (++i < _class.method_count) {
         method = this.readMethodInfo(_class);
-        _class.methods[_class.constant_pool[method.name_index]] = method;
+        _class.methods[i] = method;
       }
       return true;
     };

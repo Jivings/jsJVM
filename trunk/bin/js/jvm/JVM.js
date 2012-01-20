@@ -8,7 +8,8 @@
   this.JVM = (function() {
     /*
         Initialise JVM options
-      */    function JVM(params) {
+      */    function JVM(params, debugWindow) {
+      this.debugWindow = debugWindow;
       scopedJVM = this;
       this.VERSION_ID = "0.10";
       this.JAVA_VERSION = "1.6.0_22";
@@ -24,7 +25,7 @@
       } else {
         this.RDA = new RDA();
         this.RDA.JVM = this;
-        this.classLoader = new ClassLoader(this.loaded);
+        (this.classLoader = new ClassLoader(this.loaded, this.loadedNative)).init();
         this.JNI = new InternalJNI(this);
       }
     }
@@ -46,10 +47,18 @@
       }
       return this;
     };
+    JVM.prototype.loadNative = function(classname) {
+      return this.classLoader.findNative(classname);
+    };
+    JVM.prototype.loadedNative = function(classname, nativedata) {
+      if (nativedata !== null) {
+        scopedJVM.RDA.addNative(classname, nativedata);
+        return scopedJVM.RDA.notifyAll(classname);
+      }
+    };
     JVM.prototype.loaded = function(classname, classdata, waitingThreads) {
       if (classdata !== null) {
         scopedJVM.RDA.addClass(classname, classdata);
-        console.log('Loaded class [' + classname + ']');
       }
       if (waitingThreads) {
         return scopedJVM.RDA.notifyAll(classname);
@@ -71,7 +80,6 @@
           return scopedJVM.console.println(e.data.message);
         case 'class':
           scopedJVM.RDA.addClass(e.data.classname, e.data._class);
-          scopedJVM.console.println("Loaded " + e.data.classname, 1);
           if (e.data.waitingThreads) {
             return scopedJVM.RDA.notifyAll(e.data.classname);
           }

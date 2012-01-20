@@ -16,11 +16,17 @@ class this.ClassLoader
   Constructor 
   Set runtime data area and grab console from global scope
   ###
-  constructor : (@returnMethod) ->
+  constructor : (@returnMethod, @returnNative) ->
     @console = { 
       debug : (message) -> console.log(message)
       print : (message) -> console.log(message)
     }
+  
+  ###
+    Seperate to Constructor so that the JVM can resolve native classes for 
+    the required.
+  ###
+  init : () ->
     for cls in @required_classes 
       @find cls
   
@@ -46,13 +52,26 @@ class this.ClassLoader
     classReader = new ClassReader hexstream 
     classReader.parse(@loaded, this, waitingThreads)
 
-  findNative : (class_name) ->
+  findNative : (class_name, waitingThreads) ->
+    name = 'native/' + class_name
+    _native = null
     req = new XMLHttpRequest()
-    req.open 'GET', "js/classes/native/#{class_name}.js", false
+    req.open 'GET', "js/classes/#{name}.js", false
     req.send null
     if req.status is 200
-      return req.responseText
+      try 
+        eval("_native = (" + req.responseText + ")")
+      catch err 
+        console.log("#{name}")
+        throw err
+      
+      
+      _native = new _native()
+      @returnNative(name, _native)
     return null
+    
+      
+      
   ### 
   Callback method to execute when class has finished loading.
   Neccessary due to Async AJAX request during find
@@ -62,10 +81,7 @@ class this.ClassLoader
     # load dependancies, this way super class Object will always be the first class loaded.
 
     self.find _class.get_super()
-    _native = self.findNative(_class.get_name())
-    if _native? 
-      eval("_class.native = (" + _native + ")")
-      _class.native = new _class.native()
+    
     self.loaded_classes[_class.get_name()] = 'Loaded'
         
 
@@ -79,7 +95,7 @@ class this.ClassLoader
   ###
   find : (class_name, waitingThreads = false) ->
     if(@loaded_classes[class_name]?) 
-      this.returnMethod(class_name, null, waitingThreads)
+      return
     # java/lang/Object super class will be undefined
     if typeof class_name is 'undefined'
       return 
@@ -217,7 +233,7 @@ class ClassReader
     i = -1
     while ++i < _class.method_count
       method = @readMethodInfo _class
-      _class.methods[_class.constant_pool[method.name_index]] = method
+      _class.methods[i] = method
     yes   
    	
   parseAttributes : (_class) ->
@@ -227,6 +243,7 @@ class ClassReader
     method_info = {}
     @console.debug '  access flags: ' + method_info.access_flags = @read(2), 2;
     @console.debug '  name index: ' + method_info.name_index = @read(2), 2;
+    #method_info.real_name = _class.constant_pool[method_info.name_index]
     method_info.name = _class.constant_pool[method_info.name_index];
     @console.debug '  descriptor index: ' + method_info.descriptor_index = @read(2), 2;
     @console.debug '  atrribute count: ' + method_info.attribute_count = @read(2), 2;

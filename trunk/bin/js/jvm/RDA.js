@@ -87,6 +87,7 @@
     };
     Thread.prototype.start = function(destroy) {
       var opcode, value;
+      this.pc = this.current_frame.pc;
       while (this.current_frame != null) {
         if (this.current_frame instanceof Frame) {
           opcode = this.opcodes[this.current_frame.method_stack[this.pc]];
@@ -142,6 +143,7 @@
       this.resolveSelf(this.cls);
       this.name = method.name;
       this.locals = {};
+      this.pc = 0;
       this;
     }
     Frame.prototype.execute = function(pc, opcodes) {

@@ -26,6 +26,7 @@
         this.RDA = new RDA();
         this.RDA.JVM = this;
         (this.classLoader = new ClassLoader(this.loaded, this.loadedNative)).init();
+        this.InitializeSystemClass();
         this.JNI = new InternalJNI(this);
       }
     }

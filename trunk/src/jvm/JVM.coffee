@@ -30,6 +30,7 @@ class this.JVM
       @RDA.JVM = @
       
       (@classLoader = new ClassLoader(@loaded, @loadedNative)).init()
+      @InitializeSystemClass()
       # Create ClassLoader WORKER TODO
       #@classLoader = new Worker('http://localhost/js-jvm/trunk/bin/js/classloader/ClassLoader.js')
       #@classLoader.onmessage = @message

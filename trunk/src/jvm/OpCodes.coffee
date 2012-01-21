@@ -63,13 +63,17 @@ class this.OpCodes
       frame.op_stack.push(short)
     )
     @[18] = new OpCode('ldc', 'Push item from constant pool', (frame) -> 
-      item = thread.current_class.constant_pool[@getIndexByte(1, frame, thread)]
+      item = @getIndexByte(1, frame, thread)
+      while typeof (item = @fromClass(item, thread)) is 'number' 
+        continue
+     
       # TODO check item is valid
       frame.op_stack.push(item)
     )
     @[19] = new OpCode('ldc_w', 'Push item from constant pool (wide index)', (frame) -> 
-      index = @constructIndex(frame, thread)
-      item = thread.current_class.constant_pool[index]
+      item = @constructIndex(frame, thread)
+      while typeof (item = @fromClass(item, thread)) is 'number' 
+        continue
       # TODO check item is valid
       frame.op_stack.push(item)
     )
@@ -450,10 +454,10 @@ class this.OpCodes
       array[arrayindex] = value
     )
     @[85] = new OpCode('castore', 'Store into char array', (frame) -> 
-      arrayref = frame.op_stack.pop()
-      arrayindex = frame.op_stack.pop()
       value = frame.op_stack.pop()
-      array = @fromHeap(arrayref)
+      arrayindex = frame.op_stack.pop()
+      arrayref = frame.op_stack.pop()
+      array = @fromHeap(arrayref, thread)
       if array is null
         athrow('NullPointerException')
       if arrayindex > array.length
@@ -990,48 +994,106 @@ class this.OpCodes
       else if value1a < value2a
         frame.op_stack.push(-1)
     )
-    @[153] = new OpCode('ifeq', '', (frame) -> 
-      console.log('153 called')
-    yes )
-    @[154] = new OpCode('ifne', '', (frame) -> 
-      console.log('154 called')
-    yes )
-    @[155] = new OpCode('iflt', '', (frame) -> 
-      console.log('155 called')
-    yes )
-    @[156] = new OpCode('ifge', '', (frame) -> 
-      console.log('156 called')
-    yes )
-    @[157] = new OpCode('ifgt', '', (frame) -> 
-      console.log('157 called')
-    yes )
-    @[158] = new OpCode('ifle', '', (frame) -> 
-      console.log('158 called')
-    yes )
-    @[159] = new OpCode('if_icmpeq', '', (frame) -> 
-      console.log('159 called')
-    yes )
-    @[160] = new OpCode('if_icmpne', '', (frame) -> 
-      console.log('160 called')
-    yes )
-    @[161] = new OpCode('if_icmplt', '', (frame) -> 
-      console.log('161 called')
-    yes )
-    @[162] = new OpCode('if_icmpge', '', (frame) -> 
-      console.log('162 called')
-    yes )
-    @[163] = new OpCode('if_icmpgt', '', (frame) -> 
-      console.log('163 called')
-    yes )
-    @[164] = new OpCode('if_icmple', '', (frame) -> 
-      console.log('164 called')
-    yes )
-    @[165] = new OpCode('if_acmpeq', '', (frame) -> 
-      console.log('165 called')
-    yes )
+    @[153] = new OpCode('ifeq', 'Branch if value is 0', (frame) -> 
+      if frame.op_stack.pop() is 0 
+        branch = @constructIndex(frame, thread);
+        thread.pc += branch
+      yes
+    )
+    @[154] = new OpCode('ifne', 'Branch if value isnt 0', (frame) -> 
+      if frame.op_stack.pop() isnt 0
+        branch = @constructIndex(frame, thread);
+        thread.pc += branch
+      yes
+    )
+    @[155] = new OpCode('iflt', 'Branch if value < 0', (frame) -> 
+      if frame.op_stack.pop() < 0
+        branch = @constructIndex(frame, thread);
+        thread.pc += branch
+      yes
+    )
+    @[156] = new OpCode('ifge', 'Branch if value >= 0', (frame) -> 
+      if frame.op_stack.pop() >= 0
+        branch = @constructIndex(frame, thread);
+        thread.pc += branch
+      yes
+    )
+    @[157] = new OpCode('ifgt', 'Branch if value > 0', (frame) -> 
+      if frame.op_stack.pop() > 0
+        branch = @constructIndex(frame, thread);
+        thread.pc += branch
+      yes
+    )
+    @[158] = new OpCode('ifle', 'Branch if value <= 0', (frame) -> 
+      if frame.op_stack.pop() <= 0
+        branch = @constructIndex(frame, thread);
+        thread.pc += branch
+      yes
+    )
+    @[159] = new OpCode('if_icmpeq', 'Branch if int1 == int2', (frame) -> 
+      value2 = frame.op_stack.pop()
+      value1 = frame.op_stack.pop()
+      if value1 is value2
+        branch = @constructIndex(frame, thread);
+        thread.pc += branch
+      yes
+    )
+    @[160] = new OpCode('if_icmpne', 'Branch if int1 != int2', (frame) -> 
+      value2 = frame.op_stack.pop()
+      value1 = frame.op_stack.pop()
+      if value1 isnt value2
+        branch = @constructIndex(frame, thread);
+        thread.pc += branch
+      yes
+    )
+    @[161] = new OpCode('if_icmplt', 'Branch if int1 < int2', (frame) -> 
+      value2 = frame.op_stack.pop()
+      value1 = frame.op_stack.pop()
+      if value1 < value2
+        branch = @constructIndex(frame, thread);
+        thread.pc += branch
+      yes
+    )
+    @[162] = new OpCode('if_icmpge', 'Branch if int1 >= int2', (frame) -> 
+      value2 = frame.op_stack.pop()
+      value1 = frame.op_stack.pop()
+      if value1 >= value2
+        branch = @constructIndex(frame, thread);
+        thread.pc += branch
+      yes
+    )
+    @[163] = new OpCode('if_icmpgt', 'Branch if int1 > int2', (frame) -> 
+      value2 = frame.op_stack.pop()
+      value1 = frame.op_stack.pop()
+      if value1 > value2
+        branch = @constructIndex(frame, thread);
+        thread.pc += branch
+      yes
+    )
+    @[164] = new OpCode('if_icmple', 'Branch if int1 <= int2', (frame) -> 
+      value2 = frame.op_stack.pop()
+      value1 = frame.op_stack.pop()
+      if value1 <= value2
+        branch = @constructIndex(frame, thread);
+        thread.pc += branch
+      yes
+    )
+    @[165] = new OpCode('if_acmpeq', 'Branch if ref1 === ref2', (frame) -> 
+      ref2 = frame.op_stack.pop()
+      ref1 = frame.op_stack.pop()
+      if ref1 is ref2
+        branch = @constructIndex(frame, thread);
+        thread.pc += branch
+      yes
+    )
     @[166] = new OpCode('if_acmpne', '', (frame) -> 
-      console.log('166 called')
-    yes )
+      ref2 = frame.op_stack.pop()
+      ref1 = frame.op_stack.pop()
+      if ref1 isnt ref2
+        branch = @constructIndex(frame, thread);
+        thread.pc += branch
+      yes
+    )
     @[167] = new OpCode('goto', 'Branch always', (frame) -> 
       offset = @constructIndex(frame, thread)
       thread.pc += offset
@@ -1048,10 +1110,10 @@ class this.OpCodes
       thread.pc = frame.locals[index]
     )
     @[170] = new OpCode('tableswitch', '', (frame) -> 
-    # not yet implemented
+      alert(@mnemonic)
     yes )
     @[171] = new OpCode('lookupswitch', '', (frame) -> 
-    # not yet implemented
+      alert(@mnemonic)
     yes )
     @[172] = new OpCode('ireturn', 'Return an int', (frame) -> 
       # get the int to return
@@ -1190,9 +1252,7 @@ class this.OpCodes
       
     )
     @[178] = new OpCode('getstatic', 'Fetch static field from class', (frame) -> 
-      indexByte1 = frame.method_stack[thread.pc+1]
-      indexByte2 = frame.method_stack[thread.pc+2]
-      ref = indexByte1 << 8 | indexByte2
+      ref = @constructIndex(frame, thread)
       class_field_ref = thread.current_class.constant_pool[ref]
       
       # get the class the owns the static field 
@@ -1204,14 +1264,12 @@ class this.OpCodes
       field_name_type = thread.current_class.constant_pool[class_field_ref.name_and_type_index]
       field_name = thread.current_class.constant_pool[field_name_type.name_index]
       frame.op_stack.push(cls.fields[field_name].value)
-      thread.pc += 2
+      
       yes
     # not yet implemented
     yes )
     @[179] = new OpCode('putstatic', 'Set static field in class', (frame) -> 
-      indexByte1 = frame.method_stack[thread.pc+1]
-      indexByte2 = frame.method_stack[thread.pc+2]
-      ref = indexByte1 << 8 | indexByte2
+      ref = @constructIndex(frame, thread)
       class_field_ref = thread.current_class.constant_pool[ref]
 
       # get the class the owns the static field       
@@ -1224,8 +1282,6 @@ class this.OpCodes
       #cls = thread.current_class.constant_pool[class_ref]
       
       
-        
-      thread.pc += 2
       value = frame.op_stack.pop()
       # set field value
       cls.fields[field_name].value = value
@@ -1241,7 +1297,6 @@ class this.OpCodes
       descriptor = @fromClass(nameandtype.descriptor_index, thread)
       field = @fromHeap(objectref.pointer, thread).fields[fieldname]
       frame.op_stack.push(field)
-      thread.pc += 2
       yes
       # TODO check method stuff (protected etc)
     )
@@ -1256,8 +1311,7 @@ class this.OpCodes
       fieldname = @fromClass(nameandtype.name_index, thread)
       descriptor = @fromClass(nameandtype.descriptor_index, thread)
       object = @fromHeap(objectref.pointer, thread)
-      object.fields[fieldname] = value      
-      thread.pc += 2
+      object.fields[fieldname] = value  
       yes
       # TODO check method stuff (protected etc)
     )
@@ -1271,7 +1325,7 @@ class this.OpCodes
         return false
           
       method_name = @fromClass(methodnameandtype.name_index, thread)
-      type = @fromClass(method_name_and_type.descriptor_index, thread)
+      type = @fromClass(methodnameandtype.descriptor_index, thread)
       method = thread.resolveMethod(method_name, cls, type)
       
       if method.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_STATIC
@@ -1351,11 +1405,11 @@ class this.OpCodes
       yes
        
     )
-    @[185] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[185] = new OpCode('invokeinterface', '', (frame) -> 
+      alert(@mnemonic)
     yes )
-    @[186] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[186] = new OpCode('xxxunusedxxx', '', (frame) -> 
+      alert(@mnemonic)
     yes )
     @[187] = new OpCode('new', 'Create new Object', (frame) -> 
       index = @constructIndex(frame, thread)
@@ -1365,13 +1419,27 @@ class this.OpCodes
       if(cls = thread.resolveClass(clsref)) == null
         return false
         
-      thread.pc += 2  
       objectref = thread.RDA.heap.allocate(new JVM_Object(cls))
       frame.op_stack.push(objectref)
       
     )
-    @[188] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[188] = new OpCode('newarray', 'Create a new array', (frame) -> 
+      atype = @getIndexByte(1, frame, thread)
+      count = frame.op_stack.pop()
+      if count < 0
+        athrow 'NegativeArraySizeException'  
+      switch atype
+        when 4 then t = 'Z'
+        when 5 then t = 'C'
+        when 6 then t = 'F'
+        when 7 then t = 'D'
+        when 8 then t = 'B'
+        when 9 then t = 'S'
+        when 10 then t = 'I'
+        when 11 then t = 'J'
+      arrayref = thread.RDA.heap.allocate(new CONSTANT_Array(count, t))
+      frame.op_stack.push(arrayref)
+      yes
     )
     @[189] = new OpCode('anewarray', 'Create new array of reference', (frame) -> 
       count = frame.op_stack.pop()
@@ -1381,10 +1449,10 @@ class this.OpCodes
         return false
           
       if count < 0
-        # TODO throw NegativeArraySizeException
-        return false;
-      arrayref = thread.RDA.heap.allocate( { 'object' : new Array(count), 'type' : cls } )
-      frame.op_stack.push(arrayref.pointer)
+        athrow('NegativeArraySizeException')
+
+      arrayref = thread.RDA.heap.allocate(new CONSTANT_Array(count, 'L' + cls.real_name))
+      frame.op_stack.push(arrayref)
     )
     @[190] = new OpCode('arraylength', 'Get length of array', (frame) -> 
       arrayref = frame.op_stack.pop()
@@ -1425,35 +1493,35 @@ class this.OpCodes
       # TODO check shit here pg 175
              
     )
-    @[193] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[193] = new OpCode('instanceof', '', (frame) -> 
+      alert(@mnemonic)
     yes )
-    @[194] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[194] = new OpCode('monitorenter', '', (frame) -> 
+      alert(@mnemonic)# not yet implemented
     yes )
-    @[195] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[195] = new OpCode('monitorexit', '', (frame) -> 
+      alert(@mnemonic)# not yet implemented
     yes )
-    @[196] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[196] = new OpCode('wide', '', (frame) -> 
+      alert(@mnemonic)#  not yet implemented
     yes )
-    @[197] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[197] = new OpCode('multianewarray', '', (frame) -> 
+      alert(@mnemonic)# not yet implemented
     yes )
-    @[198] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[198] = new OpCode('ifnull', '', (frame) -> 
+      alert(@mnemonic)# not yet implemented
     yes )
-    @[199] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[199] = new OpCode('ifnonnull', '', (frame) -> 
+      alert(@mnemonic)# not yet implemented
     yes )
-    @[200] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[200] = new OpCode('goto_w', '', (frame) -> 
+      alert(@mnemonic)# not yet implemented
     yes )
-    @[201] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[201] = new OpCode('jsr_w', '', (frame) -> 
+      alert(@mnemonic)# not yet implemented
     yes )
-    @[202] = new OpCode('', '', (frame) -> 
-    # not yet implemented
+    @[202] = new OpCode('breakpoint', '', (frame) -> 
+      alert(@mnemonic)# not yet implemented
     yes )
     @[203] = new OpCode('', '', (frame) -> 
     # not yet implemented
@@ -1608,10 +1676,10 @@ class this.OpCodes
     @[253] = new OpCode('', '', (frame) -> 
     # not yet implemented
     yes )
-    @[254] = new OpCode('', '', (frame) -> 
+    @[254] = new OpCode('impdep1', '', (frame) -> 
     # not yet implemented
     yes )
-    @[255] = new OpCode('', '', (frame) -> 
+    @[255] = new OpCode('impdep2', '', (frame) -> 
     # not yet implemented
     yes )
         
@@ -1625,12 +1693,16 @@ class OpCode
   
     
   getIndexByte : (index, frame, thread) ->
-    return frame.method_stack[thread.pc+index]
+    index = frame.method_stack[(thread.pc)+index]
+    thread.pc++
+    return index
+    
   
   constructIndex : (frame, thread) ->  
     indexbyte1 = @getIndexByte(1, frame, thread)
-    indexbyte2 = @getIndexByte(2, frame, thread)
+    indexbyte2 = @getIndexByte(1, frame, thread)
     return indexbyte1 << 8 | indexbyte2  
+    
     
   fromHeap : (ref, thread) ->
     return thread.RDA.heap[ref]

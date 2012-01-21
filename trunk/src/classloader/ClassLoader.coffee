@@ -7,6 +7,7 @@ class this.ClassLoader
   ps_id : 0
   required_classes : 
     'java/lang/Class' 
+    'java/lang/System'
   loaded_classes : {}
   
 

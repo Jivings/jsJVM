@@ -1,4 +1,4 @@
-
+         
   class this.JVM_Object
     constructor : (@cls) ->
       @fields = {}
@@ -9,14 +9,17 @@
       
   class this.JVM_Reference
     constructor : (@pointer) ->
+    toString : () ->
+      return @pointer
           
   class JVM_Number
     constructor : (@val) ->
     valueOf : () ->
       return @val
     
-  class this.CONSTANT_Array
-    constructor : (@type) ->
+  class this.CONSTANT_Array extends Array
+    constructor : (@length, @type) ->
+      super @length
       
   class this.CONSTANT_Object
     constructor : (@classname) ->
@@ -55,13 +58,26 @@
   Additional JVM functions exported from the main VM.
   Add support for native methods interacting with the VM.
   ###
-  
+    
+  ###
+    JavaScript doesn't define an assert function so here's our own.
+  ###
+  JVM::assert = (condition, message) ->
+    if not(condition)
+      throw "AssertException: #{message}"
+
   # Register Global JVM methods to jclass for runtime access.
   JVM::RegisterNatives = (env, jclass, methods) -> 
     for name of methods 
       JVM_MethodName = methods[name].name
       jclass[name] = JVM::[JVM_MethodName]
     yes
+    
+    
+  JVM::InitializeSystemClass = () ->
+    @assert( (system = @RDA.method_area['java/lang/System']) isnt null, 
+      "System not loaded before InitializeSystemClass")
+    @RDA.createThread('java/lang/System', @JVM_ResolveMethod(system, 'initializeSystemClass', '()V'))
     
     
   # Our own Java Data Structures. These provide an extra 'type' var to allow 
@@ -272,6 +288,7 @@
   # Link the class
 
   JVM::JVM_ResolveClass = (clsname, thread) ->
+    
     index = clsname
     # resolve index until we get a String or Class 
     while typeof clsname is 'number'
@@ -283,7 +300,7 @@
     # if a string then we need to resolve 
     # if already in the method_area, then return that instance. 
     if @RDA.method_area[clsname] == undefined
-      
+      console.log('Resolve Class ' + clsname)
       # tell the RDA that this thread is currently waiting
       @RDA.waiting[clsname] = thread
      
@@ -318,8 +335,9 @@
       
     for index of cls.methods
       method = cls.methods[index]
-      descriptor = method.descriptor = cls.constant_pool[method.descriptor_index]
-      if method.name is name and descriptor = type
+      descriptor = cls.constant_pool[method.descriptor_index]
+      if method.name is name and descriptor is type
+        method.descriptor = descriptor
         # resolve the method return type and arguments
         args = descriptor.substring(descriptor.indexOf('(')+1, descriptor.indexOf(')'))
         method.args = new Array()
@@ -460,6 +478,7 @@
     'J'   :   'CONSTANT_Long'
     'L'   :   'CONSTANT_Class'
     'S'   :   'CONSTANT_Short'
+    'Z'   :   'CONSTANT_Boolean'
     '['   :   'CONSTANT_Array'
   }
                                           

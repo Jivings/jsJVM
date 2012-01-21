@@ -29,6 +29,7 @@ class this.ClassLoader
   init : () ->
     for cls in @required_classes 
       @find cls
+      
   
   ###
   doAction : (message) -> 
@@ -181,7 +182,7 @@ class ClassReader
   parseClassVars : (_class) ->
     @console.debug('magic number: ' + _class.magic_number = @read(4), 2) 
     valid = _class.magic_number.toString(16) & 0xCAFEBABE 
-    if valid isnt 0 then alert("Not JavaClass")
+    if valid isnt 0 then alert(aaa"Not JavaClass")
     @console.debug('minor version: ' + _class.minor_version = @read(2), 2)
     @console.debug('major version: ' + _class.major_version = @read(2), 2)
     yes

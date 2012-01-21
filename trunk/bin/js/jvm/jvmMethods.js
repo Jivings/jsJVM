@@ -25,6 +25,9 @@
     function JVM_Reference(pointer) {
       this.pointer = pointer;
     }
+    JVM_Reference.prototype.toString = function() {
+      return this.pointer;
+    };
     return JVM_Reference;
   })();
   JVM_Number = (function() {
@@ -37,8 +40,11 @@
     return JVM_Number;
   })();
   this.CONSTANT_Array = (function() {
-    function CONSTANT_Array(type) {
+    __extends(CONSTANT_Array, Array);
+    function CONSTANT_Array(length, type) {
+      this.length = length;
       this.type = type;
+      CONSTANT_Array.__super__.constructor.call(this, this.length);
     }
     return CONSTANT_Array;
   })();
@@ -118,6 +124,14 @@
   Additional JVM functions exported from the main VM.
   Add support for native methods interacting with the VM.
   */
+  /*
+      JavaScript doesn't define an assert function so here's our own.
+    */
+  JVM.prototype.assert = function(condition, message) {
+    if (!condition) {
+      throw "AssertException: " + message;
+    }
+  };
   JVM.prototype.RegisterNatives = function(env, jclass, methods) {
     var JVM_MethodName, name;
     for (name in methods) {
@@ -125,6 +139,11 @@
       jclass[name] = JVM.prototype[JVM_MethodName];
     }
     return true;
+  };
+  JVM.prototype.InitializeSystemClass = function() {
+    var system;
+    this.assert((system = this.RDA.method_area['java/lang/System']) !== null, "System not loaded before InitializeSystemClass");
+    return this.RDA.createThread('java/lang/System', this.JVM_ResolveMethod(system, 'initializeSystemClass', '()V'));
   };
   JVM.prototype.Array = function() {
     var type;
@@ -260,6 +279,7 @@
       return clsname;
     }
     if (this.RDA.method_area[clsname] === void 0) {
+      console.log('Resolve Class ' + clsname);
       this.RDA.waiting[clsname] = thread;
       this.load(clsname, true);
       return null;
@@ -288,8 +308,9 @@
     }
     for (index in cls.methods) {
       method = cls.methods[index];
-      descriptor = method.descriptor = cls.constant_pool[method.descriptor_index];
-      if (method.name === name && (descriptor = type)) {
+      descriptor = cls.constant_pool[method.descriptor_index];
+      if (method.name === name && descriptor === type) {
+        method.descriptor = descriptor;
         args = descriptor.substring(descriptor.indexOf('(') + 1, descriptor.indexOf(')'));
         method.args = new Array();
         nargs = 0;
@@ -400,6 +421,7 @@
     'J': 'CONSTANT_Long',
     'L': 'CONSTANT_Class',
     'S': 'CONSTANT_Short',
+    'Z': 'CONSTANT_Boolean',
     '[': 'CONSTANT_Array'
   };
 }).call(this);

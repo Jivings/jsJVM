@@ -66,13 +66,18 @@
       });
       this[18] = new OpCode('ldc', 'Push item from constant pool', function(frame) {
         var item;
-        item = thread.current_class.constant_pool[this.getIndexByte(1, frame, thread)];
+        item = this.getIndexByte(1, frame, thread);
+        while (typeof (item = this.fromClass(item, thread)) === 'number') {
+          continue;
+        }
         return frame.op_stack.push(item);
       });
       this[19] = new OpCode('ldc_w', 'Push item from constant pool (wide index)', function(frame) {
-        var index, item;
-        index = this.constructIndex(frame, thread);
-        item = thread.current_class.constant_pool[index];
+        var item;
+        item = this.constructIndex(frame, thread);
+        while (typeof (item = this.fromClass(item, thread)) === 'number') {
+          continue;
+        }
         return frame.op_stack.push(item);
       });
       this[20] = new OpCode('ldc2_w', 'Push long or double from constant pool (wide index)', function(frame) {
@@ -501,10 +506,10 @@
       });
       this[85] = new OpCode('castore', 'Store into char array', function(frame) {
         var array, arrayindex, arrayref, value;
-        arrayref = frame.op_stack.pop();
-        arrayindex = frame.op_stack.pop();
         value = frame.op_stack.pop();
-        array = this.fromHeap(arrayref);
+        arrayindex = frame.op_stack.pop();
+        arrayref = frame.op_stack.pop();
+        array = this.fromHeap(arrayref, thread);
         if (array === null) {
           athrow('NullPointerException');
         }
@@ -1125,48 +1130,134 @@
           return frame.op_stack.push(-1);
         }
       });
-      this[153] = new OpCode('ifeq', '', function(frame) {
-        return console.log('153 called');
-      }, true);
-      this[154] = new OpCode('ifne', '', function(frame) {
-        return console.log('154 called');
-      }, true);
-      this[155] = new OpCode('iflt', '', function(frame) {
-        return console.log('155 called');
-      }, true);
-      this[156] = new OpCode('ifge', '', function(frame) {
-        return console.log('156 called');
-      }, true);
-      this[157] = new OpCode('ifgt', '', function(frame) {
-        return console.log('157 called');
-      }, true);
-      this[158] = new OpCode('ifle', '', function(frame) {
-        return console.log('158 called');
-      }, true);
-      this[159] = new OpCode('if_icmpeq', '', function(frame) {
-        return console.log('159 called');
-      }, true);
-      this[160] = new OpCode('if_icmpne', '', function(frame) {
-        return console.log('160 called');
-      }, true);
-      this[161] = new OpCode('if_icmplt', '', function(frame) {
-        return console.log('161 called');
-      }, true);
-      this[162] = new OpCode('if_icmpge', '', function(frame) {
-        return console.log('162 called');
-      }, true);
-      this[163] = new OpCode('if_icmpgt', '', function(frame) {
-        return console.log('163 called');
-      }, true);
-      this[164] = new OpCode('if_icmple', '', function(frame) {
-        return console.log('164 called');
-      }, true);
-      this[165] = new OpCode('if_acmpeq', '', function(frame) {
-        return console.log('165 called');
-      }, true);
+      this[153] = new OpCode('ifeq', 'Branch if value is 0', function(frame) {
+        var branch;
+        if (frame.op_stack.pop() === 0) {
+          branch = this.constructIndex(frame, thread);
+          thread.pc += branch;
+        }
+        return true;
+      });
+      this[154] = new OpCode('ifne', 'Branch if value isnt 0', function(frame) {
+        var branch;
+        if (frame.op_stack.pop() !== 0) {
+          branch = this.constructIndex(frame, thread);
+          thread.pc += branch;
+        }
+        return true;
+      });
+      this[155] = new OpCode('iflt', 'Branch if value < 0', function(frame) {
+        var branch;
+        if (frame.op_stack.pop() < 0) {
+          branch = this.constructIndex(frame, thread);
+          thread.pc += branch;
+        }
+        return true;
+      });
+      this[156] = new OpCode('ifge', 'Branch if value >= 0', function(frame) {
+        var branch;
+        if (frame.op_stack.pop() >= 0) {
+          branch = this.constructIndex(frame, thread);
+          thread.pc += branch;
+        }
+        return true;
+      });
+      this[157] = new OpCode('ifgt', 'Branch if value > 0', function(frame) {
+        var branch;
+        if (frame.op_stack.pop() > 0) {
+          branch = this.constructIndex(frame, thread);
+          thread.pc += branch;
+        }
+        return true;
+      });
+      this[158] = new OpCode('ifle', 'Branch if value <= 0', function(frame) {
+        var branch;
+        if (frame.op_stack.pop() <= 0) {
+          branch = this.constructIndex(frame, thread);
+          thread.pc += branch;
+        }
+        return true;
+      });
+      this[159] = new OpCode('if_icmpeq', 'Branch if int1 == int2', function(frame) {
+        var branch, value1, value2;
+        value2 = frame.op_stack.pop();
+        value1 = frame.op_stack.pop();
+        if (value1 === value2) {
+          branch = this.constructIndex(frame, thread);
+          thread.pc += branch;
+        }
+        return true;
+      });
+      this[160] = new OpCode('if_icmpne', 'Branch if int1 != int2', function(frame) {
+        var branch, value1, value2;
+        value2 = frame.op_stack.pop();
+        value1 = frame.op_stack.pop();
+        if (value1 !== value2) {
+          branch = this.constructIndex(frame, thread);
+          thread.pc += branch;
+        }
+        return true;
+      });
+      this[161] = new OpCode('if_icmplt', 'Branch if int1 < int2', function(frame) {
+        var branch, value1, value2;
+        value2 = frame.op_stack.pop();
+        value1 = frame.op_stack.pop();
+        if (value1 < value2) {
+          branch = this.constructIndex(frame, thread);
+          thread.pc += branch;
+        }
+        return true;
+      });
+      this[162] = new OpCode('if_icmpge', 'Branch if int1 >= int2', function(frame) {
+        var branch, value1, value2;
+        value2 = frame.op_stack.pop();
+        value1 = frame.op_stack.pop();
+        if (value1 >= value2) {
+          branch = this.constructIndex(frame, thread);
+          thread.pc += branch;
+        }
+        return true;
+      });
+      this[163] = new OpCode('if_icmpgt', 'Branch if int1 > int2', function(frame) {
+        var branch, value1, value2;
+        value2 = frame.op_stack.pop();
+        value1 = frame.op_stack.pop();
+        if (value1 > value2) {
+          branch = this.constructIndex(frame, thread);
+          thread.pc += branch;
+        }
+        return true;
+      });
+      this[164] = new OpCode('if_icmple', 'Branch if int1 <= int2', function(frame) {
+        var branch, value1, value2;
+        value2 = frame.op_stack.pop();
+        value1 = frame.op_stack.pop();
+        if (value1 <= value2) {
+          branch = this.constructIndex(frame, thread);
+          thread.pc += branch;
+        }
+        return true;
+      });
+      this[165] = new OpCode('if_acmpeq', 'Branch if ref1 === ref2', function(frame) {
+        var branch, ref1, ref2;
+        ref2 = frame.op_stack.pop();
+        ref1 = frame.op_stack.pop();
+        if (ref1 === ref2) {
+          branch = this.constructIndex(frame, thread);
+          thread.pc += branch;
+        }
+        return true;
+      });
       this[166] = new OpCode('if_acmpne', '', function(frame) {
-        return console.log('166 called');
-      }, true);
+        var branch, ref1, ref2;
+        ref2 = frame.op_stack.pop();
+        ref1 = frame.op_stack.pop();
+        if (ref1 !== ref2) {
+          branch = this.constructIndex(frame, thread);
+          thread.pc += branch;
+        }
+        return true;
+      });
       this[167] = new OpCode('goto', 'Branch always', function(frame) {
         var offset;
         offset = this.constructIndex(frame, thread);
@@ -1183,8 +1274,12 @@
         index = this.getByteIndex(1);
         return thread.pc = frame.locals[index];
       });
-      this[170] = new OpCode('tableswitch', '', function(frame) {}, true);
-      this[171] = new OpCode('lookupswitch', '', function(frame) {}, true);
+      this[170] = new OpCode('tableswitch', '', function(frame) {
+        return alert(this.mnemonic);
+      }, true);
+      this[171] = new OpCode('lookupswitch', '', function(frame) {
+        return alert(this.mnemonic);
+      }, true);
       this[172] = new OpCode('ireturn', 'Return an int', function(frame) {
         var invoker, ireturn;
         ireturn = frame.op_stack.pop();
@@ -1303,10 +1398,8 @@
         return true;
       });
       this[178] = new OpCode('getstatic', 'Fetch static field from class', function(frame) {
-        var class_field_ref, class_ref, cls, field_name, field_name_type, indexByte1, indexByte2, ref;
-        indexByte1 = frame.method_stack[thread.pc + 1];
-        indexByte2 = frame.method_stack[thread.pc + 2];
-        ref = indexByte1 << 8 | indexByte2;
+        var class_field_ref, class_ref, cls, field_name, field_name_type, ref;
+        ref = this.constructIndex(frame, thread);
         class_field_ref = thread.current_class.constant_pool[ref];
         class_ref = thread.current_class.constant_pool[class_field_ref.class_index];
         if ((cls = thread.resolveClass(class_ref)) === null) {
@@ -1315,14 +1408,11 @@
         field_name_type = thread.current_class.constant_pool[class_field_ref.name_and_type_index];
         field_name = thread.current_class.constant_pool[field_name_type.name_index];
         frame.op_stack.push(cls.fields[field_name].value);
-        thread.pc += 2;
         return true;
       }, true);
       this[179] = new OpCode('putstatic', 'Set static field in class', function(frame) {
-        var class_field_ref, cls, field_name, field_ref, field_type, indexByte1, indexByte2, ref, value;
-        indexByte1 = frame.method_stack[thread.pc + 1];
-        indexByte2 = frame.method_stack[thread.pc + 2];
-        ref = indexByte1 << 8 | indexByte2;
+        var class_field_ref, cls, field_name, field_ref, field_type, ref, value;
+        ref = this.constructIndex(frame, thread);
         class_field_ref = thread.current_class.constant_pool[ref];
         if ((cls = thread.resolveClass(class_field_ref.class_index)) === null) {
           return false;
@@ -1330,7 +1420,6 @@
         field_ref = thread.current_class.constant_pool[class_field_ref.name_and_type_index];
         field_name = thread.current_class.constant_pool[field_ref.name_index];
         field_type = thread.current_class.constant_pool[field_ref.descriptor_index];
-        thread.pc += 2;
         value = frame.op_stack.pop();
         return cls.fields[field_name].value = value;
       });
@@ -1347,7 +1436,6 @@
         descriptor = this.fromClass(nameandtype.descriptor_index, thread);
         field = this.fromHeap(objectref.pointer, thread).fields[fieldname];
         frame.op_stack.push(field);
-        thread.pc += 2;
         return true;
       });
       this[181] = new OpCode('putfield', '', function(frame) {
@@ -1364,7 +1452,6 @@
         descriptor = this.fromClass(nameandtype.descriptor_index, thread);
         object = this.fromHeap(objectref.pointer, thread);
         object.fields[fieldname] = value;
-        thread.pc += 2;
         return true;
       });
       this[182] = new OpCode('invokevirtual', 'Invoke instance method; dispatch based on class', function(frame) {
@@ -1377,7 +1464,7 @@
           return false;
         }
         method_name = this.fromClass(methodnameandtype.name_index, thread);
-        type = this.fromClass(method_name_and_type.descriptor_index, thread);
+        type = this.fromClass(methodnameandtype.descriptor_index, thread);
         method = thread.resolveMethod(method_name, cls, type);
         if (method.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_STATIC) {
           athrow('IncompatibleClassChangeError');
@@ -1442,8 +1529,12 @@
         }
         return true;
       });
-      this[185] = new OpCode('', '', function(frame) {}, true);
-      this[186] = new OpCode('', '', function(frame) {}, true);
+      this[185] = new OpCode('invokeinterface', '', function(frame) {
+        return alert(this.mnemonic);
+      }, true);
+      this[186] = new OpCode('xxxunusedxxx', '', function(frame) {
+        return alert(this.mnemonic);
+      }, true);
       this[187] = new OpCode('new', 'Create new Object', function(frame) {
         var cls, clsref, index, objectref;
         index = this.constructIndex(frame, thread);
@@ -1451,11 +1542,45 @@
         if ((cls = thread.resolveClass(clsref)) === null) {
           return false;
         }
-        thread.pc += 2;
         objectref = thread.RDA.heap.allocate(new JVM_Object(cls));
         return frame.op_stack.push(objectref);
       });
-      this[188] = new OpCode('', '', function(frame) {});
+      this[188] = new OpCode('newarray', 'Create a new array', function(frame) {
+        var arrayref, atype, count, t;
+        atype = this.getIndexByte(1, frame, thread);
+        count = frame.op_stack.pop();
+        if (count < 0) {
+          athrow('NegativeArraySizeException');
+        }
+        switch (atype) {
+          case 4:
+            t = 'Z';
+            break;
+          case 5:
+            t = 'C';
+            break;
+          case 6:
+            t = 'F';
+            break;
+          case 7:
+            t = 'D';
+            break;
+          case 8:
+            t = 'B';
+            break;
+          case 9:
+            t = 'S';
+            break;
+          case 10:
+            t = 'I';
+            break;
+          case 11:
+            t = 'J';
+        }
+        arrayref = thread.RDA.heap.allocate(new CONSTANT_Array(count, t));
+        frame.op_stack.push(arrayref);
+        return true;
+      });
       this[189] = new OpCode('anewarray', 'Create new array of reference', function(frame) {
         var arrayref, cls, count, cpindex;
         count = frame.op_stack.pop();
@@ -1464,13 +1589,10 @@
           return false;
         }
         if (count < 0) {
-          return false;
+          athrow('NegativeArraySizeException');
         }
-        arrayref = thread.RDA.heap.allocate({
-          'object': new Array(count),
-          'type': cls
-        });
-        return frame.op_stack.push(arrayref.pointer);
+        arrayref = thread.RDA.heap.allocate(new CONSTANT_Array(count, 'L' + cls.real_name));
+        return frame.op_stack.push(arrayref);
       });
       this[190] = new OpCode('arraylength', 'Get length of array', function(frame) {
         var array, arrayref, len;
@@ -1510,16 +1632,36 @@
           return true;
         }
       });
-      this[193] = new OpCode('', '', function(frame) {}, true);
-      this[194] = new OpCode('', '', function(frame) {}, true);
-      this[195] = new OpCode('', '', function(frame) {}, true);
-      this[196] = new OpCode('', '', function(frame) {}, true);
-      this[197] = new OpCode('', '', function(frame) {}, true);
-      this[198] = new OpCode('', '', function(frame) {}, true);
-      this[199] = new OpCode('', '', function(frame) {}, true);
-      this[200] = new OpCode('', '', function(frame) {}, true);
-      this[201] = new OpCode('', '', function(frame) {}, true);
-      this[202] = new OpCode('', '', function(frame) {}, true);
+      this[193] = new OpCode('instanceof', '', function(frame) {
+        return alert(this.mnemonic);
+      }, true);
+      this[194] = new OpCode('monitorenter', '', function(frame) {
+        return alert(this.mnemonic);
+      }, true);
+      this[195] = new OpCode('monitorexit', '', function(frame) {
+        return alert(this.mnemonic);
+      }, true);
+      this[196] = new OpCode('wide', '', function(frame) {
+        return alert(this.mnemonic);
+      }, true);
+      this[197] = new OpCode('multianewarray', '', function(frame) {
+        return alert(this.mnemonic);
+      }, true);
+      this[198] = new OpCode('ifnull', '', function(frame) {
+        return alert(this.mnemonic);
+      }, true);
+      this[199] = new OpCode('ifnonnull', '', function(frame) {
+        return alert(this.mnemonic);
+      }, true);
+      this[200] = new OpCode('goto_w', '', function(frame) {
+        return alert(this.mnemonic);
+      }, true);
+      this[201] = new OpCode('jsr_w', '', function(frame) {
+        return alert(this.mnemonic);
+      }, true);
+      this[202] = new OpCode('breakpoint', '', function(frame) {
+        return alert(this.mnemonic);
+      }, true);
       this[203] = new OpCode('', '', function(frame) {}, true);
       this[204] = new OpCode('', '', function(frame) {}, true);
       this[205] = new OpCode('', '', function(frame) {}, true);
@@ -1571,8 +1713,8 @@
       this[251] = new OpCode('', '', function(frame) {}, true);
       this[252] = new OpCode('', '', function(frame) {}, true);
       this[253] = new OpCode('', '', function(frame) {}, true);
-      this[254] = new OpCode('', '', function(frame) {}, true);
-      this[255] = new OpCode('', '', function(frame) {}, true);
+      this[254] = new OpCode('impdep1', '', function(frame) {}, true);
+      this[255] = new OpCode('impdep2', '', function(frame) {}, true);
     }
     return OpCodes;
   })();
@@ -1584,12 +1726,14 @@
       this;
     }
     OpCode.prototype.getIndexByte = function(index, frame, thread) {
-      return frame.method_stack[thread.pc + index];
+      index = frame.method_stack[thread.pc + index];
+      thread.pc++;
+      return index;
     };
     OpCode.prototype.constructIndex = function(frame, thread) {
       var indexbyte1, indexbyte2;
       indexbyte1 = this.getIndexByte(1, frame, thread);
-      indexbyte2 = this.getIndexByte(2, frame, thread);
+      indexbyte2 = this.getIndexByte(1, frame, thread);
       return indexbyte1 << 8 | indexbyte2;
     };
     OpCode.prototype.fromHeap = function(ref, thread) {

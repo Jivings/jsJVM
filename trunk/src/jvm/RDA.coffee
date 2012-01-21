@@ -92,10 +92,13 @@ class this.Thread
     @methodFactory.createFrame(method, cls)
     
   start : (destroy) ->
+    @pc = @current_frame.pc
+    
     while @current_frame?
       #@RDA.JVM.debugWindow.addFrame(@current_frame)
       #console.log(@current_frame)
       # debug
+
       if @current_frame instanceof Frame
         opcode = @opcodes[@current_frame.method_stack[@pc]]
         value = @current_frame.method_stack[@pc]
@@ -173,6 +176,7 @@ class this.Frame
     @resolveSelf(@cls)
     @name = method.name
     @locals = {}
+    @pc = 0
     
     this
 

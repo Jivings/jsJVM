@@ -172,6 +172,12 @@ class this.Frame
     @op_stack = new Array()
     @op_stack.peek = () ->
       return @[@length-1]
+    @op_stack.push = (word) ->
+      if word == 'undefined'
+        throw "NullStackException"
+      @[@length] = word
+      yes
+        
     @constant_pool = @cls.constant_pool
     @resolveSelf(@cls)
     @name = method.name

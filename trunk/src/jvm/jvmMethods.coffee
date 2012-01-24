@@ -25,33 +25,33 @@
     constructor : (@classname) ->
       @value = null
       
-  class this.CONSTANT_Integer extends JVM_Number
+  class this.CONSTANT_integer extends JVM_Number
     constructor : (val = 0) ->
       super val    
       
-  class this.CONSTANT_Float extends JVM_Number
+  class this.CONSTANT_float extends JVM_Number
     constructor : (val = 0.0) ->
       super val
       
-  class this.CONSTANT_Long extends JVM_Number
+  class this.CONSTANT_long extends JVM_Number
     constructor : (val = 0) ->
       super val
   
-  class this.CONSTANT_Double extends JVM_Number
+  class this.CONSTANT_double extends JVM_Number
     constructor : (val = 0.0) ->
       super val
   
-  class this.CONSTANT_Char
+  class this.CONSTANT_char
     constructor : (@value = '\u0000') ->
       @value = @value.charCodeAt();
   
-  class this.CONSTANT_Short
+  class this.CONSTANT_short
     constructor : (@value = 0) ->
     
-  class this.CONSTANT_Byte 
+  class this.CONSTANT_byte 
     constructor : (@value = 0) ->
     
-  class this.CONSTANT_Boolean
+  class this.CONSTANT_boolean
     constructor : (@value = 0) ->
          
   ### 
@@ -105,7 +105,7 @@
   # java.lang.System
 
   JVM::JVM_CurrentTimeMillis = (env, ignoredJClass) ->
-    return new CONSTANT_Long(new Date().getTime())
+    return new CONSTANT_long(new Date().getTime())
     
   JVM::JVM_NanoTime = (env, ignoredJClass) ->
 
@@ -311,7 +311,7 @@
      
     # actually resolve the class reference so this doesn't need to occur next time
     cls = @RDA.method_area[clsname] 
-    cls.constant_pool[index] = cls
+    thread.current_class.constant_pool[index] = cls
     return @RDA.method_area[clsname]
    
   JVM::JVM_ResolveNativeClass = (cls, thread) ->
@@ -470,15 +470,15 @@
   }
   
   JVM::FIELD_DESCRIPTORS = {
-    'B'   :   'CONSTANT_Byte'
-    'C'   :   'CONSTANT_Char'
-    'D'   :   'CONSTANT_Double'
-    'F'   :   'CONSTANT_Float'
-    'I'   :   'CONSTANT_Integer'
-    'J'   :   'CONSTANT_Long'
+    'B'   :   'CONSTANT_byte'
+    'C'   :   'CONSTANT_char'
+    'D'   :   'CONSTANT_double'
+    'F'   :   'CONSTANT_float'
+    'I'   :   'CONSTANT_integer'
+    'J'   :   'CONSTANT_long'
     'L'   :   'CONSTANT_Class'
-    'S'   :   'CONSTANT_Short'
-    'Z'   :   'CONSTANT_Boolean'
+    'S'   :   'CONSTANT_short'
+    'Z'   :   'CONSTANT_boolean'
     '['   :   'CONSTANT_Array'
   }
                                           

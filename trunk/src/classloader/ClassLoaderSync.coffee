@@ -23,8 +23,9 @@ class this.ClassLoader
     }
   
   ###
-    Seperate to Constructor so that the JVM can resolve native classes for 
-    the required.
+    To be called on instanstiation.
+    Seperate to Constructor so that the JVM can resolve required classes and 
+    their native counterparts. 
   ###
   init : () ->
     for cls in @required_classes 
@@ -162,10 +163,14 @@ class ClassReader
     switch tag
       when 1 # UTF-8 String 
         @readString(@read 2) 
-      when 3, 4 # Integer, Float
-        @binaryReader.getUint32()
-      when 5, 6 # Long, Double
-        @binaryReader.getFloat64()
+      when 3 # Integer
+        new CONSTANT_integer(@binaryReader.getUint32())
+      when 4 # Float
+        new CONSTANT_float(@binaryReader.getUint32())
+      when 5 # Long 
+        new CONSTANT_long(@binaryReader.getFloat64())
+      when 6 # Double
+        new CONSTANT_double(@binaryReader.getFloat64())
       when 7, 8 # Class Reference, String Reference
         @read 2 
       when 9 # Field Reference,
@@ -182,7 +187,7 @@ class ClassReader
   parseClassVars : (_class) ->
     @console.debug('magic number: ' + _class.magic_number = @read(4), 2) 
     valid = _class.magic_number.toString(16) & 0xCAFEBABE 
-    if valid isnt 0 then alert(aaa"Not JavaClass")
+    if valid isnt 0 then alert("Not JavaClass")
     @console.debug('minor version: ' + _class.minor_version = @read(2), 2)
     @console.debug('major version: ' + _class.major_version = @read(2), 2)
     yes
@@ -304,21 +309,21 @@ class ClassReader
       field_info.attributes[i] = @readAttribute _class
     descriptor = _class.constant_pool[field_info.descriptor_index]
     if(descriptor == 'I')
-      c = new CONSTANT_Integer()
+      c = new CONSTANT_integer()
     if(descriptor == 'J')
-      c = new CONSTANT_Long()
+      c = new CONSTANT_long()
     if(descriptor == 'F')
-      c = new CONSTANT_Float()
+      c = new CONSTANT_float()
     if(descriptor == 'D')
-      c = new CONSTANT_Double()
+      c = new CONSTANT_double()
     if(descriptor == 'S')
-      c = new CONSTANT_Short()
+      c = new CONSTANT_short()
     if(descriptor == 'Z')
-      c = new CONSTANT_Boolean()
+      c = new CONSTANT_boolean()
     if(descriptor == 'C')
-      c = new CONSTANT_Char() 
+      c = new CONSTANT_char() 
     if(descriptor == 'B')
-      c = new CONSTANT_Byte()
+      c = new CONSTANT_byte()
     if(descriptor.charAt(0) == 'L')
       c = new CONSTANT_Object(descriptor.substring(1))
     if(descriptor.charAt(0) == '[')

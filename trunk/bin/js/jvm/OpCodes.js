@@ -30,29 +30,29 @@
         return frame.op_stack.push(5);
       });
       this[9] = new OpCode('lconst_0', 'Push long constant 0', function(frame) {
-        frame.op_stack.push(new CONSTANT_Long(0));
-        return frame.op_stack.push(new CONSTANT_Long(0));
+        frame.op_stack.push(new CONSTANT_long(0));
+        return frame.op_stack.push(new CONSTANT_long(0));
       });
       this[10] = new OpCode('lconst_1', 'Push long constant 1', function(frame) {
-        frame.op_stack.push(new CONSTANT_Long(1));
-        return frame.op_stack.push(new CONSTANT_Long(1));
+        frame.op_stack.push(new CONSTANT_long(1));
+        return frame.op_stack.push(new CONSTANT_long(1));
       });
       this[11] = new OpCode('fconst_0', 'Push float 0', function(frame) {
-        return frame.op_stack.push(new CONSTANT_Float());
+        return frame.op_stack.push(new CONSTANT_float());
       });
       this[12] = new OpCode('fconst_1', 'Push float 1', function(frame) {
-        return frame.op_stack.push(new CONSTANT_Float(1.0));
+        return frame.op_stack.push(new CONSTANT_float(1.0));
       });
       this[13] = new OpCode('fconst_2', 'Push float 2', function(frame) {
-        return frame.op_stack.push(new CONSTANT_Float(2.0));
+        return frame.op_stack.push(new CONSTANT_float(2.0));
       });
       this[14] = new OpCode('dconst_0', 'Push double 0', function(frame) {
-        frame.op_stack.push(new CONSTANT_Double(0.0));
-        return frame.op_stack.push(new CONSTANT_Double(0.0));
+        frame.op_stack.push(new CONSTANT_double(0.0));
+        return frame.op_stack.push(new CONSTANT_double(0.0));
       });
       this[15] = new OpCode('dconst_1', 'Push double 1', function(frame) {
-        frame.op_stack.push(new CONSTANT_Double(1.0));
-        return frame.op_stack.push(new CONSTANT_Double(1.0));
+        frame.op_stack.push(new CONSTANT_double(1.0));
+        return frame.op_stack.push(new CONSTANT_double(1.0));
       });
       this[16] = new OpCode('bipush', 'Push 8 bit signed integer', function(frame) {
         return frame.op_stack.push(frame.method_stack[++thread.pc]);
@@ -69,6 +69,9 @@
         item = this.getIndexByte(1, frame, thread);
         while (typeof (item = this.fromClass(item, thread)) === 'number') {
           continue;
+        }
+        if (item === 'undefined') {
+          throw 'JVM_Error: Undefined item on stack';
         }
         return frame.op_stack.push(item);
       });
@@ -605,10 +608,10 @@
         i1 = frame.op_stack.pop();
         i2 = frame.op_stack.pop();
         if (isNaN(i1.value) || isNaN(i2.value)) {
-          frame.op_stack.push(new CONSTANT_Integer(Number.NaN));
+          frame.op_stack.push(new CONSTANT_integer(Number.NaN));
           return true;
         }
-        return frame.op_stack.push(new CONSTANT_Integer(i1 + i2));
+        return frame.op_stack.push(new CONSTANT_integer(i1 + i2));
       });
       this[97] = new OpCode('ladd', 'Add long', function(frame) {
         var long1a, long1b, long2a, long2b;
@@ -617,23 +620,23 @@
         long2a = frame.op_stack.pop().valueOf();
         long2b = frame.op_stack.pop().valueOf();
         if (isNaN(long1a.value) || isNaN(long2a.value)) {
-          frame.op_stack.push(new CONSTANT_Long(Number.NaN));
-          frame.op_stack.push(new CONSTANT_Long(Number.NaN));
+          frame.op_stack.push(new CONSTANT_long(Number.NaN));
+          frame.op_stack.push(new CONSTANT_long(Number.NaN));
           return true;
         }
-        frame.op_stack.push(new CONSTANT_Long(long1a + long2a));
-        return frame.op_stack.push(new CONSTANT_Long(long1a + long2a));
+        frame.op_stack.push(new CONSTANT_long(long1a + long2a));
+        return frame.op_stack.push(new CONSTANT_long(long1a + long2a));
       });
       this[98] = new OpCode('fadd', 'Add float', function(frame) {
         var float1, float2, result;
         float1 = frame.op_stack.pop().valueOf();
         float2 = frame.op_stack.pop().valueOf();
         if (isNaN(float1.value) || isNaN(float2.value)) {
-          frame.op_stack.push(new CONSTANT_Float(Number.NaN));
+          frame.op_stack.push(new CONSTANT_float(Number.NaN));
           return true;
         }
         result = float2.value + float1.value;
-        return frame.op_stack.push(new CONSTANT_Float(result));
+        return frame.op_stack.push(new CONSTANT_float(result));
       });
       this[99] = new OpCode('dadd', 'Add double', function(frame) {
         var da1, da2, db1, db2, result;
@@ -642,20 +645,20 @@
         db1 = frame.op_stack.pop().valueOf();
         db2 = frame.op_stack.pop().valueOf();
         if (isNaN(float1.value) || isNaN(float2.value)) {
-          frame.op_stack.push(new CONSTANT_Double(Number.NaN));
-          frame.op_stack.push(new CONSTANT_Double(Number.NaN));
+          frame.op_stack.push(new CONSTANT_double(Number.NaN));
+          frame.op_stack.push(new CONSTANT_double(Number.NaN));
           return true;
         }
         result = da1 + db1;
-        frame.op_stack.push(new CONSTANT_Double(result));
-        return frame.op_stack.push(new CONSTANT_Double(result));
+        frame.op_stack.push(new CONSTANT_double(result));
+        return frame.op_stack.push(new CONSTANT_double(result));
       });
       this[100] = new OpCode('isub', 'Subtract int', function(frame) {
         var i1, i2, result;
         i2 = frame.op_stack.pop().valueOf();
         i1 = frame.op_stack.pop().valueOf();
         result = i1 - i2;
-        return frame.op_stack.push(new CONSTANT_Integer(result));
+        return frame.op_stack.push(new CONSTANT_integer(result));
       });
       this[101] = new OpCode('lsub', 'Subtract long', function(frame) {
         var ia1, ia2, ib1, ib2, result;
@@ -664,15 +667,15 @@
         ib1 = frame.op_stack.pop().valueOf();
         ib2 = frame.op_stack.pop().valueOf();
         result = ib1 - ia1;
-        frame.op_stack.push(new CONSTANT_Long(result));
-        return frame.op_stack.push(new CONSTANT_Long(result));
+        frame.op_stack.push(new CONSTANT_long(result));
+        return frame.op_stack.push(new CONSTANT_long(result));
       });
       this[102] = new OpCode('fsub', 'Subtract float', function(frame) {
         var f1, f2, result;
         f2 = frame.op_stack.pop().valueOf();
         f1 = frame.op_stack.pop().valueOf();
         result = f1 - f2;
-        return frame.op_stack.push(new CONSTANT_Float(result));
+        return frame.op_stack.push(new CONSTANT_float(result));
       });
       this[103] = new OpCode('dsub', 'Subtract double', function(frame) {
         var d, d1, d2, d3, result;
@@ -681,15 +684,15 @@
         d2 = frame.op_stack.pop().valueOf();
         d3 = frame.op_stack.pop().valueOf();
         result = d - d2;
-        frame.op_stack.push(new CONSTANT_Double(result));
-        return frame.op_stack.push(new CONSTANT_Double(result));
+        frame.op_stack.push(new CONSTANT_double(result));
+        return frame.op_stack.push(new CONSTANT_double(result));
       });
       this[104] = new OpCode('imul', 'Multiply int', function(frame) {
         var f1, f2, result;
         f2 = frame.op_stack.pop().valueOf();
         f1 = frame.op_stack.pop().valueOf();
         result = f1 * f2;
-        return frame.op_stack.push(new CONSTANT_Integer(result));
+        return frame.op_stack.push(new CONSTANT_integer(result));
       });
       this[105] = new OpCode('lmul', 'Multiple long', function(frame) {
         var la1, la2, lb1, lb2, result;
@@ -698,22 +701,22 @@
         lb1 = frame.op_stack.pop().valueOf();
         lb2 = frame.op_stack.pop().valueOf();
         if (isNan(value1) || isNaN(value2)) {
-          frame.op_stack.push(new CONSTANT_Long(Number.NaN));
-          frame.op_stack.push(new CONSTANT_Long(Number.NaN));
+          frame.op_stack.push(new CONSTANT_long(Number.NaN));
+          frame.op_stack.push(new CONSTANT_long(Number.NaN));
         }
         result = lb1 * la1;
-        frame.op_stack.push(new CONSTANT_Long(result));
-        return frame.op_stack.push(new CONSTANT_Long(result));
+        frame.op_stack.push(new CONSTANT_long(result));
+        return frame.op_stack.push(new CONSTANT_long(result));
       });
       this[106] = new OpCode('fmul', 'Multiply float', function(frame) {
         var result, value1, value2;
         value2 = frame.op_stack.pop().valueOf();
         value1 = frame.op_stack.pop().valueOf();
         result = value1 * value2;
-        if (isNan(value1) || isNaN(value2)) {
-          frame.op_stack.push(new CONSTANT_Float(Number.NaN));
+        if (isNaN(value1) || isNaN(value2)) {
+          frame.op_stack.push(new CONSTANT_float(Number.NaN));
         }
-        return frame.op_stack.push(new CONSTANT_Float(result));
+        return frame.op_stack.push(new CONSTANT_float(result));
       });
       this[107] = new OpCode('dmul', 'Multiply double', function(frame) {
         var d, d1, d2, d3, result;
@@ -722,21 +725,21 @@
         d2 = frame.op_stack.pop().valueOf();
         d3 = frame.op_stack.pop().valueOf();
         result = d * d2;
-        frame.op_stack.push(new CONSTANT_Double(result));
-        return frame.op_stack.push(new CONSTANT_Double(result));
+        frame.op_stack.push(new CONSTANT_double(result));
+        return frame.op_stack.push(new CONSTANT_double(result));
       });
       this[108] = new OpCode('idiv', 'Divide int', function(frame) {
         var result, value1, value2;
         value2 = frame.op_stack.pop().valueOf();
         value1 = frame.op_stack.pop().valueOf();
         if (isNaN(value1) || isNaN(value2)) {
-          frame.op_stack.push(new CONSTANT_Integer(Integer.NaN));
+          frame.op_stack.push(new CONSTANT_integer(Integer.NaN));
         }
         if (value2 === 0) {
           athrow('ArithmeticException');
         }
         result = value1 / value2;
-        return frame.op_stack.push(new CONSTANT_Integer(result));
+        return frame.op_stack.push(new CONSTANT_integer(result));
       });
       this[109] = new OpCode('ldiv', 'Divide long', function(frame) {
         var l1, l1a, l2, l2a, result;
@@ -745,28 +748,28 @@
         l1 = frame.op_stack.pop();
         l1a = frame.op_stack.pop();
         if (isNaN(l1) || isNaN(l2)) {
-          frame.op_stack.push(new CONSTANT_Long(Integer.NaN));
-          frame.op_stack.push(new CONSTANT_Long(Integer.NaN));
+          frame.op_stack.push(new CONSTANT_long(Integer.NaN));
+          frame.op_stack.push(new CONSTANT_long(Integer.NaN));
         }
         if (l2 === 0) {
           athrow('ArithmeticException');
         }
         result = l1 / l2;
-        frame.op_stack.push(new CONSTANT_Long(result));
-        return frame.op_stack.push(new CONSTANT_Long(result));
+        frame.op_stack.push(new CONSTANT_long(result));
+        return frame.op_stack.push(new CONSTANT_long(result));
       });
       this[110] = new OpCode('fdiv', 'Divide float', function(frame) {
         var result, value1, value2;
         value2 = frame.op_stack.pop();
         value1 = frame.op_stack.pop();
         if (isNaN(value1) || isNaN(value2)) {
-          frame.op_stack.push(new CONSTANT_Float(Integer.NaN));
+          frame.op_stack.push(new CONSTANT_float(Integer.NaN));
         }
         if (value2 === 0) {
           athrow('ArithmeticException');
         }
         result = value1 / value2;
-        return frame.op_stack.push(new CONSTANT_Float(result));
+        return frame.op_stack.push(new CONSTANT_float(result));
       });
       this[111] = new OpCode('ddiv', 'Divide Double', function(frame) {
         var d1, d1a, d2, d2a, result;
@@ -775,15 +778,15 @@
         d1 = frame.op_stack.pop();
         d1a = frame.op_stack.pop();
         if (isNaN(value1) || isNaN(value2)) {
-          frame.op_stack.push(new CONSTANT_Double(Integer.NaN));
-          frame.op_stack.push(new CONSTANT_Double(Integer.NaN));
+          frame.op_stack.push(new CONSTANT_double(Integer.NaN));
+          frame.op_stack.push(new CONSTANT_double(Integer.NaN));
         }
         if (d2 === 0) {
           athrow('ArithmeticException');
         }
         result = d1 / d2;
-        frame.op_stack.push(new CONSTANT_Double(result));
-        return frame.op_stack.push(new CONSTANT_Double(result));
+        frame.op_stack.push(new CONSTANT_double(result));
+        return frame.op_stack.push(new CONSTANT_double(result));
       });
       this[112] = new OpCode('irem', 'Remainder int', function(frame) {
         var i1, i2, result;
@@ -803,8 +806,8 @@
           athrow('ArithmeticException');
         }
         result = l1 - (l1 / l2) * l2;
-        frame.op_stack.push(new CONSTANT_Long(result));
-        return frame.op_stack.push(new CONSTANT_Long(result));
+        frame.op_stack.push(new CONSTANT_long(result));
+        return frame.op_stack.push(new CONSTANT_long(result));
       });
       this[114] = new OpCode('frem', 'Remainder float', function(frame) {
         return console.log('frem not implemented');
@@ -816,27 +819,27 @@
         var result, value;
         value = frame.op_stack.pop().valueOf();
         result = (~value) + 1;
-        return frame.op_stack.push(new CONSTANT_Integer(result));
+        return frame.op_stack.push(new CONSTANT_integer(result));
       });
       this[117] = new OpCode('lneg', 'Negate long', function(frame) {
         var la, lb, result;
         la = frame.op_stack.pop().valueOf();
         lb = frame.op_stack.pop().valueOf();
         result = (~la) + 1;
-        frame.op_stack.push(new CONSTANT_Long(result));
-        return frame.op_stack.push(new CONSTANT_Long(result));
+        frame.op_stack.push(new CONSTANT_long(result));
+        return frame.op_stack.push(new CONSTANT_long(result));
       });
       this[118] = new OpCode('fneg', 'Negate float', function(frame) {
         var result, value;
         value = frame.op_stack.pop().valueOf();
-        result = new CONSTANT_Double(~value.value + 1);
+        result = new CONSTANT_double(~value.value + 1);
         return frame.op_stack.push(result);
       });
       this[119] = new OpCode('dneg', 'Negate double', function(frame) {
         var d1, d2, result;
         d1 = frame.op_stack.pop().valueOf();
         d2 = frame.op_stack.pop().valueOf();
-        result = new CONSTANT_Double(~d1.value + 1);
+        result = new CONSTANT_double(~d1.value + 1);
         frame.op_stack.push(result);
         return frame.op_stack.push(result);
       });
@@ -855,8 +858,8 @@
         value2 = frame.op_stack.pop().valueOf();
         s = value2 & 0x3f;
         result = value1 << s;
-        frame.op_stack.push(new CONSTANT_Long(result));
-        return frame.op_stack.push(new CONSTANT_Long(result));
+        frame.op_stack.push(new CONSTANT_long(result));
+        return frame.op_stack.push(new CONSTANT_long(result));
       });
       this[122] = new OpCode('ishr', 'Arithmetic shift right int', function(frame) {
         var result, s, value1, value2;
@@ -873,8 +876,8 @@
         value2 = frame.op_stack.pop().valueOf();
         s = value2 & 0x3f;
         result = value1 >> s;
-        frame.op_stack.push(new CONSTANT_Long(result));
-        return frame.op_stack.push(new CONSTANT_Long(result));
+        frame.op_stack.push(new CONSTANT_long(result));
+        return frame.op_stack.push(new CONSTANT_long(result));
       });
       this[124] = new OpCode('iushr', 'Logical shift right int', function(frame) {
         var result, s, value1, value2;
@@ -886,7 +889,7 @@
         } else {
           result = (value1 >> s) + (2 << ~s);
         }
-        return frame.op_stack.push(new CONSTANT_Integer(result));
+        return frame.op_stack.push(new CONSTANT_integer(result));
       });
       this[125] = new OpCode('lushr', 'Logical shift right long', function(frame) {
         var result, s, value1, value2;
@@ -899,15 +902,15 @@
         } else {
           result = (value1 >> s) + (2 << ~s);
         }
-        frame.op_stack.push(new CONSTANT_Long(result));
-        return frame.op_stack.push(new CONSTANT_Long(result));
+        frame.op_stack.push(new CONSTANT_long(result));
+        return frame.op_stack.push(new CONSTANT_long(result));
       });
       this[126] = new OpCode('iand', 'Boolean AND int', function(frame) {
         var result, value1, value2;
         value1 = frame.op_stack.pop().valueOf();
         value2 = frame.op_stack.pop().valueOf();
         result = value1 & value2;
-        return frame.op_stack.push(new CONSTANT_Integer(result));
+        return frame.op_stack.push(new CONSTANT_integer(result));
       });
       this[127] = new OpCode('land', 'Boolean ', function(frame) {
         var result, value1, value2;
@@ -916,15 +919,15 @@
         value2 = frame.op_stack.pop().valueOf();
         frame.op_stack.pop().valueOf();
         result = value1 & value2;
-        frame.op_stack.push(new CONSTANT_Long(result));
-        return frame.op_stack.push(new CONSTANT_Long(result));
+        frame.op_stack.push(new CONSTANT_long(result));
+        return frame.op_stack.push(new CONSTANT_long(result));
       });
       this[128] = new OpCode('ior', '', function(frame) {
         var result, value1, value2;
         value1 = frame.op_stack.pop().valueOf();
         value2 = frame.op_stack.pop().valueOf();
         result = value1 | value2;
-        return frame.op_stack.push(new CONSTANT_Integer(result));
+        return frame.op_stack.push(new CONSTANT_integer(result));
       });
       this[129] = new OpCode('lor', 'Boolean OR long', function(frame) {
         var l1, l2, result;
@@ -933,15 +936,15 @@
         l2 = frame.op_stack.pop().valueOf();
         frame.op_stack.pop().valueOf();
         result = l1 | l2;
-        frame.op_stack.push(new CONSTANT_Long(result));
-        return frame.op_stack.push(new CONSTANT_Long(result));
+        frame.op_stack.push(new CONSTANT_long(result));
+        return frame.op_stack.push(new CONSTANT_long(result));
       });
       this[130] = new OpCode('ixor', 'Boolean XOR int', function(frame) {
         var result, value1, value2;
         value1 = frame.op_stack.pop().valueOf();
         value2 = frame.op_stack.pop().valueOf();
         result = value1 ^ value2;
-        return frame.op_stack.push(new CONSTANT_Integer(result));
+        return frame.op_stack.push(new CONSTANT_integer(result));
       });
       this[131] = new OpCode('lxor', 'Boolean XOR long', function(frame) {
         var result, value1, value2;
@@ -950,84 +953,84 @@
         value2 = frame.op_stack.pop().valueOf();
         frame.op_stack.pop();
         result = value1 ^ value2;
-        frame.op_stack.push(new CONSTANT_Long(result));
-        return frame.op_stack.push(new CONSTANT_Long(result));
+        frame.op_stack.push(new CONSTANT_long(result));
+        return frame.op_stack.push(new CONSTANT_long(result));
       });
       this[132] = new OpCode('iinc', 'Increment local variable by constant', function(frame) {
         var consta, index, result;
         index = getIndexByte(1, frame, thread);
         consta = getIndexByte(2, frame, thread);
         result = index + consta;
-        return frame.op_stack.push(new CONSTANT_Integer(result));
+        return frame.op_stack.push(new CONSTANT_integer(result));
       });
       this[133] = new OpCode('i2l', 'Convert int to long', function(frame) {
         var long, value;
         value = frame.op_stack.pop().valueOf();
-        long = new CONSTANT_Long(value);
+        long = new CONSTANT_long(value);
         frame.op_stack.push(long);
         return frame.op_stack.push(long);
       });
       this[134] = new OpCode('i2f', 'Convert int to float', function(frame) {
         var float, value;
         value = frame.op_stack.pop().valueOf();
-        float = new CONSTANT_Float(value);
+        float = new CONSTANT_float(value);
         return frame.op_stack.push(float);
       });
       this[135] = new OpCode('i2d', 'Convert int to double', function(frame) {
         var double, value;
         value = frame.op_stack.pop().valueOf();
-        double = new CONSTANT_Double(value);
+        double = new CONSTANT_double(value);
         return frame.op_stack.push(double);
       });
       this[136] = new OpCode('l2i', 'Convert long to int', function(frame) {
         var int, value;
         value = frame.op_stack.pop().valueOf();
-        int = new CONSTANT_Integer(value.toFixed());
+        int = new CONSTANT_integer(value.toFixed());
         return frame.op_stack.push(int);
       });
       this[137] = new OpCode('l2f', 'Convert long to float', function(frame) {
         var float, value;
         value = frame.op_stack.pop().valueOf();
-        float = new CONSTANT_Float(value);
+        float = new CONSTANT_float(value);
         return frame.op_stack.push(float);
       });
       this[138] = new OpCode('l2d', 'Convert long to double', function(frame) {
         var double, value;
         value = frame.op_stack.pop().valueOf();
-        double = new CONSTANT_Double(value);
+        double = new CONSTANT_double(value);
         return frame.op_stack.push(double);
       });
       this[139] = new OpCode('f2i', 'Convert float to int', function(frame) {
         var float, int;
         float = frame.op_stack.pop().valueOf();
-        int = new CONSTANT_Integer(float.value.toFixed());
+        int = new CONSTANT_integer(float.toFixed());
         return frame.op_stack.push(int);
       });
       this[140] = new OpCode('f2l', 'Convert Float to long', function(frame) {
         var float, long;
         float = frame.op_stack.pop().valueOf();
-        long = new CONSTANT_Long(float.value.toFixed());
+        long = new CONSTANT_long(float.toFixed());
         frame.op_stack.push(long);
         return frame.op_stack.push(long);
       });
       this[141] = new OpCode('f2d', 'Convert float to double', function(frame) {
         var double, float;
         float = frame.op_stack.pop().valueOf();
-        double = new CONSTANT_Double(float.value);
+        double = new CONSTANT_double(float.value);
         frame.op_stack.push(double);
         return frame.op_stack.push(double);
       });
       this[142] = new OpCode('d2i', 'Convert double to int', function(frame) {
         var double, int;
         double = frame.op_stack.pop().valueOf();
-        int = new CONSTANT_Integer(float.value.toFixed());
+        int = new CONSTANT_integer(float.toFixed());
         return frame.op_stack.push(int);
       });
       this[143] = new OpCode('d2l', 'Convert double to long', function(frame) {
         var double, long;
         double = frame.op_stack.pop().valueOf();
         frame.op_stack.pop();
-        long = new CONSTANT_Float(long.toFixed());
+        long = new CONSTANT_float(long.toFixed());
         frame.op_stack.push(long);
         return frame.op_stack.push(long);
       });
@@ -1035,25 +1038,25 @@
         var double, float;
         double = frame.op_stack.pop().valueOf();
         frame.op_stack.pop();
-        float = new CONSTANT_Float(double);
+        float = new CONSTANT_float(double);
         return frame.op_stack.push(float);
       });
       this[145] = new OpCode('i2b', 'Convert int to byte', function(frame) {
         var byte, int;
         int = frame.op_stack.pop().valueOf();
-        byte = new CONSTANT_Byte(int);
+        byte = new CONSTANT_byte(int);
         return frame.op_stack.push(byte);
       });
       this[146] = new OpCode('i2c', 'Convert int to char', function(frame) {
         var char, int;
         int = frame.op_stack.pop().valueOf();
-        char = new CONSTANT_Char(int);
+        char = new CONSTANT_char(int);
         return frame.op_stack.push(char);
       });
       this[147] = new OpCode('i2s', 'Convert int to short', function(frame) {
         var int, short;
         int = frame.op_stack.pop().valueOf();
-        short = new CONSTANT_Short(int);
+        short = new CONSTANT_short(int);
         return frame.op_stack.push(short);
       });
       this[148] = new OpCode('lcmp', 'Compare long', function(frame) {
@@ -1132,48 +1135,54 @@
       });
       this[153] = new OpCode('ifeq', 'Branch if value is 0', function(frame) {
         var branch;
+        branch = this.constructIndex(frame, thread);
         if (frame.op_stack.pop() === 0) {
-          branch = this.constructIndex(frame, thread);
+          thread.pc -= 3;
           thread.pc += branch;
         }
         return true;
       });
       this[154] = new OpCode('ifne', 'Branch if value isnt 0', function(frame) {
         var branch;
+        branch = this.constructIndex(frame, thread);
         if (frame.op_stack.pop() !== 0) {
-          branch = this.constructIndex(frame, thread);
+          thread.pc -= 3;
           thread.pc += branch;
         }
         return true;
       });
       this[155] = new OpCode('iflt', 'Branch if value < 0', function(frame) {
         var branch;
+        branch = this.constructIndex(frame, thread);
         if (frame.op_stack.pop() < 0) {
-          branch = this.constructIndex(frame, thread);
+          thread.pc -= 3;
           thread.pc += branch;
         }
         return true;
       });
       this[156] = new OpCode('ifge', 'Branch if value >= 0', function(frame) {
         var branch;
+        branch = this.constructIndex(frame, thread);
         if (frame.op_stack.pop() >= 0) {
-          branch = this.constructIndex(frame, thread);
+          thread.pc -= 3;
           thread.pc += branch;
         }
         return true;
       });
       this[157] = new OpCode('ifgt', 'Branch if value > 0', function(frame) {
         var branch;
+        branch = this.constructIndex(frame, thread);
         if (frame.op_stack.pop() > 0) {
-          branch = this.constructIndex(frame, thread);
+          thread.pc -= 3;
           thread.pc += branch;
         }
         return true;
       });
       this[158] = new OpCode('ifle', 'Branch if value <= 0', function(frame) {
         var branch;
+        branch = this.constructIndex(frame, thread);
         if (frame.op_stack.pop() <= 0) {
-          branch = this.constructIndex(frame, thread);
+          thread.pc -= 3;
           thread.pc += branch;
         }
         return true;
@@ -1182,8 +1191,9 @@
         var branch, value1, value2;
         value2 = frame.op_stack.pop();
         value1 = frame.op_stack.pop();
+        branch = this.constructIndex(frame, thread);
         if (value1 === value2) {
-          branch = this.constructIndex(frame, thread);
+          thread.pc -= 3;
           thread.pc += branch;
         }
         return true;
@@ -1192,8 +1202,8 @@
         var branch, value1, value2;
         value2 = frame.op_stack.pop();
         value1 = frame.op_stack.pop();
+        branch = this.constructIndex(frame, thread);
         if (value1 !== value2) {
-          branch = this.constructIndex(frame, thread);
           thread.pc += branch;
         }
         return true;
@@ -1202,8 +1212,9 @@
         var branch, value1, value2;
         value2 = frame.op_stack.pop();
         value1 = frame.op_stack.pop();
+        branch = this.constructIndex(frame, thread);
         if (value1 < value2) {
-          branch = this.constructIndex(frame, thread);
+          thread.pc -= 3;
           thread.pc += branch;
         }
         return true;
@@ -1212,8 +1223,9 @@
         var branch, value1, value2;
         value2 = frame.op_stack.pop();
         value1 = frame.op_stack.pop();
+        branch = this.constructIndex(frame, thread);
         if (value1 >= value2) {
-          branch = this.constructIndex(frame, thread);
+          thread.pc -= 3;
           thread.pc += branch;
         }
         return true;
@@ -1222,8 +1234,9 @@
         var branch, value1, value2;
         value2 = frame.op_stack.pop();
         value1 = frame.op_stack.pop();
+        branch = this.constructIndex(frame, thread);
         if (value1 > value2) {
-          branch = this.constructIndex(frame, thread);
+          thread.pc -= 3;
           thread.pc += branch;
         }
         return true;
@@ -1232,8 +1245,9 @@
         var branch, value1, value2;
         value2 = frame.op_stack.pop();
         value1 = frame.op_stack.pop();
+        branch = this.constructIndex(frame, thread);
         if (value1 <= value2) {
-          branch = this.constructIndex(frame, thread);
+          thread.pc -= 3;
           thread.pc += branch;
         }
         return true;
@@ -1244,6 +1258,7 @@
         ref1 = frame.op_stack.pop();
         if (ref1 === ref2) {
           branch = this.constructIndex(frame, thread);
+          thread.pc -= 3;
           thread.pc += branch;
         }
         return true;
@@ -1252,8 +1267,9 @@
         var branch, ref1, ref2;
         ref2 = frame.op_stack.pop();
         ref1 = frame.op_stack.pop();
+        branch = this.constructIndex(frame, thread);
         if (ref1 !== ref2) {
-          branch = this.constructIndex(frame, thread);
+          thread.pc -= 3;
           thread.pc += branch;
         }
         return true;
@@ -1261,12 +1277,14 @@
       this[167] = new OpCode('goto', 'Branch always', function(frame) {
         var offset;
         offset = this.constructIndex(frame, thread);
+        thread.pc -= 3;
         return thread.pc += offset;
       });
       this[168] = new OpCode('jsr', 'Jump to subroutine', function(frame) {
         var offset;
         frame.op_stack.push(thread.pc);
         offset = this.constructIndex(frame, thread);
+        thread.pc -= 3;
         return thread.pc += offset;
       });
       this[169] = new OpCode('ret', 'Return from subroutine', function(frame) {
@@ -1423,7 +1441,7 @@
         value = frame.op_stack.pop();
         return cls.fields[field_name].value = value;
       });
-      this[180] = new OpCode('getfield', '', function(frame) {
+      this[180] = new OpCode('getfield', 'Get a field from an object', function(frame) {
         var descriptor, field, fieldname, fieldref, index, nameandtype, objectref;
         objectref = frame.op_stack.pop();
         index = this.constructIndex(frame, thread);
@@ -1438,7 +1456,7 @@
         frame.op_stack.push(field);
         return true;
       });
-      this[181] = new OpCode('putfield', '', function(frame) {
+      this[181] = new OpCode('putfield', 'Set a field in an object', function(frame) {
         var descriptor, fieldname, fieldref, index, nameandtype, object, objectref, value;
         value = frame.op_stack.pop();
         objectref = frame.op_stack.pop();
@@ -1458,11 +1476,11 @@
         var arg_num, cls, index, method, method_name, methodnameandtype, methodref, newframe, object, objectref, type;
         index = this.constructIndex(frame, thread);
         methodref = this.fromClass(index, thread);
-        objectref = frame.op_stack.pop();
         methodnameandtype = this.fromClass(methodref.name_and_type_index, thread);
         if ((cls = thread.resolveClass(methodref.class_index)) === null) {
           return false;
         }
+        objectref = frame.op_stack.pop();
         method_name = this.fromClass(methodnameandtype.name_index, thread);
         type = this.fromClass(methodnameandtype.descriptor_index, thread);
         method = thread.resolveMethod(method_name, cls, type);
@@ -1477,11 +1495,11 @@
         thread.current_class = cls;
         frame.pc += 2;
         thread.pc = -1;
-        arg_num = 0;
-        while (arg_num < method.nargs) {
-          newframe.locals[arg_num++] = frame.op_stack.pop();
+        arg_num = method.nargs;
+        while (arg_num > 0) {
+          newframe.locals[arg_num--] = frame.op_stack.pop();
         }
-        newframe.locals[arg_num] = objectref;
+        newframe.locals[0] = objectref;
         return true;
       });
       this[183] = new OpCode('invokespecial', 'Invoke instance method', function(frame) {
@@ -1501,10 +1519,11 @@
         thread.current_class = cls;
         frame.pc += 2;
         thread.pc = -1;
-        arg_num = 0;
-        while (arg_num <= method.nargs) {
-          newframe.locals[arg_num++] = frame.op_stack.pop();
+        arg_num = method.nargs;
+        while (arg_num > 0) {
+          newframe.locals[arg_num--] = frame.op_stack.pop();
         }
+        newframe.locals[0] = frame.op_stack.pop();
         return true;
       });
       this[184] = new OpCode('invokestatic', 'Invoke a class (static) method', function(frame) {
@@ -1521,11 +1540,9 @@
         frame.pc += 2;
         thread.pc = -1;
         newframe = thread.createFrame(method, thread.current_class);
-        arg_num = 0;
-        if (newframe instanceof Frame) {
-          while (arg_num <= method.nargs) {
-            newframe.locals[arg_num++] = frame.op_stack.pop();
-          }
+        arg_num = method.nargs;
+        while (arg_num > 0) {
+          newframe.locals[--arg_num] = frame.op_stack.pop();
         }
         return true;
       });
@@ -1583,11 +1600,11 @@
       });
       this[189] = new OpCode('anewarray', 'Create new array of reference', function(frame) {
         var arrayref, cls, count, cpindex;
-        count = frame.op_stack.pop();
         cpindex = this.constructIndex(frame, thread);
         if ((cls = thread.resolveClass(cpindex)) === null) {
           return false;
         }
+        count = frame.op_stack.pop();
         if (count < 0) {
           athrow('NegativeArraySizeException');
         }
@@ -1650,9 +1667,16 @@
       this[198] = new OpCode('ifnull', '', function(frame) {
         return alert(this.mnemonic);
       }, true);
-      this[199] = new OpCode('ifnonnull', '', function(frame) {
-        return alert(this.mnemonic);
-      }, true);
+      this[199] = new OpCode('ifnonnull', 'Branch if non-null', function(frame) {
+        var branch, value;
+        branch = this.constructIndex(frame, thread);
+        value = frame.op_stack.pop();
+        if (value !== null) {
+          thread.pc -= 3;
+          thread.pc += branch;
+        }
+        return true;
+      });
       this[200] = new OpCode('goto_w', '', function(frame) {
         return alert(this.mnemonic);
       }, true);

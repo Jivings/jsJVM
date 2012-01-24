@@ -139,6 +139,13 @@
       this.op_stack.peek = function() {
         return this[this.length - 1];
       };
+      this.op_stack.push = function(word) {
+        if (word === 'undefined') {
+          throw "NullStackException";
+        }
+        this[this.length] = word;
+        return true;
+      };
       this.constant_pool = this.cls.constant_pool;
       this.resolveSelf(this.cls);
       this.name = method.name;

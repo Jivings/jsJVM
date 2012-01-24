@@ -29,29 +29,29 @@ class this.OpCodes
       frame.op_stack.push(5)
     )
     @[9] = new OpCode('lconst_0', 'Push long constant 0', (frame) -> 
-      frame.op_stack.push(new CONSTANT_Long(0))
-      frame.op_stack.push(new CONSTANT_Long(0))
+      frame.op_stack.push(new CONSTANT_long(0))
+      frame.op_stack.push(new CONSTANT_long(0))
     )
     @[10] = new OpCode('lconst_1', 'Push long constant 1', (frame) -> 
-      frame.op_stack.push(new CONSTANT_Long(1))
-      frame.op_stack.push(new CONSTANT_Long(1))
+      frame.op_stack.push(new CONSTANT_long(1))
+      frame.op_stack.push(new CONSTANT_long(1))
     )
     @[11] = new OpCode('fconst_0', 'Push float 0', (frame) -> 
-      frame.op_stack.push(new CONSTANT_Float())
+      frame.op_stack.push(new CONSTANT_float())
     )
     @[12] = new OpCode('fconst_1', 'Push float 1', (frame) -> 
-      frame.op_stack.push(new CONSTANT_Float(1.0))
+      frame.op_stack.push(new CONSTANT_float(1.0))
     )
     @[13] = new OpCode('fconst_2', 'Push float 2', (frame) -> 
-      frame.op_stack.push(new CONSTANT_Float(2.0))
+      frame.op_stack.push(new CONSTANT_float(2.0))
     )
     @[14] = new OpCode('dconst_0', 'Push double 0', (frame) -> 
-      frame.op_stack.push(new CONSTANT_Double(0.0))
-      frame.op_stack.push(new CONSTANT_Double(0.0))
+      frame.op_stack.push(new CONSTANT_double(0.0))
+      frame.op_stack.push(new CONSTANT_double(0.0))
     )
     @[15] = new OpCode('dconst_1', 'Push double 1', (frame) -> 
-      frame.op_stack.push(new CONSTANT_Double(1.0))
-      frame.op_stack.push(new CONSTANT_Double(1.0))
+      frame.op_stack.push(new CONSTANT_double(1.0))
+      frame.op_stack.push(new CONSTANT_double(1.0))
     )
     @[16] = new OpCode('bipush', 'Push 8 bit signed integer', (frame) -> 
       frame.op_stack.push(frame.method_stack[++thread.pc])
@@ -67,6 +67,8 @@ class this.OpCodes
       while typeof (item = @fromClass(item, thread)) is 'number' 
         continue
      
+      if item == 'undefined'
+        throw 'JVM_Error: Undefined item on stack'
       # TODO check item is valid
       frame.op_stack.push(item)
     )
@@ -542,9 +544,9 @@ class this.OpCodes
       i1 = frame.op_stack.pop()
       i2 = frame.op_stack.pop()
       if isNaN(i1.value) or isNaN(i2.value)
-        frame.op_stack.push(new CONSTANT_Integer(Number.NaN))
+        frame.op_stack.push(new CONSTANT_integer(Number.NaN))
         return true
-      frame.op_stack.push(new CONSTANT_Integer(i1 + i2)) 
+      frame.op_stack.push(new CONSTANT_integer(i1 + i2)) 
     )
     @[97] = new OpCode('ladd', 'Add long', (frame) -> 
       long1a = frame.op_stack.pop().valueOf()  
@@ -554,20 +556,20 @@ class this.OpCodes
       long2b = frame.op_stack.pop().valueOf()
       
       if isNaN(long1a.value) or isNaN(long2a.value)
-        frame.op_stack.push(new CONSTANT_Long(Number.NaN))
-        frame.op_stack.push(new CONSTANT_Long(Number.NaN))
+        frame.op_stack.push(new CONSTANT_long(Number.NaN))
+        frame.op_stack.push(new CONSTANT_long(Number.NaN))
         return true
-      frame.op_stack.push(new CONSTANT_Long(long1a + long2a)) 
-      frame.op_stack.push(new CONSTANT_Long(long1a + long2a)) 
+      frame.op_stack.push(new CONSTANT_long(long1a + long2a)) 
+      frame.op_stack.push(new CONSTANT_long(long1a + long2a)) 
     )
     @[98] = new OpCode('fadd', 'Add float', (frame) -> 
       float1 = frame.op_stack.pop().valueOf()  
       float2 = frame.op_stack.pop().valueOf()
       if isNaN(float1.value) or isNaN(float2.value)
-        frame.op_stack.push(new CONSTANT_Float(Number.NaN))
+        frame.op_stack.push(new CONSTANT_float(Number.NaN))
         return true
       result = float2.value + float1.value
-      frame.op_stack.push(new CONSTANT_Float(result))
+      frame.op_stack.push(new CONSTANT_float(result))
     )
     @[99] = new OpCode('dadd', 'Add double', (frame) -> 
       da1 = frame.op_stack.pop().valueOf()
@@ -575,18 +577,18 @@ class this.OpCodes
       db1 = frame.op_stack.pop().valueOf()
       db2 = frame.op_stack.pop().valueOf()
       if isNaN(float1.value) or isNaN(float2.value)
-        frame.op_stack.push(new CONSTANT_Double(Number.NaN))
-        frame.op_stack.push(new CONSTANT_Double(Number.NaN))
+        frame.op_stack.push(new CONSTANT_double(Number.NaN))
+        frame.op_stack.push(new CONSTANT_double(Number.NaN))
         return true
       result = da1 + db1
-      frame.op_stack.push(new CONSTANT_Double(result))
-      frame.op_stack.push(new CONSTANT_Double(result))
+      frame.op_stack.push(new CONSTANT_double(result))
+      frame.op_stack.push(new CONSTANT_double(result))
     )
     @[100] = new OpCode('isub', 'Subtract int', (frame) -> 
       i2 = frame.op_stack.pop().valueOf()  
       i1 = frame.op_stack.pop().valueOf()
       result = i1 - i2
-      frame.op_stack.push(new CONSTANT_Integer(result))
+      frame.op_stack.push(new CONSTANT_integer(result))
     )
     @[101] = new OpCode('lsub', 'Subtract long', (frame) -> 
       ia1 = frame.op_stack.pop().valueOf()  
@@ -594,14 +596,14 @@ class this.OpCodes
       ib1 = frame.op_stack.pop().valueOf()  
       ib2 = frame.op_stack.pop().valueOf()
       result = ib1 - ia1
-      frame.op_stack.push(new CONSTANT_Long(result))
-      frame.op_stack.push(new CONSTANT_Long(result))
+      frame.op_stack.push(new CONSTANT_long(result))
+      frame.op_stack.push(new CONSTANT_long(result))
     )
     @[102] = new OpCode('fsub', 'Subtract float', (frame) -> 
       f2 = frame.op_stack.pop().valueOf()  
       f1 = frame.op_stack.pop().valueOf()
       result = f1 - f2
-      frame.op_stack.push(new CONSTANT_Float(result))
+      frame.op_stack.push(new CONSTANT_float(result))
     )
     @[103] = new OpCode('dsub', 'Subtract double', (frame) -> 
       d = frame.op_stack.pop().valueOf()
@@ -609,14 +611,14 @@ class this.OpCodes
       d2 = frame.op_stack.pop().valueOf()
       d3 = frame.op_stack.pop().valueOf()
       result = d - d2
-      frame.op_stack.push(new CONSTANT_Double(result))
-      frame.op_stack.push(new CONSTANT_Double(result))
+      frame.op_stack.push(new CONSTANT_double(result))
+      frame.op_stack.push(new CONSTANT_double(result))
     )
     @[104] = new OpCode('imul', 'Multiply int', (frame) -> 
       f2 = frame.op_stack.pop().valueOf()  
       f1 = frame.op_stack.pop().valueOf()
       result = f1 * f2
-      frame.op_stack.push(new CONSTANT_Integer(result))
+      frame.op_stack.push(new CONSTANT_integer(result))
     )
     @[105] = new OpCode('lmul', 'Multiple long', (frame) -> 
       la1 = frame.op_stack.pop().valueOf()  
@@ -624,19 +626,19 @@ class this.OpCodes
       lb1 = frame.op_stack.pop().valueOf()  
       lb2 = frame.op_stack.pop().valueOf()
       if isNan(value1) or isNaN(value2)
-        frame.op_stack.push(new CONSTANT_Long(Number.NaN))  
-        frame.op_stack.push(new CONSTANT_Long(Number.NaN))  
+        frame.op_stack.push(new CONSTANT_long(Number.NaN))  
+        frame.op_stack.push(new CONSTANT_long(Number.NaN))  
       result = lb1 * la1
-      frame.op_stack.push(new CONSTANT_Long(result))
-      frame.op_stack.push(new CONSTANT_Long(result))
+      frame.op_stack.push(new CONSTANT_long(result))
+      frame.op_stack.push(new CONSTANT_long(result))
     )
     @[106] = new OpCode('fmul', 'Multiply float', (frame) -> 
       value2 = frame.op_stack.pop().valueOf()
       value1 = frame.op_stack.pop().valueOf()
       result = value1 * value2
-      if isNan(value1) or isNaN(value2)
-        frame.op_stack.push(new CONSTANT_Float(Number.NaN))  
-      frame.op_stack.push(new CONSTANT_Float(result))
+      if isNaN(value1) or isNaN(value2)
+        frame.op_stack.push(new CONSTANT_float(Number.NaN))  
+      frame.op_stack.push(new CONSTANT_float(result))
     )
     @[107] = new OpCode('dmul', 'Multiply double', (frame) -> 
       d = frame.op_stack.pop().valueOf()
@@ -644,18 +646,18 @@ class this.OpCodes
       d2 = frame.op_stack.pop().valueOf()
       d3 = frame.op_stack.pop().valueOf()
       result = d * d2
-      frame.op_stack.push(new CONSTANT_Double(result))
-      frame.op_stack.push(new CONSTANT_Double(result))
+      frame.op_stack.push(new CONSTANT_double(result))
+      frame.op_stack.push(new CONSTANT_double(result))
     )
     @[108] = new OpCode('idiv', 'Divide int', (frame) -> 
       value2 = frame.op_stack.pop().valueOf()
       value1 = frame.op_stack.pop().valueOf()
       if isNaN(value1) or isNaN(value2)
-        frame.op_stack.push(new CONSTANT_Integer(Integer.NaN))
+        frame.op_stack.push(new CONSTANT_integer(Integer.NaN))
       if value2 is 0
         athrow('ArithmeticException')
       result = value1 / value2
-      frame.op_stack.push(new CONSTANT_Integer(result))
+      frame.op_stack.push(new CONSTANT_integer(result))
     )
     @[109] = new OpCode('ldiv', 'Divide long', (frame) -> 
       l2 = frame.op_stack.pop()
@@ -663,23 +665,23 @@ class this.OpCodes
       l1 = frame.op_stack.pop()
       l1a = frame.op_stack.pop()
       if isNaN(l1) or isNaN(l2)
-        frame.op_stack.push(new CONSTANT_Long(Integer.NaN))
-        frame.op_stack.push(new CONSTANT_Long(Integer.NaN))
+        frame.op_stack.push(new CONSTANT_long(Integer.NaN))
+        frame.op_stack.push(new CONSTANT_long(Integer.NaN))
       if l2 is 0
         athrow('ArithmeticException')
       result = l1 / l2
-      frame.op_stack.push(new CONSTANT_Long(result))
-      frame.op_stack.push(new CONSTANT_Long(result))
+      frame.op_stack.push(new CONSTANT_long(result))
+      frame.op_stack.push(new CONSTANT_long(result))
     )
     @[110] = new OpCode('fdiv', 'Divide float', (frame) -> 
       value2 = frame.op_stack.pop()
       value1 = frame.op_stack.pop()
       if isNaN(value1) or isNaN(value2)
-        frame.op_stack.push(new CONSTANT_Float(Integer.NaN))
+        frame.op_stack.push(new CONSTANT_float(Integer.NaN))
       if value2 is 0
         athrow('ArithmeticException')
       result = value1 / value2
-      frame.op_stack.push(new CONSTANT_Float(result))
+      frame.op_stack.push(new CONSTANT_float(result))
     ) 
     @[111] = new OpCode('ddiv', 'Divide Double', (frame) -> 
       d2 = frame.op_stack.pop()
@@ -687,13 +689,13 @@ class this.OpCodes
       d1 = frame.op_stack.pop()
       d1a = frame.op_stack.pop()
       if isNaN(value1) or isNaN(value2)
-        frame.op_stack.push(new CONSTANT_Double(Integer.NaN))
-        frame.op_stack.push(new CONSTANT_Double(Integer.NaN))
+        frame.op_stack.push(new CONSTANT_double(Integer.NaN))
+        frame.op_stack.push(new CONSTANT_double(Integer.NaN))
       if d2 is 0
         athrow('ArithmeticException')
       result = d1 / d2
-      frame.op_stack.push(new CONSTANT_Double(result))
-      frame.op_stack.push(new CONSTANT_Double(result))
+      frame.op_stack.push(new CONSTANT_double(result))
+      frame.op_stack.push(new CONSTANT_double(result))
       # TODO check result abides by IEEE arithmetic  
     )
     @[112] = new OpCode('irem', 'Remainder int', (frame) -> 
@@ -710,8 +712,8 @@ class this.OpCodes
       if l2 is 0
         athrow('ArithmeticException')
       result = l1 - (l1 / l2) * l2  
-      frame.op_stack.push(new CONSTANT_Long(result))
-      frame.op_stack.push(new CONSTANT_Long(result))
+      frame.op_stack.push(new CONSTANT_long(result))
+      frame.op_stack.push(new CONSTANT_long(result))
     )
     @[114] = new OpCode('frem', 'Remainder float', (frame) -> 
       console.log('frem not implemented')
@@ -722,24 +724,24 @@ class this.OpCodes
     @[116] = new OpCode('ineg', 'Negate int', (frame) -> 
       value = frame.op_stack.pop().valueOf()
       result = (~value) + 1
-      frame.op_stack.push(new CONSTANT_Integer(result))
+      frame.op_stack.push(new CONSTANT_integer(result))
     )
     @[117] = new OpCode('lneg', 'Negate long', (frame) -> 
       la = frame.op_stack.pop().valueOf()
       lb = frame.op_stack.pop().valueOf()
       result = (~la) + 1
-      frame.op_stack.push(new CONSTANT_Long(result))
-      frame.op_stack.push(new CONSTANT_Long(result))
+      frame.op_stack.push(new CONSTANT_long(result))
+      frame.op_stack.push(new CONSTANT_long(result))
     )
     @[118] = new OpCode('fneg', 'Negate float', (frame) -> 
       value = frame.op_stack.pop().valueOf()
-      result = new CONSTANT_Double(~(value.value) + 1)
+      result = new CONSTANT_double(~(value.value) + 1)
       frame.op_stack.push(result)
     )
     @[119] = new OpCode('dneg', 'Negate double', (frame) -> 
       d1 = frame.op_stack.pop().valueOf()
       d2 = frame.op_stack.pop().valueOf()
-      result = new CONSTANT_Double(~(d1.value) + 1)
+      result = new CONSTANT_double(~(d1.value) + 1)
       frame.op_stack.push(result)
       frame.op_stack.push(result)
     )
@@ -756,8 +758,8 @@ class this.OpCodes
       value2 = frame.op_stack.pop().valueOf()
       s = value2 & 0x3f
       result = value1 << s
-      frame.op_stack.push(new CONSTANT_Long(result))
-      frame.op_stack.push(new CONSTANT_Long(result))
+      frame.op_stack.push(new CONSTANT_long(result))
+      frame.op_stack.push(new CONSTANT_long(result))
     )
     @[122] = new OpCode('ishr', 'Arithmetic shift right int', (frame) -> 
       value1 = frame.op_stack.pop().valueOf()
@@ -772,8 +774,8 @@ class this.OpCodes
       value2 = frame.op_stack.pop().valueOf()
       s = value2 & 0x3f
       result = value1 >> s
-      frame.op_stack.push(new CONSTANT_Long(result))
-      frame.op_stack.push(new CONSTANT_Long(result))
+      frame.op_stack.push(new CONSTANT_long(result))
+      frame.op_stack.push(new CONSTANT_long(result))
     )
     @[124] = new OpCode('iushr', 'Logical shift right int', (frame) -> 
       value1 = frame.op_stack.pop().valueOf()
@@ -783,7 +785,7 @@ class this.OpCodes
         result = value1 >> s
       else 
         result = (value1 >> s) + (2 << ~s)
-      frame.op_stack.push(new CONSTANT_Integer(result))
+      frame.op_stack.push(new CONSTANT_integer(result))
     )
     @[125] = new OpCode('lushr', 'Logical shift right long', (frame) -> 
       value1 = frame.op_stack.pop().valueOf()
@@ -795,14 +797,14 @@ class this.OpCodes
       else 
         result = (value1 >> s) + (2 << ~s)
         
-      frame.op_stack.push(new CONSTANT_Long(result))     
-      frame.op_stack.push(new CONSTANT_Long(result))
+      frame.op_stack.push(new CONSTANT_long(result))     
+      frame.op_stack.push(new CONSTANT_long(result))
     )
     @[126] = new OpCode('iand', 'Boolean AND int', (frame) -> 
       value1 = frame.op_stack.pop().valueOf()
       value2 = frame.op_stack.pop().valueOf()
       result = value1 & value2
-      frame.op_stack.push(new CONSTANT_Integer(result))
+      frame.op_stack.push(new CONSTANT_integer(result))
     )
     @[127] = new OpCode('land', 'Boolean ', (frame) -> 
       value1 = frame.op_stack.pop().valueOf()
@@ -810,14 +812,14 @@ class this.OpCodes
       value2 = frame.op_stack.pop().valueOf()
       frame.op_stack.pop().valueOf()
       result = value1 & value2
-      frame.op_stack.push(new CONSTANT_Long(result))
-      frame.op_stack.push(new CONSTANT_Long(result))
+      frame.op_stack.push(new CONSTANT_long(result))
+      frame.op_stack.push(new CONSTANT_long(result))
     )
     @[128] = new OpCode('ior', '', (frame) -> 
       value1 = frame.op_stack.pop().valueOf()
       value2 = frame.op_stack.pop().valueOf()
       result = value1 | value2
-      frame.op_stack.push(new CONSTANT_Integer(result))
+      frame.op_stack.push(new CONSTANT_integer(result))
     )
     @[129] = new OpCode('lor', 'Boolean OR long', (frame) -> 
       l1 = frame.op_stack.pop().valueOf()
@@ -825,14 +827,14 @@ class this.OpCodes
       l2 = frame.op_stack.pop().valueOf()
       frame.op_stack.pop().valueOf()
       result = l1 | l2  
-      frame.op_stack.push(new CONSTANT_Long(result))
-      frame.op_stack.push(new CONSTANT_Long(result))
+      frame.op_stack.push(new CONSTANT_long(result))
+      frame.op_stack.push(new CONSTANT_long(result))
     )
     @[130] = new OpCode('ixor', 'Boolean XOR int', (frame) -> 
       value1 = frame.op_stack.pop().valueOf()
       value2 = frame.op_stack.pop().valueOf()
       result = value1 ^ value2
-      frame.op_stack.push(new CONSTANT_Integer(result))
+      frame.op_stack.push(new CONSTANT_integer(result))
     )
     @[131] = new OpCode('lxor', 'Boolean XOR long', (frame) -> 
       value1 = frame.op_stack.pop().valueOf()
@@ -840,94 +842,94 @@ class this.OpCodes
       value2 = frame.op_stack.pop().valueOf()
       frame.op_stack.pop()
       result = value1 ^ value2
-      frame.op_stack.push(new CONSTANT_Long(result))
-      frame.op_stack.push(new CONSTANT_Long(result))
+      frame.op_stack.push(new CONSTANT_long(result))
+      frame.op_stack.push(new CONSTANT_long(result))
     )
     @[132] = new OpCode('iinc', 'Increment local variable by constant', (frame) -> 
       index = getIndexByte(1, frame, thread)
       consta = getIndexByte(2, frame, thread)
       result = index + consta
-      frame.op_stack.push(new CONSTANT_Integer(result))
+      frame.op_stack.push(new CONSTANT_integer(result))
     )
     @[133] = new OpCode('i2l', 'Convert int to long', (frame) -> 
       value = frame.op_stack.pop().valueOf()
-      long = new CONSTANT_Long(value)
+      long = new CONSTANT_long(value)
       frame.op_stack.push(long)
       frame.op_stack.push(long)
     )
     @[134] = new OpCode('i2f', 'Convert int to float', (frame) -> 
       value = frame.op_stack.pop().valueOf()
-      float = new CONSTANT_Float(value)
+      float = new CONSTANT_float(value)
       frame.op_stack.push(float)
     )
     @[135] = new OpCode('i2d', 'Convert int to double', (frame) -> 
       value = frame.op_stack.pop().valueOf()
-      double = new CONSTANT_Double(value)
+      double = new CONSTANT_double(value)
       frame.op_stack.push(double)
     )
     @[136] = new OpCode('l2i', 'Convert long to int', (frame) -> 
       value = frame.op_stack.pop().valueOf()
-      int = new CONSTANT_Integer(value.toFixed())
+      int = new CONSTANT_integer(value.toFixed())
       frame.op_stack.push(int)
     )
     @[137] = new OpCode('l2f', 'Convert long to float', (frame) -> 
       value = frame.op_stack.pop().valueOf()
-      float = new CONSTANT_Float(value)
+      float = new CONSTANT_float(value)
       frame.op_stack.push(float)
     )
     @[138] = new OpCode('l2d', 'Convert long to double', (frame) -> 
       value = frame.op_stack.pop().valueOf()
-      double = new CONSTANT_Double(value)
+      double = new CONSTANT_double(value)
       frame.op_stack.push(double)
     )
     @[139] = new OpCode('f2i', 'Convert float to int', (frame) -> 
       float = frame.op_stack.pop().valueOf()
-      int = new CONSTANT_Integer(float.value.toFixed())
+      int = new CONSTANT_integer(float.toFixed())
       frame.op_stack.push(int)
     )
     @[140] = new OpCode('f2l', 'Convert Float to long', (frame) -> 
       float = frame.op_stack.pop().valueOf()
-      long = new CONSTANT_Long(float.value.toFixed())
+      long = new CONSTANT_long(float.toFixed())
       frame.op_stack.push(long)
       frame.op_stack.push(long)
     )
     @[141] = new OpCode('f2d', 'Convert float to double', (frame) -> 
       float = frame.op_stack.pop().valueOf()
-      double = new CONSTANT_Double(float.value)
+      double = new CONSTANT_double(float.value)
       frame.op_stack.push(double)
       frame.op_stack.push(double)
     )
     @[142] = new OpCode('d2i', 'Convert double to int', (frame) -> 
       double = frame.op_stack.pop().valueOf()
-      int = new CONSTANT_Integer(float.value.toFixed())
+      int = new CONSTANT_integer(float.toFixed())
       frame.op_stack.push(int)
     )
     @[143] = new OpCode('d2l', 'Convert double to long', (frame) -> 
       double = frame.op_stack.pop().valueOf()
       frame.op_stack.pop()
-      long = new CONSTANT_Float(long.toFixed())
+      long = new CONSTANT_float(long.toFixed())
       frame.op_stack.push(long)
       frame.op_stack.push(long)
     )
     @[144] = new OpCode('d2f', 'Convert double to float', (frame) -> 
       double = frame.op_stack.pop().valueOf()
       frame.op_stack.pop()
-      float = new CONSTANT_Float(double)
+      float = new CONSTANT_float(double)
       frame.op_stack.push(float)
     )
     @[145] = new OpCode('i2b', 'Convert int to byte', (frame) -> 
       int = frame.op_stack.pop().valueOf()
-      byte = new CONSTANT_Byte(int)
+      byte = new CONSTANT_byte(int)
       frame.op_stack.push(byte)
     )
     @[146] = new OpCode('i2c', 'Convert int to char', (frame) -> 
       int = frame.op_stack.pop().valueOf();
-      char = new CONSTANT_Char(int)
+      char = new CONSTANT_char(int)
       frame.op_stack.push(char)
     )
     @[147] = new OpCode('i2s', 'Convert int to short', (frame) -> 
       int = frame.op_stack.pop().valueOf()
-      short = new CONSTANT_Short(int)
+      short = new CONSTANT_short(int)
       frame.op_stack.push(short)
     )
     @[148] = new OpCode('lcmp', 'Compare long', (frame) -> 
@@ -995,86 +997,97 @@ class this.OpCodes
         frame.op_stack.push(-1)
     )
     @[153] = new OpCode('ifeq', 'Branch if value is 0', (frame) -> 
+      branch = @constructIndex(frame, thread);
       if frame.op_stack.pop() is 0 
-        branch = @constructIndex(frame, thread);
+        thread.pc -= 3
         thread.pc += branch
       yes
     )
     @[154] = new OpCode('ifne', 'Branch if value isnt 0', (frame) -> 
+      branch = @constructIndex(frame, thread);
       if frame.op_stack.pop() isnt 0
-        branch = @constructIndex(frame, thread);
+        thread.pc -= 3
         thread.pc += branch
       yes
     )
     @[155] = new OpCode('iflt', 'Branch if value < 0', (frame) -> 
+      branch = @constructIndex(frame, thread);
       if frame.op_stack.pop() < 0
-        branch = @constructIndex(frame, thread);
+        thread.pc -= 3
         thread.pc += branch
       yes
     )
     @[156] = new OpCode('ifge', 'Branch if value >= 0', (frame) -> 
+      branch = @constructIndex(frame, thread)
       if frame.op_stack.pop() >= 0
-        branch = @constructIndex(frame, thread);
+        thread.pc -= 3
         thread.pc += branch
       yes
     )
     @[157] = new OpCode('ifgt', 'Branch if value > 0', (frame) -> 
-      if frame.op_stack.pop() > 0
-        branch = @constructIndex(frame, thread);
+      branch = @constructIndex(frame, thread);  
+      if frame.op_stack.pop() > 0 
+        thread.pc -= 3       
         thread.pc += branch
       yes
     )
     @[158] = new OpCode('ifle', 'Branch if value <= 0', (frame) -> 
+      branch = @constructIndex(frame, thread);
       if frame.op_stack.pop() <= 0
-        branch = @constructIndex(frame, thread);
+        thread.pc -= 3
         thread.pc += branch
       yes
     )
     @[159] = new OpCode('if_icmpeq', 'Branch if int1 == int2', (frame) -> 
       value2 = frame.op_stack.pop()
       value1 = frame.op_stack.pop()
+      branch = @constructIndex(frame, thread);
       if value1 is value2
-        branch = @constructIndex(frame, thread);
+        thread.pc -= 3       
         thread.pc += branch
       yes
     )
     @[160] = new OpCode('if_icmpne', 'Branch if int1 != int2', (frame) -> 
       value2 = frame.op_stack.pop()
       value1 = frame.op_stack.pop()
+      branch = @constructIndex(frame, thread);
       if value1 isnt value2
-        branch = @constructIndex(frame, thread);
         thread.pc += branch
       yes
     )
     @[161] = new OpCode('if_icmplt', 'Branch if int1 < int2', (frame) -> 
       value2 = frame.op_stack.pop()
       value1 = frame.op_stack.pop()
+      branch = @constructIndex(frame, thread)
       if value1 < value2
-        branch = @constructIndex(frame, thread);
+        thread.pc -= 3
         thread.pc += branch
       yes
     )
     @[162] = new OpCode('if_icmpge', 'Branch if int1 >= int2', (frame) -> 
       value2 = frame.op_stack.pop()
       value1 = frame.op_stack.pop()
+      branch = @constructIndex(frame, thread)
       if value1 >= value2
-        branch = @constructIndex(frame, thread);
+        thread.pc -= 3
         thread.pc += branch
       yes
     )
     @[163] = new OpCode('if_icmpgt', 'Branch if int1 > int2', (frame) -> 
       value2 = frame.op_stack.pop()
       value1 = frame.op_stack.pop()
+      branch = @constructIndex(frame, thread);
       if value1 > value2
-        branch = @constructIndex(frame, thread);
+        thread.pc -= 3
         thread.pc += branch
       yes
     )
     @[164] = new OpCode('if_icmple', 'Branch if int1 <= int2', (frame) -> 
       value2 = frame.op_stack.pop()
       value1 = frame.op_stack.pop()
+      branch = @constructIndex(frame, thread);
       if value1 <= value2
-        branch = @constructIndex(frame, thread);
+        thread.pc -= 3  
         thread.pc += branch
       yes
     )
@@ -1083,19 +1096,22 @@ class this.OpCodes
       ref1 = frame.op_stack.pop()
       if ref1 is ref2
         branch = @constructIndex(frame, thread);
+        thread.pc -= 3
         thread.pc += branch
       yes
     )
     @[166] = new OpCode('if_acmpne', '', (frame) -> 
       ref2 = frame.op_stack.pop()
       ref1 = frame.op_stack.pop()
+      branch = @constructIndex(frame, thread);
       if ref1 isnt ref2
-        branch = @constructIndex(frame, thread);
+        thread.pc -= 3        
         thread.pc += branch
       yes
     )
     @[167] = new OpCode('goto', 'Branch always', (frame) -> 
       offset = @constructIndex(frame, thread)
+      thread.pc -= 3
       thread.pc += offset
     )
     @[168] = new OpCode('jsr', 'Jump to subroutine', (frame) -> 
@@ -1103,6 +1119,7 @@ class this.OpCodes
       frame.op_stack.push(thread.pc)
       # get the branch offset
       offset = @constructIndex(frame, thread)
+      thread.pc -= 3
       thread.pc += offset
     )
     @[169] = new OpCode('ret', 'Return from subroutine', (frame) -> 
@@ -1286,7 +1303,7 @@ class this.OpCodes
       # set field value
       cls.fields[field_name].value = value
     )
-    @[180] = new OpCode('getfield', '', (frame) -> 
+    @[180] = new OpCode('getfield', 'Get a field from an object', (frame) -> 
       objectref = frame.op_stack.pop()
       index = @constructIndex(frame, thread)
       fieldref = @fromClass(index, thread)
@@ -1300,7 +1317,7 @@ class this.OpCodes
       yes
       # TODO check method stuff (protected etc)
     )
-    @[181] = new OpCode('putfield', '', (frame) -> 
+    @[181] = new OpCode('putfield', 'Set a field in an object', (frame) -> 
       value =   frame.op_stack.pop()
       objectref = frame.op_stack.pop() 
       index = @constructIndex(frame, thread)
@@ -1318,12 +1335,13 @@ class this.OpCodes
     @[182] = new OpCode('invokevirtual', 'Invoke instance method; dispatch based on class', (frame) -> 
       index = @constructIndex(frame, thread)
       methodref = @fromClass(index, thread)
-      objectref = frame.op_stack.pop()
+      
       methodnameandtype = @fromClass(methodref.name_and_type_index, thread)
       
       if(cls = thread.resolveClass(methodref.class_index)) == null
         return false
-          
+        
+      objectref = frame.op_stack.pop()    
       method_name = @fromClass(methodnameandtype.name_index, thread)
       type = @fromClass(methodnameandtype.descriptor_index, thread)
       method = thread.resolveMethod(method_name, cls, type)
@@ -1340,11 +1358,11 @@ class this.OpCodes
       frame.pc += 2
       thread.pc = -1
       
-      arg_num = 0
-      while arg_num < method.nargs
-        newframe.locals[arg_num++] = frame.op_stack.pop()
+      arg_num = method.nargs
+      while arg_num > 0
+        newframe.locals[arg_num--] = frame.op_stack.pop()
       # push objectref to represent 'this' in the object
-      newframe.locals[arg_num] = objectref
+      newframe.locals[0] = objectref
       yes 
     )
     @[183] = new OpCode('invokespecial', 'Invoke instance method', (frame) -> 
@@ -1373,9 +1391,11 @@ class this.OpCodes
       frame.pc += 2
       thread.pc = -1
       # pop the args off the current op_stack into the local vars of the new frame
-      arg_num = 0
-      while arg_num <= method.nargs
-        newframe.locals[arg_num++] = frame.op_stack.pop()
+      arg_num = method.nargs
+      while arg_num > 0
+        newframe.locals[arg_num--] = frame.op_stack.pop()
+      # put objectref (this) in new method local 0
+      newframe.locals[0] = frame.op_stack.pop()
       yes
     )
     @[184] = new OpCode('invokestatic', 'Invoke a class (static) method', (frame) -> 
@@ -1398,10 +1418,11 @@ class this.OpCodes
       # create new frame for the static method
       newframe = thread.createFrame(method, thread.current_class)
       # pop the args off the current op_stack into the local vars of the new frame
-      arg_num = 0
-      if newframe instanceof Frame
-        while arg_num <= method.nargs
-          newframe.locals[arg_num++] = frame.op_stack.pop()
+      arg_num = method.nargs
+      # store args in locals; arg1 = locals[0] etc
+      while arg_num > 0
+        newframe.locals[--arg_num] = frame.op_stack.pop()
+      # put objectref (this) in new method local 0
       yes
        
     )
@@ -1442,12 +1463,13 @@ class this.OpCodes
       yes
     )
     @[189] = new OpCode('anewarray', 'Create new array of reference', (frame) -> 
-      count = frame.op_stack.pop()
+      
       cpindex = @constructIndex(frame, thread)
 
       if(cls = thread.resolveClass(cpindex)) == null
         return false
-          
+        
+      count = frame.op_stack.pop()
       if count < 0
         athrow('NegativeArraySizeException')
 
@@ -1511,9 +1533,14 @@ class this.OpCodes
     @[198] = new OpCode('ifnull', '', (frame) -> 
       alert(@mnemonic)# not yet implemented
     yes )
-    @[199] = new OpCode('ifnonnull', '', (frame) -> 
-      alert(@mnemonic)# not yet implemented
-    yes )
+    @[199] = new OpCode('ifnonnull', 'Branch if non-null', (frame) -> 
+      branch = @constructIndex(frame, thread)
+      value = frame.op_stack.pop()
+      if value isnt null
+        thread.pc -= 3
+        thread.pc += branch
+      yes      
+    )
     @[200] = new OpCode('goto_w', '', (frame) -> 
       alert(@mnemonic)# not yet implemented
     yes )

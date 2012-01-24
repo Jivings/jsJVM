@@ -26,8 +26,9 @@
       };
     }
     /*
-        Seperate to Constructor so that the JVM can resolve native classes for 
-        the required.
+        To be called on instanstiation.
+        Seperate to Constructor so that the JVM can resolve required classes and 
+        their native counterparts. 
       */
     ClassLoader.prototype.init = function() {
       var cls, _i, _len, _ref, _results;
@@ -177,11 +178,13 @@
         case 1:
           return this.readString(this.read(2));
         case 3:
+          return new CONSTANT_integer(this.binaryReader.getUint32());
         case 4:
-          return this.binaryReader.getUint32();
+          return new CONSTANT_float(this.binaryReader.getUint32());
         case 5:
+          return new CONSTANT_long(this.binaryReader.getFloat64());
         case 6:
-          return this.binaryReader.getFloat64();
+          return new CONSTANT_double(this.binaryReader.getFloat64());
         case 7:
         case 8:
           return this.read(2);
@@ -338,28 +341,28 @@
       }
       descriptor = _class.constant_pool[field_info.descriptor_index];
       if (descriptor === 'I') {
-        c = new CONSTANT_Integer();
+        c = new CONSTANT_integer();
       }
       if (descriptor === 'J') {
-        c = new CONSTANT_Long();
+        c = new CONSTANT_long();
       }
       if (descriptor === 'F') {
-        c = new CONSTANT_Float();
+        c = new CONSTANT_float();
       }
       if (descriptor === 'D') {
-        c = new CONSTANT_Double();
+        c = new CONSTANT_double();
       }
       if (descriptor === 'S') {
-        c = new CONSTANT_Short();
+        c = new CONSTANT_short();
       }
       if (descriptor === 'Z') {
-        c = new CONSTANT_Boolean();
+        c = new CONSTANT_boolean();
       }
       if (descriptor === 'C') {
-        c = new CONSTANT_Char();
+        c = new CONSTANT_char();
       }
       if (descriptor === 'B') {
-        c = new CONSTANT_Byte();
+        c = new CONSTANT_byte();
       }
       if (descriptor.charAt(0) === 'L') {
         c = new CONSTANT_Object(descriptor.substring(1));

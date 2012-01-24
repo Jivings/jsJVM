@@ -55,70 +55,70 @@
     }
     return CONSTANT_Object;
   })();
-  this.CONSTANT_Integer = (function() {
-    __extends(CONSTANT_Integer, JVM_Number);
-    function CONSTANT_Integer(val) {
+  this.CONSTANT_integer = (function() {
+    __extends(CONSTANT_integer, JVM_Number);
+    function CONSTANT_integer(val) {
       if (val == null) {
         val = 0;
       }
-      CONSTANT_Integer.__super__.constructor.call(this, val);
+      CONSTANT_integer.__super__.constructor.call(this, val);
     }
-    return CONSTANT_Integer;
+    return CONSTANT_integer;
   })();
-  this.CONSTANT_Float = (function() {
-    __extends(CONSTANT_Float, JVM_Number);
-    function CONSTANT_Float(val) {
+  this.CONSTANT_float = (function() {
+    __extends(CONSTANT_float, JVM_Number);
+    function CONSTANT_float(val) {
       if (val == null) {
         val = 0.0;
       }
-      CONSTANT_Float.__super__.constructor.call(this, val);
+      CONSTANT_float.__super__.constructor.call(this, val);
     }
-    return CONSTANT_Float;
+    return CONSTANT_float;
   })();
-  this.CONSTANT_Long = (function() {
-    __extends(CONSTANT_Long, JVM_Number);
-    function CONSTANT_Long(val) {
+  this.CONSTANT_long = (function() {
+    __extends(CONSTANT_long, JVM_Number);
+    function CONSTANT_long(val) {
       if (val == null) {
         val = 0;
       }
-      CONSTANT_Long.__super__.constructor.call(this, val);
+      CONSTANT_long.__super__.constructor.call(this, val);
     }
-    return CONSTANT_Long;
+    return CONSTANT_long;
   })();
-  this.CONSTANT_Double = (function() {
-    __extends(CONSTANT_Double, JVM_Number);
-    function CONSTANT_Double(val) {
+  this.CONSTANT_double = (function() {
+    __extends(CONSTANT_double, JVM_Number);
+    function CONSTANT_double(val) {
       if (val == null) {
         val = 0.0;
       }
-      CONSTANT_Double.__super__.constructor.call(this, val);
+      CONSTANT_double.__super__.constructor.call(this, val);
     }
-    return CONSTANT_Double;
+    return CONSTANT_double;
   })();
-  this.CONSTANT_Char = (function() {
-    function CONSTANT_Char(value) {
+  this.CONSTANT_char = (function() {
+    function CONSTANT_char(value) {
       this.value = value != null ? value : '\u0000';
       this.value = this.value.charCodeAt();
     }
-    return CONSTANT_Char;
+    return CONSTANT_char;
   })();
-  this.CONSTANT_Short = (function() {
-    function CONSTANT_Short(value) {
+  this.CONSTANT_short = (function() {
+    function CONSTANT_short(value) {
       this.value = value != null ? value : 0;
     }
-    return CONSTANT_Short;
+    return CONSTANT_short;
   })();
-  this.CONSTANT_Byte = (function() {
-    function CONSTANT_Byte(value) {
+  this.CONSTANT_byte = (function() {
+    function CONSTANT_byte(value) {
       this.value = value != null ? value : 0;
     }
-    return CONSTANT_Byte;
+    return CONSTANT_byte;
   })();
-  this.CONSTANT_Boolean = (function() {
-    function CONSTANT_Boolean(value) {
+  this.CONSTANT_boolean = (function() {
+    function CONSTANT_boolean(value) {
       this.value = value != null ? value : 0;
     }
-    return CONSTANT_Boolean;
+    return CONSTANT_boolean;
   })();
   /* 
   Additional JVM functions exported from the main VM.
@@ -170,7 +170,7 @@
   };
   JVM.prototype.JVM_InternString = function(env, jstring) {};
   JVM.prototype.JVM_CurrentTimeMillis = function(env, ignoredJClass) {
-    return new CONSTANT_Long(new Date().getTime());
+    return new CONSTANT_long(new Date().getTime());
   };
   JVM.prototype.JVM_NanoTime = function(env, ignoredJClass) {};
   JVM.prototype.JVM_ArrayCopy = function(env, ignoredClass, srcObj, srcPos, destObj, dstPos, length) {};
@@ -285,7 +285,7 @@
       return null;
     }
     cls = this.RDA.method_area[clsname];
-    cls.constant_pool[index] = cls;
+    thread.current_class.constant_pool[index] = cls;
     return this.RDA.method_area[clsname];
   };
   JVM.prototype.JVM_ResolveNativeClass = function(cls, thread) {
@@ -413,15 +413,15 @@
     JVM_ACC_SYNTHETIC: 0x0000
   };
   JVM.prototype.FIELD_DESCRIPTORS = {
-    'B': 'CONSTANT_Byte',
-    'C': 'CONSTANT_Char',
-    'D': 'CONSTANT_Double',
-    'F': 'CONSTANT_Float',
-    'I': 'CONSTANT_Integer',
-    'J': 'CONSTANT_Long',
+    'B': 'CONSTANT_byte',
+    'C': 'CONSTANT_char',
+    'D': 'CONSTANT_double',
+    'F': 'CONSTANT_float',
+    'I': 'CONSTANT_integer',
+    'J': 'CONSTANT_long',
     'L': 'CONSTANT_Class',
-    'S': 'CONSTANT_Short',
-    'Z': 'CONSTANT_Boolean',
+    'S': 'CONSTANT_short',
+    'Z': 'CONSTANT_boolean',
     '[': 'CONSTANT_Array'
   };
 }).call(this);

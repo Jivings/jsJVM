@@ -8,6 +8,7 @@ class this.NativeFrame
     @args = @method.args
     @returntype = @method.returntype
     @name = @method.name
+    @locals = {}
     
   execute : (pc, opcodes) ->
     
@@ -25,7 +26,7 @@ class this.NativeFrame
       @env.JVM_ResolveNativeMethod(@cls, @method.name)
       return false
       
-    # Exectute the Native Method 
+    # Exectute the Native Method TODO, appropriate arguments
     returnval = nMethod.call(nativeCls, @env, nativeCls, @args)
     
     if returnval?

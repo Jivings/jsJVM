@@ -11,6 +11,7 @@
       this.args = this.method.args;
       this.returntype = this.method.returntype;
       this.name = this.method.name;
+      this.locals = {};
     }
     NativeFrame.prototype.execute = function(pc, opcodes) {
       var nMethod, nativeCls, returnval;

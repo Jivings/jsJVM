@@ -158,4 +158,7 @@ function() {
         return result;
     }
     */
+    this.getPrimitiveClass = function(env, cls, name) {
+      return env['CONSTANT_'+name];
+    };
 }

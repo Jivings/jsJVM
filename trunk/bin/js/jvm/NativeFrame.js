@@ -20,6 +20,9 @@
         this.env.JVM_ResolveNativeClass(this.cls, this.thread);
         return false;
       }
+      if (this.locals[0]) {
+        nativeCls['object'] = this.env.RDA.heap[this.locals[0].pointer];
+      }
       nMethod = nativeCls[this.method.name];
       if (nMethod === void 0) {
         this.env.JVM_ResolveNativeMethod(this.cls, this.method.name);
@@ -35,7 +38,7 @@
         case 'I':
         case 'Z':
         case 'S':
-          return opcodes[171]["do"](this);
+          return opcodes[172]["do"](this);
         case 'D':
           this.op_stack.push(returnval);
           return opcodes[175]["do"](this);

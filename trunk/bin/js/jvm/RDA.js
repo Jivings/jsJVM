@@ -28,7 +28,8 @@
       raw_class.constant_pool[raw_class.super_class] = supercls;
       this.method_area[classname] = raw_class;
       this.clinit(classname, raw_class);
-      if ((method = this.JVM.JVM_ResolveMethod(raw_class, 'main', '([Ljava/lang/String;)V')) != null) {
+      if (classname === this.JVM.mainclassname) {
+        method = this.JVM.JVM_ResolveMethod(raw_class, 'main', '([Ljava/lang/String;)V');
         return this.createThread(classname, method);
       }
     };
@@ -46,7 +47,7 @@
     RDA.prototype.clinit = function(classname, raw_class) {
       var clsini, t;
       clsini = this.JVM.JVM_ResolveMethod(raw_class, '<clinit>', '()V');
-      if (clsini != null) {
+      if (clsini) {
         t = new Thread(raw_class, this, clsini);
         t.start();
       }

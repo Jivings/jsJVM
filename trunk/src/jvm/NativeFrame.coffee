@@ -19,7 +19,9 @@ class this.NativeFrame
     if nativeCls is undefined
       @env.JVM_ResolveNativeClass(@cls, @thread)
       return false
-      
+    
+    if @locals[0]
+      nativeCls['object'] = @env.RDA.heap[@locals[0].pointer]
     nMethod = nativeCls[@method.name]
     
     if nMethod is undefined
@@ -34,7 +36,7 @@ class this.NativeFrame
       
     switch(@returntype)
       when 'B', 'C', 'I', 'Z', 'S'
-        opcodes[171].do(@)
+        opcodes[172].do(@)
       when 'D' 
         @op_stack.push(returnval) 
         opcodes[175].do(@)

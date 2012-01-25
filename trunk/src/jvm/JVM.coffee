@@ -10,7 +10,7 @@ class this.JVM
     Initialise JVM options
   ###
   
-  constructor : (params, @debugWindow) ->
+  constructor : (params, @mainclassname) ->
     scopedJVM = this
     @VERSION_ID = "0.10"
     @JAVA_VERSION = "1.6.0_22"
@@ -36,6 +36,7 @@ class this.JVM
       #@classLoader.onmessage = @message
       
       @JNI = new InternalJNI(@)
+      @load(@mainclassname)
       
 
   ###

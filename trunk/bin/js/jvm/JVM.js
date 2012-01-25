@@ -8,8 +8,8 @@
   this.JVM = (function() {
     /*
         Initialise JVM options
-      */    function JVM(params, debugWindow) {
-      this.debugWindow = debugWindow;
+      */    function JVM(params, mainclassname) {
+      this.mainclassname = mainclassname;
       scopedJVM = this;
       this.VERSION_ID = "0.10";
       this.JAVA_VERSION = "1.6.0_22";
@@ -28,6 +28,7 @@
         (this.classLoader = new ClassLoader(this.loaded, this.loadedNative)).init();
         this.InitializeSystemClass();
         this.JNI = new InternalJNI(this);
+        this.load(this.mainclassname);
       }
     }
     /*

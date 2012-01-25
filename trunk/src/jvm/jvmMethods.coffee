@@ -14,12 +14,13 @@
       
     monitor : { 
         aquireLock : (thread) ->
-          if @owner isnt null
+          console.log('Aquiring a lock')
+          if @owner is thread
+            console.log('Thread already has lock')
+            @count++
+          else if @owner isnt null
             @waiting.push(thread)
             return false
-            
-          if @owner is thread
-            @count++
           else 
             @owner = thread
             @count++
@@ -136,7 +137,9 @@
      
   # Objects
 
-  JVM::JVM_IHashCode = () -> yes
+  JVM::JVM_IHashCode = () -> 
+    return 1
+    
   JVM::JVM_MonitorWait = () -> 
     # Object will reside in locals[0]
     object = @locals[0]
@@ -443,36 +446,41 @@
   JVM::JVM_ResolveMethod = (cls, name, type) ->
     if cls.methods[name+type]?
       return cls.methods[name+type]
-      
-    for index of cls.methods
-      method = cls.methods[index]
-      descriptor = cls.constant_pool[method.descriptor_index]
-      if method.name is name and descriptor is type
-        method.descriptor = descriptor
-        # resolve the method return type and arguments
-        args = descriptor.substring(descriptor.indexOf('(')+1, descriptor.indexOf(')'))
-        method.args = new Array()
-        nargs = 0
-        i = 0
-        while i < args.length
-          if args[i] is 'L'
-            arg = args.substring(i, args.indexOf(';', i))
-            i = args.indexOf(';', i)
-            method.args.push(arg)
-          else if args[i] is '['
-            endarg = args.substring(i).search('[B-Z]')
-            method.args.push(args.substring(i, endarg+1))
-            i = endarg
-          else
-            method.args.push(args[i])
-          ++nargs
-          ++i
-          
-        method.returntype = descriptor.substring(descriptor.indexOf(')')+1)
-        method.nargs = nargs
-        cls.methods[method.name + descriptor] = method
-        return method
-
+    loop  
+      for index of cls.methods
+        method = cls.methods[index]
+        descriptor = cls.constant_pool[method.descriptor_index]
+        if method.name is name and descriptor is type
+          method.descriptor = descriptor
+          # resolve the method return type and arguments
+          args = descriptor.substring(descriptor.indexOf('(')+1, descriptor.indexOf(')'))
+          method.args = new Array()
+          nargs = 0
+          i = 0
+          while i < args.length
+            if args[i] is 'L'
+              arg = args.substring(i, args.indexOf(';', i))
+              i = args.indexOf(';', i)
+              method.args.push(arg)
+            else if args[i] is '['
+              endarg = args.substring(i).search('[B-Z]')
+              method.args.push(args.substring(i, endarg+1))
+              i = endarg
+            else
+              method.args.push(args[i])
+            ++nargs
+            ++i
+            
+          method.returntype = descriptor.substring(descriptor.indexOf(')')+1)
+          method.nargs = nargs
+          cls.methods[method.name + descriptor] = method
+          method['belongsTo'] = cls
+          return method
+      if name is '<clinit>'
+        return false
+      cls = cls.get_super()
+      @assert(cls, 'MethodResolutionException')
+    no
   # Find a class from a boot class loader. Returns NULL if class not found.
    
   

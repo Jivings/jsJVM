@@ -126,9 +126,9 @@ function runJava(options, classname, args, finished) {
 	}
 	setInterval("updateDebug()", 100);
 	
-	jvm = new JVM(parameters, debugWindow)
+	jvm = new JVM(parameters, classname)
 		.setCallBack(finished)
-		.load(classname, args)
+		//.load(classname, args)
 		
 		
 	

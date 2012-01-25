@@ -25,12 +25,13 @@
     }
     JVM_Object.prototype.monitor = {
       aquireLock: function(thread) {
-        if (this.owner !== null) {
+        console.log('Aquiring a lock');
+        if (this.owner === thread) {
+          console.log('Thread already has lock');
+          this.count++;
+        } else if (this.owner !== null) {
           this.waiting.push(thread);
           return false;
-        }
-        if (this.owner === thread) {
-          this.count++;
         } else {
           this.owner = thread;
           this.count++;
@@ -205,7 +206,7 @@
     return this.RDA.createThread('java/lang/System', this.JVM_ResolveMethod(system, 'initializeSystemClass', '()V'));
   };
   JVM.prototype.JVM_IHashCode = function() {
-    return true;
+    return 1;
   };
   JVM.prototype.JVM_MonitorWait = function() {
     var object;
@@ -414,36 +415,45 @@
     if (cls.methods[name + type] != null) {
       return cls.methods[name + type];
     }
-    for (index in cls.methods) {
-      method = cls.methods[index];
-      descriptor = cls.constant_pool[method.descriptor_index];
-      if (method.name === name && descriptor === type) {
-        method.descriptor = descriptor;
-        args = descriptor.substring(descriptor.indexOf('(') + 1, descriptor.indexOf(')'));
-        method.args = new Array();
-        nargs = 0;
-        i = 0;
-        while (i < args.length) {
-          if (args[i] === 'L') {
-            arg = args.substring(i, args.indexOf(';', i));
-            i = args.indexOf(';', i);
-            method.args.push(arg);
-          } else if (args[i] === '[') {
-            endarg = args.substring(i).search('[B-Z]');
-            method.args.push(args.substring(i, endarg + 1));
-            i = endarg;
-          } else {
-            method.args.push(args[i]);
+    while (true) {
+      for (index in cls.methods) {
+        method = cls.methods[index];
+        descriptor = cls.constant_pool[method.descriptor_index];
+        if (method.name === name && descriptor === type) {
+          method.descriptor = descriptor;
+          args = descriptor.substring(descriptor.indexOf('(') + 1, descriptor.indexOf(')'));
+          method.args = new Array();
+          nargs = 0;
+          i = 0;
+          while (i < args.length) {
+            if (args[i] === 'L') {
+              arg = args.substring(i, args.indexOf(';', i));
+              i = args.indexOf(';', i);
+              method.args.push(arg);
+            } else if (args[i] === '[') {
+              endarg = args.substring(i).search('[B-Z]');
+              method.args.push(args.substring(i, endarg + 1));
+              i = endarg;
+            } else {
+              method.args.push(args[i]);
+            }
+            ++nargs;
+            ++i;
           }
-          ++nargs;
-          ++i;
+          method.returntype = descriptor.substring(descriptor.indexOf(')') + 1);
+          method.nargs = nargs;
+          cls.methods[method.name + descriptor] = method;
+          method['belongsTo'] = cls;
+          return method;
         }
-        method.returntype = descriptor.substring(descriptor.indexOf(')') + 1);
-        method.nargs = nargs;
-        cls.methods[method.name + descriptor] = method;
-        return method;
       }
+      if (name === '<clinit>') {
+        return false;
+      }
+      cls = cls.get_super();
+      this.assert(cls, 'MethodResolutionException');
     }
+    return false;
   };
   JVM.prototype.JVM_FindClassFromBootLoader = function(env, name) {
     if ((typeof classname !== "undefined" && classname !== null) && classname.length > 0) {

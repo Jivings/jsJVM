@@ -238,9 +238,10 @@
         return frame.op_stack.push(double);
       });
       this[50] = new OpCode('aaload', 'Load reference from array', function(frame) {
-        var arrayindex, arrayref, ref;
-        arrayref = frame.op_stack.pop();
+        var array, arrayindex, arrayref, ref;
         arrayindex = frame.op_stack.pop();
+        arrayref = frame.op_stack.pop();
+        array = this.fromHeap(arrayref, thread);
         ref = thread.RDA.heap[arrayref][arrayindex];
         return frame.op_stack.push(ref);
       });
@@ -806,7 +807,7 @@
           athrow('ArithmeticException');
         }
         result = i1 - (i1 / i2) * i2;
-        return frame.op_stack.push(new CONSTANT_Int(result));
+        return frame.op_stack.push(new CONSTANT_integer(result));
       });
       this[113] = new OpCode('lrem', 'Remainder long', function(frame) {
         var l1, l2, result;
@@ -1484,7 +1485,7 @@
         return true;
       });
       this[182] = new OpCode('invokevirtual', 'Invoke instance method; dispatch based on class', function(frame) {
-        var arg_num, cls, index, method, method_name, methodnameandtype, methodref, newframe, type;
+        var arg_num, cls, index, method, method_name, methodnameandtype, methodref, newframe, obj, type;
         index = this.constructIndex(frame, thread);
         methodref = this.fromClass(index, thread);
         methodnameandtype = this.fromClass(methodref.name_and_type_index, thread);
@@ -1501,7 +1502,7 @@
           athrow('AbstractMethodError');
         }
         newframe = thread.createFrame(method, cls);
-        thread.current_class = cls;
+        thread.current_class = method.belongsTo;
         frame.pc += 2;
         thread.pc = -1;
         arg_num = method.nargs;
@@ -1509,8 +1510,14 @@
           newframe.locals[arg_num--] = frame.op_stack.pop();
         }
         newframe.locals[0] = frame.op_stack.pop();
-        if (newframe.locals[0] === null) {
-          this.athrow('NullPointerException');
+        if (method.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_SYNCHRONIZED) {
+          obj = this.fromHeap(newframe.locals[0], thread);
+          if (obj === null) {
+            this.athrow('NullPointerException');
+          }
+          if (!obj.monitor.aquireLock(thread)) {
+            return false;
+          }
         }
         return true;
       });
@@ -1611,7 +1618,7 @@
         return true;
       });
       this[189] = new OpCode('anewarray', 'Create new array of reference', function(frame) {
-        var arrayref, cls, count, cpindex;
+        var arr, arrayref, cls, count, cpindex;
         cpindex = this.constructIndex(frame, thread);
         if ((cls = thread.resolveClass(cpindex)) === null) {
           return false;
@@ -1620,7 +1627,9 @@
         if (count < 0) {
           athrow('NegativeArraySizeException');
         }
-        arrayref = thread.RDA.heap.allocate(new CONSTANT_Array(count, 'L' + cls.real_name));
+        arr = new Array(count);
+        arr['type'] = 'L' + cls.real_name;
+        arrayref = thread.RDA.heap.allocate(arr);
         return frame.op_stack.push(arrayref);
       });
       this[190] = new OpCode('arraylength', 'Get length of array', function(frame) {

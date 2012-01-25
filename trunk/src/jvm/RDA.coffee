@@ -35,13 +35,11 @@ class this.RDA
     raw_class.constant_pool[raw_class.super_class] = supercls
     @method_area[classname] = raw_class
 
-    
-    
-    
-    
     @clinit(classname, raw_class)
     
-    if (method = @JVM.JVM_ResolveMethod(raw_class, 'main', '([Ljava/lang/String;)V'))?
+   # if (method = @JVM.JVM_ResolveMethod(raw_class, 'main', '([Ljava/lang/String;)V'))?
+    if classname is @JVM.mainclassname
+      method = @JVM.JVM_ResolveMethod(raw_class, 'main', '([Ljava/lang/String;)V')
       @createThread classname, method      
             
   createThread : (mainClassName, method) ->
@@ -57,8 +55,8 @@ class this.RDA
   # Execute the clinit method of a class.
   clinit : (classname, raw_class) ->
     # create class instance variables
-    clsini= @JVM.JVM_ResolveMethod(raw_class, '<clinit>', '()V')
-    if clsini?
+    clsini = @JVM.JVM_ResolveMethod(raw_class, '<clinit>', '()V')
+    if clsini
       t = new Thread(raw_class, @, clsini)
       t.start()
     yes

@@ -219,8 +219,9 @@ class this.OpCodes
       frame.op_stack.push(double)
     )
     @[50] = new OpCode('aaload', 'Load reference from array', (frame) -> 
-      arrayref = frame.op_stack.pop()
       arrayindex = frame.op_stack.pop()
+      arrayref = frame.op_stack.pop()
+      array = @fromHeap(arrayref, thread)
       ref = thread.RDA.heap[arrayref][arrayindex]
       frame.op_stack.push(ref)
     )
@@ -714,7 +715,7 @@ class this.OpCodes
       if i2 is 0
         athrow('ArithmeticException')
       result = i1 - (i1 / i2) * i2
-      frame.op_stack.push(new CONSTANT_Int(result))
+      frame.op_stack.push(new CONSTANT_integer(result))
     )
     @[113] = new OpCode('lrem', 'Remainder long', (frame) -> 
       l2 = frame.op_stack.pop().valueOf()
@@ -1361,9 +1362,10 @@ class this.OpCodes
         athrow('IncompatibleClassChangeError')
       if method.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_ABSTRACT
         athrow('AbstractMethodError')
+             
               
       newframe = thread.createFrame(method, cls)
-      thread.current_class = cls
+      thread.current_class = method.belongsTo
       frame.pc += 2
       thread.pc = -1
       
@@ -1372,8 +1374,15 @@ class this.OpCodes
         newframe.locals[arg_num--] = frame.op_stack.pop()
       # push objectref to represent 'this' in the object
       newframe.locals[0] = frame.op_stack.pop()
-      if newframe.locals[0] == null
-        @athrow('NullPointerException')
+      # AQUIRE LOCK
+      if method.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_SYNCHRONIZED
+        obj = @fromHeap(newframe.locals[0], thread)
+        if obj is null
+          @athrow('NullPointerException')
+        if !obj.monitor.aquireLock(thread)
+          # TODO this will break flow, as operands have already been popped from the stack
+          return false
+        
       yes 
     )
     @[183] = new OpCode('invokespecial', 'Invoke instance method', (frame) -> 
@@ -1484,7 +1493,9 @@ class this.OpCodes
       if count < 0
         athrow('NegativeArraySizeException')
 
-      arrayref = thread.RDA.heap.allocate(new CONSTANT_Array(count, 'L' + cls.real_name))
+      arr = new Array(count)
+      arr['type'] = 'L' + cls.real_name
+      arrayref = thread.RDA.heap.allocate(arr)
       frame.op_stack.push(arrayref)
     )
     @[190] = new OpCode('arraylength', 'Get length of array', (frame) -> 

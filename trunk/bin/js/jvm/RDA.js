@@ -23,7 +23,9 @@
       return this.method_area[name] = raw_class;
     };
     RDA.prototype.addClass = function(classname, raw_class) {
-      var method;
+      var method, supercls;
+      supercls = this.method_area[raw_class.get_super()];
+      raw_class.constant_pool[raw_class.super_class] = supercls;
       this.method_area[classname] = raw_class;
       this.clinit(classname, raw_class);
       if ((method = this.JVM.JVM_ResolveMethod(raw_class, 'main', '([Ljava/lang/String;)V')) != null) {
@@ -140,8 +142,10 @@
         return this[this.length - 1];
       };
       this.op_stack.push = function(word) {
-        if (word === 'undefined') {
+        if (word === void 0) {
           throw "NullStackException";
+        } else if (word instanceof JVM_Object) {
+          throw "ObjectOnStackException";
         }
         this[this.length] = word;
         return true;

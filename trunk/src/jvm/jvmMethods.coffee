@@ -1,11 +1,57 @@
          
   class this.JVM_Object
     constructor : (@cls) ->
+      
+      supercls = @cls.get_super()
+      if supercls == undefined
+        @__proto__ = new JVM_Object(supercls)
+        
       @fields = {}
       for field of @cls.fields
         fld = @cls.fields[field]
-        @fields[fld.info.real_name] = fld
+        @fields[field] = fld
       @methods = @cls.methods
+      
+    monitor : { 
+        aquireLock : (thread) ->
+          if @owner isnt null
+            @waiting.push(thread)
+            return false
+            
+          if @owner is thread
+            @count++
+          else 
+            @owner = thread
+            @count++
+          yes
+            
+        releaseLock : (thread) ->
+          if @owner isnt thread
+            return false
+            
+          @owner = null
+          @count = 0
+          for thread in @waiting
+            @notify thread
+          @waiting.length = 0
+          yes
+        
+        notify : (thread) ->
+          thread.continue()
+          
+          
+        owner : null
+        count : 0
+        waiting : new Array()
+      }
+    compareTo : (jvmObject) ->
+      if @cls.real_name is jvmObject.cls.real_name
+        return true
+      else 
+        try 
+          return super.compareTo(jvmObject)
+        catch err
+          return false
       
   class this.JVM_Reference
     constructor : (@pointer) ->
@@ -53,7 +99,11 @@
     
   class this.CONSTANT_boolean
     constructor : (@value = 0) ->
+   
+  class this.CONSTANT_String extends String
+    constructor : (@value = '') ->
          
+  JVM::JVM_InternedStrings = {}
   ### 
   Additional JVM functions exported from the main VM.
   Add support for native methods interacting with the VM.
@@ -78,21 +128,21 @@
     @assert( (system = @RDA.method_area['java/lang/System']) isnt null, 
       "System not loaded before InitializeSystemClass")
     @RDA.createThread('java/lang/System', @JVM_ResolveMethod(system, 'initializeSystemClass', '()V'))
-    
+        
     
   # Our own Java Data Structures. These provide an extra 'type' var to allow 
   # our typeless language to still follow strict Java typing.
-  
-  JVM::Array = () ->
-    type = ""
-  
-  JVM::Reference = () ->
-    ref = 0
-    
+ 
+     
   # Objects
 
   JVM::JVM_IHashCode = () -> yes
-  JVM::JVM_MonitorWait = () -> yes
+  JVM::JVM_MonitorWait = () -> 
+    # Object will reside in locals[0]
+    object = @locals[0]
+    
+  yes
+  
   JVM::JVM_MonitorNotify = () -> yes
   JVM::JVM_MonitorNotifyAll = () -> yes
   JVM::JVM_Clone = () -> yes
@@ -311,7 +361,8 @@
      
     # actually resolve the class reference so this doesn't need to occur next time
     cls = @RDA.method_area[clsname] 
-    thread.current_class.constant_pool[index] = cls
+    if thread != undefined
+      thread.current_class.constant_pool[index] = cls
     return @RDA.method_area[clsname]
    
   JVM::JVM_ResolveNativeClass = (cls, thread) ->
@@ -325,7 +376,67 @@
     _native = @RDA.method_area[nativeName]
     return _native
     
+  JVM::JVM_ResolveStringLiteral = (literal) ->
+    enc = 'sun.jnu.encoding'
+    cls = @JVM_ResolveClass('java/lang/String')
+    method_id = '<init>'
+    method_desc = '()V'
+    method = @JVM_ResolveMethod(cls, method_id, method_desc)
+    
+    # for index of cls.constant_pool
+    #  ref = cls.constant_pool[index]
+    # if ref instanceof CONSTANT_Stringref
+    #   literal = cls.constant_pool[ref.string_index]
+    if !@JVM_InternedStrings[literal]
+      console.log('Interning a string ('+literal+')')
+      #asBytes = @JVM_StringLiteralToBytes(literal)
+      #byteArray = @RDA.heap.allocate(asBytes)      
+      charArray = new Array()
+      for index of literal
+        charArray[index] = literal[index]
+      
+      charArray = @RDA.heap.allocate(charArray)
+      stringobj = @JVM_NewObject(cls, method, [])
+      stringobj.fields['count'] = literal.length
+      stringobj.value = charArray
+      
+      @JVM_InternedStrings[literal] = stringobj
+    
+    return @RDA.heap.allocate(@JVM_InternedStrings[literal])
+      #cls.constant_pool[ref.string_index] = @JVM_InternedStrings[literal]
+    
+    
+  JVM::JVM_StringLiteralToBytes = (literal) ->
+    i = 0
+    re = []
+    while i++ < literal.length
+      ch = literal.charCodeAt(i)
+      st = []
+      loop
+        st.push( ch & 0xFF )
+        ch = ch >> 8
+        break if !ch
+      re = re.concat( st.reverse() );  
+    return re 
+     
+     
+  JVM::JVM_NewObject = (cls, constructor, args) ->  
+    obj = new JVM_Object(cls)    
+    objref = @RDA.heap.allocate(obj)
+    t = new Thread(cls, @RDA, constructor)    
+    
+    t.current_frame.locals[0] = objref
+    
+    arg_num = args.length
+    while arg_num > 0
+      t.current_frame.locals[arg_num] = args[arg_num-1]
+      arg_num--
         
+    t.start()
+    return obj
+    
+    
+  
   JVM::JVM_ResolveNativeMethod = (cls, name, type) ->
   
   
@@ -342,17 +453,21 @@
         args = descriptor.substring(descriptor.indexOf('(')+1, descriptor.indexOf(')'))
         method.args = new Array()
         nargs = 0
-        count = 0
-        for index in args
-          if index is 'L'
-            arg = args.substring(count, args.indexOf(';', count))
-            count = args.indexOf(';', count)
+        i = 0
+        while i < args.length
+          if args[i] is 'L'
+            arg = args.substring(i, args.indexOf(';', i))
+            i = args.indexOf(';', i)
             method.args.push(arg)
+          else if args[i] is '['
+            endarg = args.substring(i).search('[B-Z]')
+            method.args.push(args.substring(i, endarg+1))
+            i = endarg
           else
-            method.args.push(index)
+            method.args.push(args[i])
           ++nargs
-          ++count
-          if count == args.length then break
+          ++i
+          
         method.returntype = descriptor.substring(descriptor.indexOf(')')+1)
         method.nargs = nargs
         cls.methods[method.name + descriptor] = method
@@ -481,6 +596,8 @@
     'Z'   :   'CONSTANT_boolean'
     '['   :   'CONSTANT_Array'
   }
-                                          
+  
+  
+                                            
                                           
 

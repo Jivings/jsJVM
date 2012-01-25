@@ -10,15 +10,66 @@
   };
   this.JVM_Object = (function() {
     function JVM_Object(cls) {
-      var field, fld;
+      var field, fld, supercls;
       this.cls = cls;
+      supercls = this.cls.get_super();
+      if (supercls === void 0) {
+        this.__proto__ = new JVM_Object(supercls);
+      }
       this.fields = {};
       for (field in this.cls.fields) {
         fld = this.cls.fields[field];
-        this.fields[fld.info.real_name] = fld;
+        this.fields[field] = fld;
       }
       this.methods = this.cls.methods;
     }
+    JVM_Object.prototype.monitor = {
+      aquireLock: function(thread) {
+        if (this.owner !== null) {
+          this.waiting.push(thread);
+          return false;
+        }
+        if (this.owner === thread) {
+          this.count++;
+        } else {
+          this.owner = thread;
+          this.count++;
+        }
+        return true;
+      },
+      releaseLock: function(thread) {
+        var _i, _len, _ref;
+        if (this.owner !== thread) {
+          return false;
+        }
+        this.owner = null;
+        this.count = 0;
+        _ref = this.waiting;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          thread = _ref[_i];
+          this.notify(thread);
+        }
+        this.waiting.length = 0;
+        return true;
+      },
+      notify: function(thread) {
+        return thread["continue"]();
+      },
+      owner: null,
+      count: 0,
+      waiting: new Array()
+    };
+    JVM_Object.prototype.compareTo = function(jvmObject) {
+      if (this.cls.real_name === jvmObject.cls.real_name) {
+        return true;
+      } else {
+        try {
+          return JVM_Object.__super__.compareTo.apply(this, arguments).compareTo(jvmObject);
+        } catch (err) {
+          return false;
+        }
+      }
+    };
     return JVM_Object;
   })();
   this.JVM_Reference = (function() {
@@ -120,6 +171,14 @@
     }
     return CONSTANT_boolean;
   })();
+  this.CONSTANT_String = (function() {
+    __extends(CONSTANT_String, String);
+    function CONSTANT_String(value) {
+      this.value = value != null ? value : '';
+    }
+    return CONSTANT_String;
+  })();
+  JVM.prototype.JVM_InternedStrings = {};
   /* 
   Additional JVM functions exported from the main VM.
   Add support for native methods interacting with the VM.
@@ -145,20 +204,14 @@
     this.assert((system = this.RDA.method_area['java/lang/System']) !== null, "System not loaded before InitializeSystemClass");
     return this.RDA.createThread('java/lang/System', this.JVM_ResolveMethod(system, 'initializeSystemClass', '()V'));
   };
-  JVM.prototype.Array = function() {
-    var type;
-    return type = "";
-  };
-  JVM.prototype.Reference = function() {
-    var ref;
-    return ref = 0;
-  };
   JVM.prototype.JVM_IHashCode = function() {
     return true;
   };
   JVM.prototype.JVM_MonitorWait = function() {
-    return true;
+    var object;
+    return object = this.locals[0];
   };
+  true;
   JVM.prototype.JVM_MonitorNotify = function() {
     return true;
   };
@@ -285,7 +338,9 @@
       return null;
     }
     cls = this.RDA.method_area[clsname];
-    thread.current_class.constant_pool[index] = cls;
+    if (thread !== void 0) {
+      thread.current_class.constant_pool[index] = cls;
+    }
     return this.RDA.method_area[clsname];
   };
   JVM.prototype.JVM_ResolveNativeClass = function(cls, thread) {
@@ -300,9 +355,62 @@
     _native = this.RDA.method_area[nativeName];
     return _native;
   };
+  JVM.prototype.JVM_ResolveStringLiteral = function(literal) {
+    var charArray, cls, enc, index, method, method_desc, method_id, stringobj;
+    enc = 'sun.jnu.encoding';
+    cls = this.JVM_ResolveClass('java/lang/String');
+    method_id = '<init>';
+    method_desc = '()V';
+    method = this.JVM_ResolveMethod(cls, method_id, method_desc);
+    if (!this.JVM_InternedStrings[literal]) {
+      console.log('Interning a string (' + literal + ')');
+      charArray = new Array();
+      for (index in literal) {
+        charArray[index] = literal[index];
+      }
+      charArray = this.RDA.heap.allocate(charArray);
+      stringobj = this.JVM_NewObject(cls, method, []);
+      stringobj.fields['count'] = literal.length;
+      stringobj.value = charArray;
+      this.JVM_InternedStrings[literal] = stringobj;
+    }
+    return this.RDA.heap.allocate(this.JVM_InternedStrings[literal]);
+  };
+  JVM.prototype.JVM_StringLiteralToBytes = function(literal) {
+    var ch, i, re, st;
+    i = 0;
+    re = [];
+    while (i++ < literal.length) {
+      ch = literal.charCodeAt(i);
+      st = [];
+      while (true) {
+        st.push(ch & 0xFF);
+        ch = ch >> 8;
+        if (!ch) {
+          break;
+        }
+      }
+      re = re.concat(st.reverse());
+    }
+    return re;
+  };
+  JVM.prototype.JVM_NewObject = function(cls, constructor, args) {
+    var arg_num, obj, objref, t;
+    obj = new JVM_Object(cls);
+    objref = this.RDA.heap.allocate(obj);
+    t = new Thread(cls, this.RDA, constructor);
+    t.current_frame.locals[0] = objref;
+    arg_num = args.length;
+    while (arg_num > 0) {
+      t.current_frame.locals[arg_num] = args[arg_num - 1];
+      arg_num--;
+    }
+    t.start();
+    return obj;
+  };
   JVM.prototype.JVM_ResolveNativeMethod = function(cls, name, type) {};
   JVM.prototype.JVM_ResolveMethod = function(cls, name, type) {
-    var arg, args, count, descriptor, index, method, nargs, _i, _len;
+    var arg, args, descriptor, endarg, i, index, method, nargs;
     if (cls.methods[name + type] != null) {
       return cls.methods[name + type];
     }
@@ -314,21 +422,21 @@
         args = descriptor.substring(descriptor.indexOf('(') + 1, descriptor.indexOf(')'));
         method.args = new Array();
         nargs = 0;
-        count = 0;
-        for (_i = 0, _len = args.length; _i < _len; _i++) {
-          index = args[_i];
-          if (index === 'L') {
-            arg = args.substring(count, args.indexOf(';', count));
-            count = args.indexOf(';', count);
+        i = 0;
+        while (i < args.length) {
+          if (args[i] === 'L') {
+            arg = args.substring(i, args.indexOf(';', i));
+            i = args.indexOf(';', i);
             method.args.push(arg);
+          } else if (args[i] === '[') {
+            endarg = args.substring(i).search('[B-Z]');
+            method.args.push(args.substring(i, endarg + 1));
+            i = endarg;
           } else {
-            method.args.push(index);
+            method.args.push(args[i]);
           }
           ++nargs;
-          ++count;
-          if (count === args.length) {
-            break;
-          }
+          ++i;
         }
         method.returntype = descriptor.substring(descriptor.indexOf(')') + 1);
         method.nargs = nargs;

@@ -63,6 +63,7 @@ class this.JVM
    
   loaded : (classname, classdata, waitingThreads) ->
     if(classdata != null)
+      #newclass = scopedJVM.JVM_CreateClass(classdata)
       scopedJVM.RDA.addClass(classname, classdata)
       #console.log('Loaded class ['+classname+']')
     

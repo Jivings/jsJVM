@@ -380,48 +380,56 @@
         d = frame.op_stack.pop();
         d1 = frame.op_stack.pop();
         frame.locals[0] = d;
-        return frame.locals[1] = d1;
+        frame.locals[1] = d1;
+        return true;
       });
       this[72] = new OpCode('dstore_1', 'Store double to local var 1', function(frame) {
         var d, d1;
         d = frame.op_stack.pop();
         d1 = frame.op_stack.pop();
         frame.locals[1] = d;
-        return frame.locals[2] = d1;
+        frame.locals[2] = d1;
+        return true;
       });
       this[73] = new OpCode('dstore_2', 'Store double to local var 2', function(frame) {
         var d, d1;
         d = frame.op_stack.pop();
         d1 = frame.op_stack.pop();
         frame.locals[2] = d;
-        return frame.locals[3] = d1;
+        frame.locals[3] = d1;
+        return true;
       });
       this[74] = new OpCode('dstore_3', 'Store double to local var 3', function(frame) {
         var d, d1;
         d = frame.op_stack.pop();
         d1 = frame.op_stack.pop();
         frame.locals[3] = d;
-        return frame.locals[4] = d1;
+        frame.locals[4] = d1;
+        return true;
       });
       this[75] = new OpCode('astore_0', 'Store reference into local var 0', function(frame) {
         var objectref;
         objectref = frame.op_stack.pop();
-        return frame.locals[0] = objectref;
+        frame.locals[0] = objectref;
+        return true;
       });
       this[76] = new OpCode('astore_1', 'Store reference into local var 1', function(frame) {
         var objectref;
         objectref = frame.op_stack.pop();
-        return frame.locals[1] = objectref;
+        frame.locals[1] = objectref;
+        return true;
       });
       this[77] = new OpCode('astore_2', 'Store reference into local var 2', function(frame) {
         var objectref;
         objectref = frame.op_stack.pop();
-        return frame.locals[2] = objectref;
+        frame.locals[2] = objectref;
+        return true;
       });
       this[78] = new OpCode('astore_3', 'Store reference into local var 3', function(frame) {
         var objectref;
         objectref = frame.op_stack.pop();
-        return frame.locals[3] = objectref;
+        frame.locals[3] = objectref;
+        return true;
       });
       this[79] = new OpCode('iastore', 'Store into int array', function(frame) {
         var array, arrayindex, arrayref, value;
@@ -536,11 +544,13 @@
         return array[arrayindex] = value;
       });
       this[87] = new OpCode('pop', 'Pops top stack word', function(frame) {
-        return frame.op_stack.pop();
+        frame.op_stack.pop();
+        return true;
       });
       this[88] = new OpCode('pop2', 'Pops top two operand stack words', function(frame) {
         frame.op_stack.pop();
-        return frame.op_stack.pop();
+        frame.op_stack.pop();
+        return true;
       });
       this[89] = new OpCode('dup', 'Duplicate top operand stack word', function(frame) {
         return frame.op_stack.push(frame.op_stack.peek());
@@ -1204,6 +1214,7 @@
         value1 = frame.op_stack.pop();
         branch = this.constructIndex(frame, thread);
         if (value1 !== value2) {
+          thread.pc -= 3;
           thread.pc += branch;
         }
         return true;
@@ -1263,7 +1274,7 @@
         }
         return true;
       });
-      this[166] = new OpCode('if_acmpne', '', function(frame) {
+      this[166] = new OpCode('if_acmpne', 'Branch if ref1 !== ref2', function(frame) {
         var branch, ref1, ref2;
         ref2 = frame.op_stack.pop();
         ref1 = frame.op_stack.pop();
@@ -1425,7 +1436,7 @@
         }
         field_name_type = thread.current_class.constant_pool[class_field_ref.name_and_type_index];
         field_name = thread.current_class.constant_pool[field_name_type.name_index];
-        frame.op_stack.push(cls.fields[field_name].value);
+        frame.op_stack.push(cls.fields[field_name]);
         return true;
       }, true);
       this[179] = new OpCode('putstatic', 'Set static field in class', function(frame) {
@@ -1439,7 +1450,7 @@
         field_name = thread.current_class.constant_pool[field_ref.name_index];
         field_type = thread.current_class.constant_pool[field_ref.descriptor_index];
         value = frame.op_stack.pop();
-        return cls.fields[field_name].value = value;
+        return cls.fields[field_name] = value;
       });
       this[180] = new OpCode('getfield', 'Get a field from an object', function(frame) {
         var descriptor, field, fieldname, fieldref, index, nameandtype, objectref;
@@ -1473,14 +1484,13 @@
         return true;
       });
       this[182] = new OpCode('invokevirtual', 'Invoke instance method; dispatch based on class', function(frame) {
-        var arg_num, cls, index, method, method_name, methodnameandtype, methodref, newframe, object, objectref, type;
+        var arg_num, cls, index, method, method_name, methodnameandtype, methodref, newframe, type;
         index = this.constructIndex(frame, thread);
         methodref = this.fromClass(index, thread);
         methodnameandtype = this.fromClass(methodref.name_and_type_index, thread);
         if ((cls = thread.resolveClass(methodref.class_index)) === null) {
           return false;
         }
-        objectref = frame.op_stack.pop();
         method_name = this.fromClass(methodnameandtype.name_index, thread);
         type = this.fromClass(methodnameandtype.descriptor_index, thread);
         method = thread.resolveMethod(method_name, cls, type);
@@ -1490,7 +1500,6 @@
         if (method.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_ABSTRACT) {
           athrow('AbstractMethodError');
         }
-        object = this.fromHeap(objectref.pointer, thread);
         newframe = thread.createFrame(method, cls);
         thread.current_class = cls;
         frame.pc += 2;
@@ -1499,7 +1508,10 @@
         while (arg_num > 0) {
           newframe.locals[arg_num--] = frame.op_stack.pop();
         }
-        newframe.locals[0] = objectref;
+        newframe.locals[0] = frame.op_stack.pop();
+        if (newframe.locals[0] === null) {
+          this.athrow('NullPointerException');
+        }
         return true;
       });
       this[183] = new OpCode('invokespecial', 'Invoke instance method', function(frame) {
@@ -1640,7 +1652,7 @@
       this[192] = new OpCode('checkcast', 'Check if object is of a given type', function(frame) {
         var S, T, clsindex, objectref;
         objectref = frame.op_stack.peek();
-        clsindex = constructIndex(frame, thread);
+        clsindex = this.constructIndex(frame, thread);
         S = this.fromHeap(objectref, thread);
         if ((T = thread.resolveClass(clsindex)) === null) {
           return false;
@@ -1648,25 +1660,64 @@
         if (objectref === null) {
           return true;
         }
+        if (T.real_name === S.cls.real_name) {
+          frame.op_stack.push(objectref);
+          return true;
+        }
+        return athrow('ClassCastException');
       });
-      this[193] = new OpCode('instanceof', '', function(frame) {
-        return alert(this.mnemonic);
-      }, true);
-      this[194] = new OpCode('monitorenter', '', function(frame) {
-        return alert(this.mnemonic);
-      }, true);
+      this[193] = new OpCode('instanceof', 'Check if object is an instance of class', function(frame) {
+        var cls, clsindex, object, objectref;
+        objectref = frame.op_stack.pop();
+        clsindex = this.fromClass(this.constructIndex(frame, thread), thread);
+        if ((cls = thread.resolveClass(clsindex)) === null) {
+          return false;
+        }
+        object = this.fromHeap(objectref, thread);
+        if (cls.real_name === object.cls.real_name) {
+          frame.op_stack.push(1);
+        } else {
+          frame.op_stack.push(0);
+        }
+        return true;
+      });
+      this[194] = new OpCode('monitorenter', 'Enter monitor for object', function(frame) {
+        var object;
+        object = frame.op_stack.pop();
+        if (!object instanceof CONSTANT_Class) {
+          object = this.fromHeap(object, thread);
+        }
+        if (!object.monitor.aquireLock(thread)) {
+          console.log("Two locks on one object!");
+          return false;
+        }
+        return true;
+      });
       this[195] = new OpCode('monitorexit', '', function(frame) {
-        return alert(this.mnemonic);
-      }, true);
+        var object, objectref;
+        objectref = frame.op_stack.pop();
+        object = this.fromHeap(objectref, thread);
+        if (!object.monitor.releaseLock(thread)) {
+          athrow('IllegalMonitorStateException');
+        }
+        return true;
+      });
       this[196] = new OpCode('wide', '', function(frame) {
         return alert(this.mnemonic);
       }, true);
       this[197] = new OpCode('multianewarray', '', function(frame) {
         return alert(this.mnemonic);
       }, true);
-      this[198] = new OpCode('ifnull', '', function(frame) {
-        return alert(this.mnemonic);
-      }, true);
+      this[198] = new OpCode('ifnull', 'Branch if null', function(frame) {
+        var branch, value;
+        branch = this.constructIndex(frame, thread);
+        value = frame.op_stack.pop();
+        if (value === null) {
+          thread.pc -= 3;
+          thread.pc += branch;
+        }
+        return true;
+      });
       this[199] = new OpCode('ifnonnull', 'Branch if non-null', function(frame) {
         var branch, value;
         branch = this.constructIndex(frame, thread);
@@ -1764,10 +1815,16 @@
       return thread.RDA.heap[ref];
     };
     OpCode.prototype.fromClass = function(index, thread) {
-      return thread.current_class.constant_pool[index];
+      var item;
+      item = thread.current_class.constant_pool[index];
+      if (item instanceof CONSTANT_Stringref) {
+        item = thread.RDA.JVM.JVM_ResolveStringLiteral(thread.current_class.constant_pool[item.string_index]);
+        thread.current_class.constant_pool[index] = item;
+      }
+      return item;
     };
     OpCode.prototype.athrow = function(exception) {
-      return true;
+      throw exception;
     };
     return OpCode;
   })();

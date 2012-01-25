@@ -3,6 +3,7 @@ class this.ClassLoader
   stack : new Array
   ps_id : 0
   required_classes : [
+    'java/lang/String',
     'java/lang/System',
     'java/lang/Class'
   ]
@@ -171,8 +172,10 @@ class ClassReader
         new CONSTANT_long(@binaryReader.getFloat64())
       when 6 # Double
         new CONSTANT_double(@binaryReader.getFloat64())
-      when 7, 8 # Class Reference, String Reference
+      when 7 # Class Reference, String Reference
         @read 2 
+      when 8
+        new CONSTANT_Stringref(@read 2)
       when 9 # Field Reference,
         new CONSTANT_Fieldref_info(@read(2), @read(2))
       when 10 # Method Reference
@@ -231,7 +234,7 @@ class ClassReader
     i = -1
     while ++i < _class.fields_count
       field = @readFieldInfo(_class)
-      _class.fields[field.info.real_name] = field
+      _class.fields[field[1].real_name] = field[0]
     yes
     
   parseMethods : (_class) ->
@@ -325,12 +328,13 @@ class ClassReader
     if(descriptor == 'B')
       c = new CONSTANT_byte()
     if(descriptor.charAt(0) == 'L')
-      c = new CONSTANT_Object(descriptor.substring(1))
+      c = null
     if(descriptor.charAt(0) == '[')
-      c = new CONSTANT_Array()
+      c = null
     
-    c.info = field_info
-    return c  
+    #c.info = field_info
+    return [c, field_info]  
+    
 
 
 ###
@@ -338,7 +342,7 @@ Represents a Java Class file. Also provides Class verification methods.
 @returns {JavaClass}
 ###
 
-class this.CONSTANT_Class 
+class this.CONSTANT_Class extends JVM_Object
   constructor : () ->
     @magic_number = 0
     @minor_version = 0
@@ -360,8 +364,10 @@ class this.CONSTANT_Class
     @real_name = 'None'
         
   get_super : -> 
-    super_ref = @constant_pool[@super_class];
-    @constant_pool[super_ref];
+    cls = @constant_pool[@super_class]
+    while typeof cls is 'number'
+      cls = @constant_pool[cls]
+    return cls
   
   get_name : ->
     super_ref = @constant_pool[@this_class];
@@ -404,6 +410,8 @@ class this.CONSTANT_Fieldref_info
 class this.CONSTANT_NameAndType_info
   constructor : (@name_index, @descriptor_index) ->
   
+class this.CONSTANT_Stringref
+  constructor : (@string_index) ->
 `
 compatibility = {
 ArrayBuffer: typeof ArrayBuffer !== 'undefined',

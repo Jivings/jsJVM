@@ -30,9 +30,17 @@ class this.RDA
     @method_area[name] = raw_class
   
   addClass : (classname, raw_class) ->
+    # final resolution step, resolve superclass reference
+    supercls = @method_area[raw_class.get_super()]
+    raw_class.constant_pool[raw_class.super_class] = supercls
     @method_area[classname] = raw_class
+
+    
+    
+    
     
     @clinit(classname, raw_class)
+    
     if (method = @JVM.JVM_ResolveMethod(raw_class, 'main', '([Ljava/lang/String;)V'))?
       @createThread classname, method      
             
@@ -68,6 +76,7 @@ class this.Thread
   constructor : (_class, @RDA, startMethod) ->
 
     @opcodes = new OpCodes(@)
+    
     @methodFactory = new MethodFactory(@, @RDA.JVM)
     # pointers to the current executing structures
     @current_class = _class
@@ -85,7 +94,6 @@ class this.Thread
       return @[@length-1]
       
     @current_frame = @createFrame(startMethod, @current_class)  
-    #@RDA.JVM.debugWindow.addFrame(@current_frame)
     this
   
   createFrame : (method, cls) ->
@@ -173,8 +181,10 @@ class this.Frame
     @op_stack.peek = () ->
       return @[@length-1]
     @op_stack.push = (word) ->
-      if word == 'undefined'
+      if word == undefined
         throw "NullStackException"
+      else if word instanceof JVM_Object
+        throw "ObjectOnStackException"
       @[@length] = word
       yes
         
@@ -200,6 +210,5 @@ class this.Frame
    
        
       
-  
   
     

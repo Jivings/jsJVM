@@ -348,40 +348,48 @@ class this.OpCodes
       d1 = frame.op_stack.pop()
       frame.locals[0] = d
       frame.locals[1] = d1
+      yes
     )
     @[72] = new OpCode('dstore_1', 'Store double to local var 1', (frame) -> 
       d = frame.op_stack.pop()
       d1 = frame.op_stack.pop()
       frame.locals[1] = d
       frame.locals[2] = d1
+      yes
     )
     @[73] = new OpCode('dstore_2', 'Store double to local var 2', (frame) -> 
       d = frame.op_stack.pop()
       d1 = frame.op_stack.pop()
       frame.locals[2] = d
       frame.locals[3] = d1
+      yes
     )
     @[74] = new OpCode('dstore_3', 'Store double to local var 3', (frame) -> 
       d = frame.op_stack.pop()
       d1 = frame.op_stack.pop()
       frame.locals[3] = d
       frame.locals[4] = d1
+      yes
     )
     @[75] = new OpCode('astore_0', 'Store reference into local var 0', (frame) -> 
       objectref = frame.op_stack.pop()
       frame.locals[0] = objectref
+      yes
     )
     @[76] = new OpCode('astore_1', 'Store reference into local var 1', (frame) -> 
       objectref = frame.op_stack.pop()
       frame.locals[1] = objectref
+      yes
     )
     @[77] = new OpCode('astore_2', 'Store reference into local var 2', (frame) -> 
       objectref = frame.op_stack.pop()
       frame.locals[2] = objectref
+      yes
     )
     @[78] = new OpCode('astore_3', 'Store reference into local var 3', (frame) -> 
       objectref = frame.op_stack.pop()
       frame.locals[3] = objectref
+      yes
     )
     @[79] = new OpCode('iastore', 'Store into int array', (frame) -> 
       arrayref = frame.op_stack.pop()
@@ -479,10 +487,12 @@ class this.OpCodes
     )
     @[87] = new OpCode('pop', 'Pops top stack word', (frame) -> 
       frame.op_stack.pop() 
+      yes
     )
     @[88] = new OpCode('pop2', 'Pops top two operand stack words', (frame) -> 
       frame.op_stack.pop()
       frame.op_stack.pop()
+      yes
     )
     @[89] = new OpCode('dup', 'Duplicate top operand stack word', (frame) -> 
       frame.op_stack.push(frame.op_stack.peek())
@@ -1052,6 +1062,7 @@ class this.OpCodes
       value1 = frame.op_stack.pop()
       branch = @constructIndex(frame, thread);
       if value1 isnt value2
+        thread.pc -= 3
         thread.pc += branch
       yes
     )
@@ -1100,7 +1111,7 @@ class this.OpCodes
         thread.pc += branch
       yes
     )
-    @[166] = new OpCode('if_acmpne', '', (frame) -> 
+    @[166] = new OpCode('if_acmpne', 'Branch if ref1 !== ref2', (frame) -> 
       ref2 = frame.op_stack.pop()
       ref1 = frame.op_stack.pop()
       branch = @constructIndex(frame, thread);
@@ -1280,7 +1291,7 @@ class this.OpCodes
           
       field_name_type = thread.current_class.constant_pool[class_field_ref.name_and_type_index]
       field_name = thread.current_class.constant_pool[field_name_type.name_index]
-      frame.op_stack.push(cls.fields[field_name].value)
+      frame.op_stack.push(cls.fields[field_name])
       
       yes
     # not yet implemented
@@ -1301,7 +1312,7 @@ class this.OpCodes
       
       value = frame.op_stack.pop()
       # set field value
-      cls.fields[field_name].value = value
+      cls.fields[field_name] = value
     )
     @[180] = new OpCode('getfield', 'Get a field from an object', (frame) -> 
       objectref = frame.op_stack.pop()
@@ -1341,7 +1352,7 @@ class this.OpCodes
       if(cls = thread.resolveClass(methodref.class_index)) == null
         return false
         
-      objectref = frame.op_stack.pop()    
+          
       method_name = @fromClass(methodnameandtype.name_index, thread)
       type = @fromClass(methodnameandtype.descriptor_index, thread)
       method = thread.resolveMethod(method_name, cls, type)
@@ -1350,9 +1361,7 @@ class this.OpCodes
         athrow('IncompatibleClassChangeError')
       if method.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_ABSTRACT
         athrow('AbstractMethodError')
-        
-      object = @fromHeap(objectref.pointer, thread)
-      
+              
       newframe = thread.createFrame(method, cls)
       thread.current_class = cls
       frame.pc += 2
@@ -1362,7 +1371,9 @@ class this.OpCodes
       while arg_num > 0
         newframe.locals[arg_num--] = frame.op_stack.pop()
       # push objectref to represent 'this' in the object
-      newframe.locals[0] = objectref
+      newframe.locals[0] = frame.op_stack.pop()
+      if newframe.locals[0] == null
+        @athrow('NullPointerException')
       yes 
     )
     @[183] = new OpCode('invokespecial', 'Invoke instance method', (frame) -> 
@@ -1503,7 +1514,7 @@ class this.OpCodes
     @[192] = new OpCode('checkcast', 'Check if object is of a given type', (frame) -> 
       # do not alter the op stack
       objectref = frame.op_stack.peek()
-      clsindex = constructIndex(frame, thread)
+      clsindex = @constructIndex(frame, thread)
       # s comes from heap, T from the class constant pool
       S = @fromHeap(objectref, thread)
       
@@ -1512,27 +1523,66 @@ class this.OpCodes
                 
       if objectref == null
         return true
+        
+      # if T is class type then S must be the same class, or a subclass of T
+      if T.real_name is S.cls.real_name
+        frame.op_stack.push(objectref)
+        return true
+      athrow('ClassCastException')
+          
       # TODO check shit here pg 175
              
     )
-    @[193] = new OpCode('instanceof', '', (frame) -> 
-      alert(@mnemonic)
-    yes )
-    @[194] = new OpCode('monitorenter', '', (frame) -> 
-      alert(@mnemonic)# not yet implemented
-    yes )
+    @[193] = new OpCode('instanceof', 'Check if object is an instance of class', (frame) -> 
+      objectref = frame.op_stack.pop()
+      clsindex = @fromClass(@constructIndex(frame, thread), thread)
+      
+      if(cls = thread.resolveClass(clsindex)) == null
+        return false
+       
+      object = @fromHeap(objectref, thread)
+      # make a new object of type cls to compare with object
+      
+      if cls.real_name is object.cls.real_name
+        frame.op_stack.push(1)
+      else 
+        frame.op_stack.push(0)
+      
+      yes  
+    )
+    @[194] = new OpCode('monitorenter', 'Enter monitor for object', (frame) -> 
+      object = frame.op_stack.pop()
+      if !object instanceof CONSTANT_Class
+        object = @fromHeap(object, thread)
+      # aquire monitor
+      if !object.monitor.aquireLock(thread)
+        # wait to be notified by objects monitor
+        console.log("Two locks on one object!")
+        return false
+      yes
+    )
     @[195] = new OpCode('monitorexit', '', (frame) -> 
-      alert(@mnemonic)# not yet implemented
-    yes )
+      objectref = frame.op_stack.pop()
+      object = @fromHeap(objectref, thread)
+      # release monitor
+      if !object.monitor.releaseLock(thread)
+        athrow('IllegalMonitorStateException')
+      yes 
+    )
     @[196] = new OpCode('wide', '', (frame) -> 
       alert(@mnemonic)#  not yet implemented
     yes )
     @[197] = new OpCode('multianewarray', '', (frame) -> 
       alert(@mnemonic)# not yet implemented
     yes )
-    @[198] = new OpCode('ifnull', '', (frame) -> 
-      alert(@mnemonic)# not yet implemented
-    yes )
+    @[198] = new OpCode('ifnull', 'Branch if null', (frame) -> 
+      branch = @constructIndex(frame, thread)
+      value = frame.op_stack.pop()
+      if value is null
+        thread.pc -= 3
+        thread.pc += branch
+      yes  
+    )
     @[199] = new OpCode('ifnonnull', 'Branch if non-null', (frame) -> 
       branch = @constructIndex(frame, thread)
       value = frame.op_stack.pop()
@@ -1735,7 +1785,12 @@ class OpCode
     return thread.RDA.heap[ref]
       
   fromClass : (index, thread) ->
-    thread.current_class.constant_pool[index]
+    item = thread.current_class.constant_pool[index]
+    if item instanceof CONSTANT_Stringref
+      item = thread.RDA.JVM.JVM_ResolveStringLiteral(thread.current_class.constant_pool[item.string_index])
+      thread.current_class.constant_pool[index] = item
+    return item  
+      
   
   athrow : (exception) ->
-    yes
+    throw exception

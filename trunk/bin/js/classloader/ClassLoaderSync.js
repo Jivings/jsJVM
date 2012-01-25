@@ -1,10 +1,18 @@
 (function() {
   var ClassReader;
+  var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
+    for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
+    function ctor() { this.constructor = child; }
+    ctor.prototype = parent.prototype;
+    child.prototype = new ctor;
+    child.__super__ = parent.prototype;
+    return child;
+  };
   this.ClassLoader = (function() {
     ClassLoader.prototype.classReader = 1;
     ClassLoader.prototype.stack = new Array;
     ClassLoader.prototype.ps_id = 0;
-    ClassLoader.prototype.required_classes = ['java/lang/System', 'java/lang/Class'];
+    ClassLoader.prototype.required_classes = ['java/lang/String', 'java/lang/System', 'java/lang/Class'];
     ClassLoader.prototype.loaded_classes = {};
     ClassLoader.prototype.postMessage = function(data) {
       return this.find(data.classname, data.waitingThreads);
@@ -186,8 +194,9 @@
         case 6:
           return new CONSTANT_double(this.binaryReader.getFloat64());
         case 7:
-        case 8:
           return this.read(2);
+        case 8:
+          return new CONSTANT_Stringref(this.read(2));
         case 9:
           return new CONSTANT_Fieldref_info(this.read(2), this.read(2));
         case 10:
@@ -254,7 +263,7 @@
       i = -1;
       while (++i < _class.fields_count) {
         field = this.readFieldInfo(_class);
-        _class.fields[field.info.real_name] = field;
+        _class.fields[field[1].real_name] = field[0];
       }
       return true;
     };
@@ -365,13 +374,12 @@
         c = new CONSTANT_byte();
       }
       if (descriptor.charAt(0) === 'L') {
-        c = new CONSTANT_Object(descriptor.substring(1));
+        c = null;
       }
       if (descriptor.charAt(0) === '[') {
-        c = new CONSTANT_Array();
+        c = null;
       }
-      c.info = field_info;
-      return c;
+      return [c, field_info];
     };
     return ClassReader;
   })();
@@ -380,6 +388,7 @@
   @returns {JavaClass}
   */
   this.CONSTANT_Class = (function() {
+    __extends(CONSTANT_Class, JVM_Object);
     function CONSTANT_Class() {
       this.magic_number = 0;
       this.minor_version = 0;
@@ -401,9 +410,12 @@
       this.real_name = 'None';
     }
     CONSTANT_Class.prototype.get_super = function() {
-      var super_ref;
-      super_ref = this.constant_pool[this.super_class];
-      return this.constant_pool[super_ref];
+      var cls;
+      cls = this.constant_pool[this.super_class];
+      while (typeof cls === 'number') {
+        cls = this.constant_pool[cls];
+      }
+      return cls;
     };
     CONSTANT_Class.prototype.get_name = function() {
       var super_ref;
@@ -464,6 +476,12 @@
       this.descriptor_index = descriptor_index;
     }
     return CONSTANT_NameAndType_info;
+  })();
+  this.CONSTANT_Stringref = (function() {
+    function CONSTANT_Stringref(string_index) {
+      this.string_index = string_index;
+    }
+    return CONSTANT_Stringref;
   })();
   
 compatibility = {

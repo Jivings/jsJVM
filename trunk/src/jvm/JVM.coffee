@@ -19,7 +19,7 @@ class this.JVM
     @stdout = params['stdout']
     @stderr = params['stderr']
     @verbosity = params['verbosity']
-    @console = new Console(stdout, stderr, @verbosity)
+    #@console = new Console(stdout, stderr, @verbosity)
     if params.version 
       @stdout.write "JS-JVM version '#{@VERSION_ID}' \njava version #{@JAVA_VERSION}"
     else if params.help
@@ -30,7 +30,7 @@ class this.JVM
       @RDA.JVM = @
       
       (@classLoader = new ClassLoader(@loaded, @loadedNative)).init()
-      @InitializeSystemClass()
+      #@InitializeSystemClass()
       # Create ClassLoader WORKER TODO
       #@classLoader = new Worker('http://localhost/js-jvm/trunk/bin/js/classloader/ClassLoader.js')
       #@classLoader.onmessage = @message

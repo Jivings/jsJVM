@@ -78,7 +78,7 @@
       name = 'native/' + class_name;
       _native = null;
       req = new XMLHttpRequest();
-      req.open('GET', "js/classes/" + name + ".js", false);
+      req.open('GET', "../" + name + ".js", false);
       req.send(null);
       if (req.status === 200) {
         try {
@@ -118,11 +118,11 @@
         return;
       }
       req = new XMLHttpRequest();
-      req.open('GET', "classes/rt/" + class_name + ".class", false);
+      req.open('GET', "../rt/" + class_name + ".class", false);
       req.overrideMimeType('text/plain; charset=x-user-defined');
       req.send(null);
       if (req.status !== 200) {
-        req.open('GET', "classes/" + class_name + ".class", false);
+        req.open('GET', "../" + class_name + ".class", false);
         req.overrideMimeType('text/plain; charset=x-user-defined');
         req.send(null);
         if (req.status !== 200) {
@@ -230,7 +230,7 @@
         constant = this.readConstant(tag);
         _class.constant_pool[i] = constant;
         this.console.writeConstant(i, tag, constant, 2);
-        if (tag === 5) {
+        if (tag === 5 || tag === 6) {
           i++;
         } else if (tag === 7) {
           if (constant !== _class.this_class) {
@@ -374,10 +374,10 @@
         c = new CONSTANT_byte();
       }
       if (descriptor.charAt(0) === 'L') {
-        c = null;
+        c = new JVM_Reference(0);
       }
       if (descriptor.charAt(0) === '[') {
-        c = null;
+        c = new JVM_Reference(0);
       }
       return [c, field_info];
     };

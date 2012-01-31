@@ -8,6 +8,12 @@ class this.ClassLoader
   required_classes : 
     'java/lang/Class' 
     'java/lang/System'
+    'java/io/FileDescriptor'
+    'java/io/FileInputStream'
+    'java/io/FileOutputStream'
+    'java/io/BufferedInputStream'
+    'java/io/PrintStream'
+    
   loaded_classes : {}
   
 

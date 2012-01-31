@@ -3,9 +3,15 @@ class this.ClassLoader
   stack : new Array
   ps_id : 0
   required_classes : [
-    'java/lang/String',
-    'java/lang/System',
+    'java/lang/String'
+    'java/lang/System'
     'java/lang/Class'
+   # 'java/io/FileDescriptor'
+   # 'java/io/FileInputStream'
+   # 'java/io/FileOutputStream'
+   # 'java/io/BufferedInputStream'
+   # 'java/io/PrintStream'
+   # 'java/io/BufferedOutputStream'
   ]
     
   loaded_classes : {}
@@ -59,7 +65,7 @@ class this.ClassLoader
     name = 'native/' + class_name
     _native = null
     req = new XMLHttpRequest()
-    req.open 'GET', "js/classes/#{name}.js", false
+    req.open 'GET', "../#{name}.js", false
     req.send null
     if req.status is 200
       try 
@@ -103,12 +109,12 @@ class this.ClassLoader
     if typeof class_name is 'undefined'
       return 
     req = new XMLHttpRequest()
-    req.open 'GET', "classes/rt/#{class_name}.class", false
+    req.open 'GET', "../rt/#{class_name}.class", false
     # The following line says we want to receive data as Binary and not as Unicode
     req.overrideMimeType 'text/plain; charset=x-user-defined'
     req.send null
     if req.status isnt 200
-      req.open 'GET', "classes/#{class_name}.class", false
+      req.open 'GET', "../#{class_name}.class", false
       req.overrideMimeType 'text/plain; charset=x-user-defined'
       req.send null
       if req.status isnt 200
@@ -207,11 +213,10 @@ class ClassReader
       constant = @readConstant(tag)
       _class.constant_pool[i] = constant
       @console.writeConstant(i, tag, constant, 2)
-      if tag is 5 then i++;
+      if tag is 5 or tag is 6 then i++;
       else if tag is 7 
         if constant isnt _class.this_class
           _class.dependancies.push(constant)
-        
     yes
 	
   parseFileVars : (_class) ->
@@ -328,9 +333,9 @@ class ClassReader
     if(descriptor == 'B')
       c = new CONSTANT_byte()
     if(descriptor.charAt(0) == 'L')
-      c = null
+      c = new JVM_Reference(0) # reference to null
     if(descriptor.charAt(0) == '[')
-      c = null
+      c = new JVM_Reference(0) # reference to null
     
     #c.info = field_info
     return [c, field_info]  

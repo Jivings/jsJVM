@@ -1,7 +1,9 @@
 var history = [];
 var current = 0;
+opcodesUsed = {}
 
 function noError(err, url, line) {
+  
   console.log(err)
   // Uncaught RangeError: Maximum call stack size exceeded
 }

@@ -74,11 +74,17 @@ function() {
   };
 
   this.setOut0 = function(env, cls, stream) {
-    var fieldId;
-    fieldId = env.GetStaticFieldID(env,cls,"out","Ljava/io/PrintStream;");
-    if (fieldId === 0) {
-      return;
-    }
+    var stream;
+    /*stream = {
+      methods : {
+        0 : { 
+          args : [ 'Ljava/lang/String' ],
+          nargs : 1,
+          access_flags : 1,
+          descriptor : '(Ljava/lang/String;)V',
+          name : 'print',
+      }
+    };*/
     env.SetStaticObjectField(env,cls,fieldId,stream);
   };
 

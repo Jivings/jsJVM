@@ -17,7 +17,6 @@
       this.stdout = params['stdout'];
       this.stderr = params['stderr'];
       this.verbosity = params['verbosity'];
-      this.console = new Console(stdout, stderr, this.verbosity);
       if (params.version) {
         this.stdout.write("JS-JVM version '" + this.VERSION_ID + "' \njava version " + this.JAVA_VERSION);
       } else if (params.help) {
@@ -26,7 +25,6 @@
         this.RDA = new RDA();
         this.RDA.JVM = this;
         (this.classLoader = new ClassLoader(this.loaded, this.loadedNative)).init();
-        this.InitializeSystemClass();
         this.JNI = new InternalJNI(this);
         this.load(this.mainclassname);
       }

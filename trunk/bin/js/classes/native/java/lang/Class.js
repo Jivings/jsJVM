@@ -159,6 +159,9 @@ function() {
     }
     */
     this.getPrimitiveClass = function(env, cls, name) {
-      return env['CONSTANT_'+name];
+      // get the string object from the heap
+      string = env.RDA.heap[name.pointer]
+      name = env.RDA.heap[string.value.pointer].join('')
+      return window['CONSTANT_'+name];
     };
 }

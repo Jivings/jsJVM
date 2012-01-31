@@ -6,28 +6,28 @@
         return true;
       });
       this[1] = new OpCode('aconst_null', 'Push null object reference', function(frame) {
-        return frame.op_stack.push(null);
+        return frame.op_stack.push(new JVM_Reference(0));
       });
       this[2] = new OpCode('iconst_m1', 'Push int constant -1', function(frame) {
-        return frame.op_stack.push(-1);
+        return frame.op_stack.push(new CONSTANT_integer(-1));
       });
       this[3] = new OpCode('iconst_0', 'Push int constant 0', function(frame) {
-        return frame.op_stack.push(0);
+        return frame.op_stack.push(new CONSTANT_integer(0));
       });
       this[4] = new OpCode('iconst_1', 'Push int constant 1', function(frame) {
-        return frame.op_stack.push(1);
+        return frame.op_stack.push(new CONSTANT_integer(1));
       });
       this[5] = new OpCode('iconst_2', 'Push int constant 2', function(frame) {
-        return frame.op_stack.push(2);
+        return frame.op_stack.push(new CONSTANT_integer(2));
       });
       this[6] = new OpCode('iconst_3', 'Push int constant 3', function(frame) {
-        return frame.op_stack.push(3);
+        return frame.op_stack.push(new CONSTANT_integer(3));
       });
       this[7] = new OpCode('iconst_4', 'Push int constant 4', function(frame) {
-        return frame.op_stack.push(4);
+        return frame.op_stack.push(new CONSTANT_integer(4));
       });
       this[8] = new OpCode('iconst_5', 'Pushes int constant 5 to the frame.op_stack.', function(frame) {
-        return frame.op_stack.push(5);
+        return frame.op_stack.push(new CONSTANT_integer(5));
       });
       this[9] = new OpCode('lconst_0', 'Push long constant 0', function(frame) {
         frame.op_stack.push(new CONSTANT_long(0));
@@ -55,14 +55,14 @@
         return frame.op_stack.push(new CONSTANT_double(1.0));
       });
       this[16] = new OpCode('bipush', 'Push 8 bit signed integer', function(frame) {
-        return frame.op_stack.push(frame.method_stack[++thread.pc]);
+        return frame.op_stack.push(new CONSTANT_integer(this.getIndexByte(1, frame, thread)));
       });
       this[17] = new OpCode('sipush', 'Push short', function(frame) {
         var byte1, byte2, short;
         byte1 = this.getIndexByte(1, frame, thread);
         byte2 = this.getIndexByte(2, frame, thread);
         short = (byte1 << 8) | byte2;
-        return frame.op_stack.push(short);
+        return frame.op_stack.push(new CONSTANT_short(short));
       });
       this[18] = new OpCode('ldc', 'Push item from constant pool', function(frame) {
         var item;
@@ -73,6 +73,9 @@
         if (item === 'undefined') {
           throw 'JVM_Error: Undefined item on stack';
         }
+        if (item instanceof JVM_Object) {
+          item = new JVM_Reference(thread.RDA.heap.allocate(item));
+        }
         return frame.op_stack.push(item);
       });
       this[19] = new OpCode('ldc_w', 'Push item from constant pool (wide index)', function(frame) {
@@ -81,12 +84,16 @@
         while (typeof (item = this.fromClass(item, thread)) === 'number') {
           continue;
         }
+        if (item instanceof JVM_Object) {
+          item = new JVM_Reference(thread.RDA.heap.allocate(item));
+        }
         return frame.op_stack.push(item);
       });
       this[20] = new OpCode('ldc2_w', 'Push long or double from constant pool (wide index)', function(frame) {
         var index, item;
         index = this.constructIndex(frame, thread);
         item = thread.current_class.constant_pool[index];
+        frame.op_stack.push(item);
         return frame.op_stack.push(item);
       });
       this[21] = new OpCode('iload', 'Load int from local variable', function(frame) {
@@ -118,15 +125,19 @@
         return frame.op_stack.push(frame.locals[3]);
       });
       this[30] = new OpCode('lload_0', 'Load long from local variable 0', function(frame) {
+        frame.op_stack.push(frame.locals[0]);
         return frame.op_stack.push(frame.locals[0]);
       });
       this[31] = new OpCode('lload_1', 'Load long from local variable 1', function(frame) {
+        frame.op_stack.push(frame.locals[1]);
         return frame.op_stack.push(frame.locals[1]);
       });
       this[32] = new OpCode('lload_2', 'Load long from local variable 2', function(frame) {
+        frame.op_stack.push(frame.locals[2]);
         return frame.op_stack.push(frame.locals[2]);
       });
       this[33] = new OpCode('lload_3', 'Load long from local variable 3', function(frame) {
+        frame.op_stack.push(frame.locals[3]);
         return frame.op_stack.push(frame.locals[3]);
       });
       this[34] = new OpCode('fload_0', 'Load float from local var 0', function(frame) {
@@ -146,28 +157,28 @@
         halfDouble = frame.locals[0];
         secHalfDouble = frame.locals[1];
         frame.op_stack.push(halfDouble);
-        return frame.op_stack.push(secHalfDouble);
+        return frame.op_stack.push(halfDouble);
       });
-      this[39] = new OpCode('dload_1', 'Load double from local variable', function(frame) {
+      this[39] = new OpCode('dload_1', 'Load double from local variable 1', function(frame) {
         var halfDouble, secHalfDouble;
         halfDouble = frame.locals[0];
         secHalfDouble = frame.locals[1];
         frame.op_stack.push(halfDouble);
-        return frame.op_stack.push(secHalfDouble);
+        return frame.op_stack.push(halfDouble);
       });
-      this[40] = new OpCode('dload_2', 'Load double from local variable', function(frame) {
+      this[40] = new OpCode('dload_2', 'Load double from local variable 2', function(frame) {
         var halfDouble, secHalfDouble;
         halfDouble = frame.locals[0];
         secHalfDouble = frame.locals[1];
         frame.op_stack.push(halfDouble);
-        return frame.op_stack.push(secHalfDouble);
+        return frame.op_stack.push(halfDouble);
       });
-      this[41] = new OpCode('dload_3', 'Load double from local variable', function(frame) {
+      this[41] = new OpCode('dload_3', 'Load double from local variable 3', function(frame) {
         var halfDouble, secHalfDouble;
         halfDouble = frame.locals[0];
         secHalfDouble = frame.locals[1];
         frame.op_stack.push(halfDouble);
-        return frame.op_stack.push(secHalfDouble);
+        return frame.op_stack.push(halfDouble);
       });
       this[42] = new OpCode('aload_0', 'Load reference from local variable 0', function(frame) {
         return frame.op_stack.push(frame.locals[0]);
@@ -247,8 +258,8 @@
       });
       this[51] = new OpCode('baload', 'Load byte or boolean from array', function(frame) {
         var array, arrayindex, arrayref;
-        arrayref = frame.op_stack.pop();
         arrayindex = frame.op_stack.pop();
+        arrayref = frame.op_stack.pop();
         if (!arrayref instanceof JVM_Reference) {
           athrow('RuntimeException');
           return false;
@@ -266,8 +277,8 @@
       });
       this[52] = new OpCode('caload', 'Load char from array', function(frame) {
         var array, arrayindex, arrayref;
-        arrayref = frame.op_stack.pop();
         arrayindex = frame.op_stack.pop();
+        arrayref = frame.op_stack.pop();
         if (!arrayref instanceof JVM_Reference) {
           athrow('RuntimeException');
           return false;
@@ -276,20 +287,17 @@
           athrow('NullPointerException');
           return false;
         }
-        array = fromHeap(arrayref);
-        if (array.type !== 'char') {
-          return false;
-        }
+        array = this.fromHeap(arrayref, thread);
         if (arrayindex >= array.length || arrayindex < 0) {
           athrow('ArrayIndexOutOfBounds');
           return false;
         }
-        return frame.op_stack.push(array[arrayindex]);
+        return frame.op_stack.push(new CONSTANT_char(array[arrayindex.val]));
       });
       this[53] = new OpCode('saload', 'Load short from array', function(frame) {
         var array, arrayindex, arrayref;
-        arrayref = frame.op_stack.pop();
         arrayindex = frame.op_stack.pop();
+        arrayref = frame.op_stack.pop();
         if (!arrayref instanceof JVM_Reference) {
           athrow('RuntimeException');
           return false;
@@ -434,9 +442,9 @@
       });
       this[79] = new OpCode('iastore', 'Store into int array', function(frame) {
         var array, arrayindex, arrayref, value;
-        arrayref = frame.op_stack.pop();
-        arrayindex = frame.op_stack.pop();
         value = frame.op_stack.pop();
+        arrayindex = frame.op_stack.pop();
+        arrayref = frame.op_stack.pop();
         array = thread.RDA.heap[arrayref];
         if (array === null) {
           athrow('NullPointerException');
@@ -448,9 +456,9 @@
       });
       this[80] = new OpCode('lastore', 'Store into long array', function(frame) {
         var array, arrayindex, arrayref, value;
-        arrayref = frame.op_stack.pop();
-        arrayindex = frame.op_stack.pop();
         value = frame.op_stack.pop();
+        arrayindex = frame.op_stack.pop();
+        arrayref = frame.op_stack.pop();
         array = thread.RDA.heap[arrayref];
         if (array === null) {
           athrow('NullPointerException');
@@ -462,9 +470,9 @@
       });
       this[81] = new OpCode('fastore', 'Store into float array', function(frame) {
         var array, arrayindex, arrayref, value;
-        arrayref = frame.op_stack.pop();
-        arrayindex = frame.op_stack.pop();
         value = frame.op_stack.pop();
+        arrayindex = frame.op_stack.pop();
+        arrayref = frame.op_stack.pop();
         array = thread.RDA.heap[arrayref];
         if (array === null) {
           athrow('NullPointerException');
@@ -476,9 +484,9 @@
       });
       this[82] = new OpCode('dastore', 'Store double into array', function(frame) {
         var array, arrayindex, arrayref, value;
-        arrayref = frame.op_stack.pop();
-        arrayindex = frame.op_stack.pop();
         value = frame.op_stack.pop();
+        arrayindex = frame.op_stack.pop();
+        arrayref = frame.op_stack.pop();
         array = thread.RDA.heap[arrayref];
         if (array === null) {
           athrow('NullPointerException');
@@ -490,9 +498,9 @@
       });
       this[83] = new OpCode('aastore', 'Store reference into Array', function(frame) {
         var array, arrayindex, arrayref, value;
-        arrayref = frame.op_stack.pop();
-        arrayindex = frame.op_stack.pop();
         value = frame.op_stack.pop();
+        arrayindex = frame.op_stack.pop();
+        arrayref = frame.op_stack.pop();
         array = thread.RDA.heap[arrayref];
         if (array === null) {
           athrow('NullPointerException');
@@ -504,9 +512,9 @@
       });
       this[84] = new OpCode('bastore', 'Store into byte or boolean Array', function(frame) {
         var array, arrayindex, arrayref, value;
-        arrayref = frame.op_stack.pop();
-        arrayindex = frame.op_stack.pop();
         value = frame.op_stack.pop();
+        arrayindex = frame.op_stack.pop();
+        arrayref = frame.op_stack.pop();
         array = this.fromHeap(arrayref);
         if (array === null) {
           athrow('NullPointerException');
@@ -532,9 +540,9 @@
       });
       this[86] = new OpCode('sastore', 'Store into short array', function(frame) {
         var array, arrayindex, arrayref, value;
-        arrayref = frame.op_stack.pop();
-        arrayindex = frame.op_stack.pop();
         value = frame.op_stack.pop();
+        arrayindex = frame.op_stack.pop();
+        arrayref = frame.op_stack.pop();
         array = this.fromHeap(arrayref);
         if (array === null) {
           athrow('NullPointerException');
@@ -878,7 +886,7 @@
         value2 = frame.op_stack.pop().valueOf();
         s = value2 & 0x1f;
         result = value1 >> s;
-        return frame.op_stack.push(new CONSTANT_Intger(result));
+        return frame.op_stack.push(new CONSTANT_integer(result));
       });
       this[123] = new OpCode('lshr', 'Arithmetic shift right long', function(frame) {
         var result, s, value1, value2;
@@ -968,11 +976,12 @@
         return frame.op_stack.push(new CONSTANT_long(result));
       });
       this[132] = new OpCode('iinc', 'Increment local variable by constant', function(frame) {
-        var consta, index, result;
-        index = getIndexByte(1, frame, thread);
-        consta = getIndexByte(2, frame, thread);
-        result = index + consta;
-        return frame.op_stack.push(new CONSTANT_integer(result));
+        var consta, index, variable;
+        index = this.getIndexByte(1, frame, thread);
+        consta = this.getIndexByte(2, frame, thread);
+        variable = frame.locals[index];
+        variable += consta;
+        return frame.locals[index] = variable;
       });
       this[133] = new OpCode('i2l', 'Convert int to long', function(frame) {
         var long, value;
@@ -1224,7 +1233,7 @@
         var branch, value1, value2;
         value2 = frame.op_stack.pop();
         value1 = frame.op_stack.pop();
-        branch = this.constructIndex(frame, thread);
+        branch = new CONSTANT_integer(this.constructIndex(frame, thread), true);
         if (value1 < value2) {
           thread.pc -= 3;
           thread.pc += branch;
@@ -1402,6 +1411,9 @@
           thread.jvm_stack.pop();
         }
         invoker = thread.jvm_stack.peek();
+        if (invoker === void 0) {
+          return true;
+        }
         invoker.op_stack.push(returnref);
         thread.current_frame = invoker;
         thread.current_class = invoker.cls;
@@ -1464,7 +1476,7 @@
         nameandtype = this.fromClass(fieldref.name_and_type_index, thread);
         fieldname = this.fromClass(nameandtype.name_index, thread);
         descriptor = this.fromClass(nameandtype.descriptor_index, thread);
-        field = this.fromHeap(objectref.pointer, thread).fields[fieldname];
+        field = this.fromHeap(objectref.pointer, thread)[fieldname];
         frame.op_stack.push(field);
         return true;
       });
@@ -1481,7 +1493,7 @@
         fieldname = this.fromClass(nameandtype.name_index, thread);
         descriptor = this.fromClass(nameandtype.descriptor_index, thread);
         object = this.fromHeap(objectref.pointer, thread);
-        object.fields[fieldname] = value;
+        object[fieldname] = value;
         return true;
       });
       this[182] = new OpCode('invokevirtual', 'Invoke instance method; dispatch based on class', function(frame) {
@@ -1501,7 +1513,7 @@
         if (method.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_ABSTRACT) {
           athrow('AbstractMethodError');
         }
-        newframe = thread.createFrame(method, cls);
+        newframe = thread.createFrame(method, method.belongsTo);
         thread.current_class = method.belongsTo;
         frame.pc += 2;
         thread.pc = -1;
@@ -1628,6 +1640,9 @@
           athrow('NegativeArraySizeException');
         }
         arr = new Array(count);
+        while (count-- > 0) {
+          arr[count] = new JVM_Reference(0);
+        }
         arr['type'] = 'L' + cls.real_name;
         arrayref = thread.RDA.heap.allocate(arr);
         return frame.op_stack.push(arrayref);
@@ -1666,7 +1681,7 @@
         if ((T = thread.resolveClass(clsindex)) === null) {
           return false;
         }
-        if (objectref === null) {
+        if (S === null) {
           return true;
         }
         if (T.real_name === S.cls.real_name) {

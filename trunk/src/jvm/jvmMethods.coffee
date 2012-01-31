@@ -3,14 +3,13 @@
     constructor : (@cls) ->
       
       supercls = @cls.get_super()
-      if supercls == undefined
+      if supercls != undefined
         @__proto__ = new JVM_Object(supercls)
         
-      @fields = {}
+      
       for field of @cls.fields
         fld = @cls.fields[field]
-        @fields[field] = fld
-      @methods = @cls.methods
+        @[field] = fld
       
     monitor : { 
         aquireLock : (thread) ->
@@ -73,7 +72,18 @@
       @value = null
       
   class this.CONSTANT_integer extends JVM_Number
-    constructor : (val = 0) ->
+    constructor : (val = 0, sign = false) ->
+      if sign
+        #signbit = val >> 15
+        #signed = val & 0x7fff
+        unsigned = val >> 0
+        signed = (~unsigned)&0xffff
+        signed += 1
+        if unsigned is 1
+          val = 0 - signed
+        else 
+          val = signed
+        
       super val    
       
   class this.CONSTANT_float extends JVM_Number
@@ -128,8 +138,36 @@
   JVM::InitializeSystemClass = () ->
     @assert( (system = @RDA.method_area['java/lang/System']) isnt null, 
       "System not loaded before InitializeSystemClass")
-    @RDA.createThread('java/lang/System', @JVM_ResolveMethod(system, 'initializeSystemClass', '()V'))
+    #@RDA.createThread('java/lang/System', @JVM_ResolveMethod(system, 'initializeSystemClass', '()V'))
+
+    # create file input stream
+    fileDescriptorCls = @JVM_ResolveClass('java/io/FileDescriptor')
         
+    method_id = '<init>'
+    method_desc = '(Ljava/io/FileDescriptor;)V'
+    fileOutputStreamCls =  @JVM_ResolveClass('java/io/FileOutputStream')
+    bufferedOutputStreamCls =  @JVM_ResolveClass('java/io/BufferedOutputStream')
+    printStreamCls =  @JVM_ResolveClass('java/io/PrintStream')
+     
+     
+    method = @JVM_ResolveMethod(fileOutputStreamCls, method_id, method_desc)
+    
+    fdIn = fileDescriptorCls.fields.in
+    
+    fileOutputStreamObj = @RDA.heap.allocate(@JVM_NewObject(fileOutputStreamCls, method, [fdIn]))
+    
+    method_id = '<init>'
+    method_desc = '(Ljava/io/OutputStream;I)V'
+    method = @JVM_ResolveMethod(bufferedOutputStreamCls, method_id, method_desc)
+    # create buffered output stream obj
+    bufferedOutputStreamObj = @RDA.heap.allocate(@JVM_NewObject(bufferedOutputStreamCls, method, [fileOutputStreamObj, new CONSTANT_integer(128)] ))
+    # create printstream
+    method_id = '<init>'
+    method_desc = '(Ljava/io/OutputStream;Z)V'
+    method = @JVM_ResolveMethod(printStreamCls, method_id, method_desc)
+    printStreamObj = @RDA.heap.allocate(@JVM_NewObject(printStreamCls, method, [bufferedOutputStreamObj, new CONSTANT_boolean(1)]))
+    # call setOut0
+    
     
   # Our own Java Data Structures. These provide an extra 'type' var to allow 
   # our typeless language to still follow strict Java typing.
@@ -177,6 +215,10 @@
   JVM::SetStaticObjectField = (env,cls,fieldId,stream) ->
     cls.fields[fieldId].value = stream
 
+  JVM::GetObjectField = (objectReference, fieldname) ->
+    obj = @RDA.heap[objectReference.pointer]
+    field = obj[fieldname]
+    return field
   # java.lang.Runtime
 
   JVM::JVM_Exit = (code) ->
@@ -400,9 +442,9 @@
       
       charArray = @RDA.heap.allocate(charArray)
       stringobj = @JVM_NewObject(cls, method, [])
-      stringobj.fields['count'] = literal.length
+      stringobj.count = literal.length
       stringobj.value = charArray
-      
+      console.log('Done interning')
       @JVM_InternedStrings[literal] = stringobj
     
     return @RDA.heap.allocate(@JVM_InternedStrings[literal])
@@ -422,7 +464,23 @@
       re = re.concat( st.reverse() );  
     return re 
      
-     
+  JVM::JVM_InvokeMethod = (object, method, args) ->
+    cls = @JVM_FromHeap(object).cls
+    t = new Thread(cls, @RDA, method) 
+    t.current_frame.locals[0] = object
+    arg_num = args.length
+    while arg_num > 0
+      t.current_frame.locals[arg_num] = args[arg_num-1]
+      arg_num--
+        
+    t.start()
+  
+  JVM::JVM_NewObjectByReference = (clsname, constructorname, descriptor, args, thread) ->
+    if (cls = @JVM_ResolveClass(clsname, thread)) == null
+      return
+    method = @JVM_ResolveMethod(cls, constructorname, descriptor)
+    return @RDA.heap.allocate(@JVM_NewObject(cls, method, args))
+  
   JVM::JVM_NewObject = (cls, constructor, args) ->  
     obj = new JVM_Object(cls)    
     objref = @RDA.heap.allocate(obj)
@@ -442,6 +500,14 @@
   
   JVM::JVM_ResolveNativeMethod = (cls, name, type) ->
   
+  ###
+  JVM::JVM_ResolveField = (obj, name) ->
+    loop
+      if obj.fields[name]
+        return cls.fields[name]
+      obj = cls.get_super()
+      assert(cls, 'FieldResolutionException')
+  ###    
   
   JVM::JVM_ResolveMethod = (cls, name, type) ->
     if cls.methods[name+type]?
@@ -464,8 +530,8 @@
               method.args.push(arg)
             else if args[i] is '['
               endarg = args.substring(i).search('[B-Z]')
-              method.args.push(args.substring(i, endarg+1))
-              i = endarg
+              method.args.push(args.substring(i, endarg+i+1))
+              i += endarg
             else
               method.args.push(args[i])
             ++nargs
@@ -484,7 +550,20 @@
   # Find a class from a boot class loader. Returns NULL if class not found.
    
   
+  JVM::JVM_InvokeStaticMethod = (clsname, method_name, descriptor, args, thread) ->
+    if(cls = @JVM_ResolveClass(clsname, thread)) == null
+      return false
+    method = @JVM_ResolveMethod(cls, method_name, descriptor)
     
+    t = new Thread(cls, @RDA, method) 
+    arg_num = args.length-1
+    while arg_num > -1
+      t.current_frame.locals[arg_num] = args[arg_num]
+      arg_num--
+        
+    t.start() 
+    
+  
   JVM::JVM_FindClassFromBootLoader = (env, name) ->
     if classname? && classname.length > 0
       @classLoader.postMessage({ 'action' : 'find' , 'param' : classname })
@@ -527,6 +606,7 @@
 
 
   JVM::JVM_GetClassLoader = (env, cls) ->
+    return env.RDA.heap.allocate(@JVM_ClassLoader)
 
   JVM::JVM_IsInterface = (env, cls) ->
 
@@ -550,7 +630,11 @@
 
   JVM::JVM_GetDeclaringClass = (env, ofClass) ->
 
-
+  JVM::JVM_FromHeap = (reference) ->
+    return @RDA.heap[reference.pointer]
+      
+  class this.JVM_ClassLoader
+  JVM::JVM_ClassLoader = new JVM_ClassLoader()
 
 	
   JVM::JVM_RECOGNIZED_METHOD_MODIFIERS = {

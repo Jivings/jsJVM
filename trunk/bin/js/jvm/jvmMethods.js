@@ -13,15 +13,13 @@
       var field, fld, supercls;
       this.cls = cls;
       supercls = this.cls.get_super();
-      if (supercls === void 0) {
+      if (supercls !== void 0) {
         this.__proto__ = new JVM_Object(supercls);
       }
-      this.fields = {};
       for (field in this.cls.fields) {
         fld = this.cls.fields[field];
-        this.fields[field] = fld;
+        this[field] = fld;
       }
-      this.methods = this.cls.methods;
     }
     JVM_Object.prototype.monitor = {
       aquireLock: function(thread) {
@@ -109,9 +107,23 @@
   })();
   this.CONSTANT_integer = (function() {
     __extends(CONSTANT_integer, JVM_Number);
-    function CONSTANT_integer(val) {
+    function CONSTANT_integer(val, sign) {
+      var signed, unsigned;
       if (val == null) {
         val = 0;
+      }
+      if (sign == null) {
+        sign = false;
+      }
+      if (sign) {
+        unsigned = val >> 0;
+        signed = (~unsigned) & 0xffff;
+        signed += 1;
+        if (unsigned === 1) {
+          val = 0 - signed;
+        } else {
+          val = signed;
+        }
       }
       CONSTANT_integer.__super__.constructor.call(this, val);
     }
@@ -201,9 +213,25 @@
     return true;
   };
   JVM.prototype.InitializeSystemClass = function() {
-    var system;
+    var bufferedOutputStreamCls, bufferedOutputStreamObj, fdIn, fileDescriptorCls, fileOutputStreamCls, fileOutputStreamObj, method, method_desc, method_id, printStreamCls, printStreamObj, system;
     this.assert((system = this.RDA.method_area['java/lang/System']) !== null, "System not loaded before InitializeSystemClass");
-    return this.RDA.createThread('java/lang/System', this.JVM_ResolveMethod(system, 'initializeSystemClass', '()V'));
+    fileDescriptorCls = this.JVM_ResolveClass('java/io/FileDescriptor');
+    method_id = '<init>';
+    method_desc = '(Ljava/io/FileDescriptor;)V';
+    fileOutputStreamCls = this.JVM_ResolveClass('java/io/FileOutputStream');
+    bufferedOutputStreamCls = this.JVM_ResolveClass('java/io/BufferedOutputStream');
+    printStreamCls = this.JVM_ResolveClass('java/io/PrintStream');
+    method = this.JVM_ResolveMethod(fileOutputStreamCls, method_id, method_desc);
+    fdIn = fileDescriptorCls.fields["in"];
+    fileOutputStreamObj = this.RDA.heap.allocate(this.JVM_NewObject(fileOutputStreamCls, method, [fdIn]));
+    method_id = '<init>';
+    method_desc = '(Ljava/io/OutputStream;I)V';
+    method = this.JVM_ResolveMethod(bufferedOutputStreamCls, method_id, method_desc);
+    bufferedOutputStreamObj = this.RDA.heap.allocate(this.JVM_NewObject(bufferedOutputStreamCls, method, [fileOutputStreamObj, new CONSTANT_integer(128)]));
+    method_id = '<init>';
+    method_desc = '(Ljava/io/OutputStream;Z)V';
+    method = this.JVM_ResolveMethod(printStreamCls, method_id, method_desc);
+    return printStreamObj = this.RDA.heap.allocate(this.JVM_NewObject(printStreamCls, method, [bufferedOutputStreamObj, new CONSTANT_boolean(1)]));
   };
   JVM.prototype.JVM_IHashCode = function() {
     return 1;
@@ -235,6 +263,12 @@
   };
   JVM.prototype.SetStaticObjectField = function(env, cls, fieldId, stream) {
     return cls.fields[fieldId].value = stream;
+  };
+  JVM.prototype.GetObjectField = function(objectReference, fieldname) {
+    var field, obj;
+    obj = this.RDA.heap[objectReference.pointer];
+    field = obj[fieldname];
+    return field;
   };
   JVM.prototype.JVM_Exit = function(code) {};
   JVM.prototype.JVM_Halt = function(code) {};
@@ -371,8 +405,9 @@
       }
       charArray = this.RDA.heap.allocate(charArray);
       stringobj = this.JVM_NewObject(cls, method, []);
-      stringobj.fields['count'] = literal.length;
+      stringobj.count = literal.length;
       stringobj.value = charArray;
+      console.log('Done interning');
       this.JVM_InternedStrings[literal] = stringobj;
     }
     return this.RDA.heap.allocate(this.JVM_InternedStrings[literal]);
@@ -395,6 +430,26 @@
     }
     return re;
   };
+  JVM.prototype.JVM_InvokeMethod = function(object, method, args) {
+    var arg_num, cls, t;
+    cls = this.JVM_FromHeap(object).cls;
+    t = new Thread(cls, this.RDA, method);
+    t.current_frame.locals[0] = object;
+    arg_num = args.length;
+    while (arg_num > 0) {
+      t.current_frame.locals[arg_num] = args[arg_num - 1];
+      arg_num--;
+    }
+    return t.start();
+  };
+  JVM.prototype.JVM_NewObjectByReference = function(clsname, constructorname, descriptor, args, thread) {
+    var cls, method;
+    if ((cls = this.JVM_ResolveClass(clsname, thread)) === null) {
+      return;
+    }
+    method = this.JVM_ResolveMethod(cls, constructorname, descriptor);
+    return this.RDA.heap.allocate(this.JVM_NewObject(cls, method, args));
+  };
   JVM.prototype.JVM_NewObject = function(cls, constructor, args) {
     var arg_num, obj, objref, t;
     obj = new JVM_Object(cls);
@@ -410,6 +465,14 @@
     return obj;
   };
   JVM.prototype.JVM_ResolveNativeMethod = function(cls, name, type) {};
+  /*
+    JVM::JVM_ResolveField = (obj, name) ->
+      loop
+        if obj.fields[name]
+          return cls.fields[name]
+        obj = cls.get_super()
+        assert(cls, 'FieldResolutionException')
+    */
   JVM.prototype.JVM_ResolveMethod = function(cls, name, type) {
     var arg, args, descriptor, endarg, i, index, method, nargs;
     if (cls.methods[name + type] != null) {
@@ -432,8 +495,8 @@
               method.args.push(arg);
             } else if (args[i] === '[') {
               endarg = args.substring(i).search('[B-Z]');
-              method.args.push(args.substring(i, endarg + 1));
-              i = endarg;
+              method.args.push(args.substring(i, endarg + i + 1));
+              i += endarg;
             } else {
               method.args.push(args[i]);
             }
@@ -454,6 +517,20 @@
       this.assert(cls, 'MethodResolutionException');
     }
     return false;
+  };
+  JVM.prototype.JVM_InvokeStaticMethod = function(clsname, method_name, descriptor, args, thread) {
+    var arg_num, cls, method, t;
+    if ((cls = this.JVM_ResolveClass(clsname, thread)) === null) {
+      return false;
+    }
+    method = this.JVM_ResolveMethod(cls, method_name, descriptor);
+    t = new Thread(cls, this.RDA, method);
+    arg_num = args.length - 1;
+    while (arg_num > -1) {
+      t.current_frame.locals[arg_num] = args[arg_num];
+      arg_num--;
+    }
+    return t.start();
   };
   JVM.prototype.JVM_FindClassFromBootLoader = function(env, name) {
     if ((typeof classname !== "undefined" && classname !== null) && classname.length > 0) {
@@ -482,7 +559,9 @@
     return cls.get_name();
   };
   JVM.prototype.JVM_GetClassInterfaces = function(env, cls) {};
-  JVM.prototype.JVM_GetClassLoader = function(env, cls) {};
+  JVM.prototype.JVM_GetClassLoader = function(env, cls) {
+    return env.RDA.heap.allocate(this.JVM_ClassLoader);
+  };
   JVM.prototype.JVM_IsInterface = function(env, cls) {};
   JVM.prototype.JVM_GetClassSigners = function(env, cls) {};
   JVM.prototype.JVM_SetClassSigners = function(env, cls, signers) {};
@@ -494,6 +573,14 @@
   JVM.prototype.JVM_GetClassModifiers = function(env, cls) {};
   JVM.prototype.JVM_GetDeclaredClasses = function(env, ofClass) {};
   JVM.prototype.JVM_GetDeclaringClass = function(env, ofClass) {};
+  JVM.prototype.JVM_FromHeap = function(reference) {
+    return this.RDA.heap[reference.pointer];
+  };
+  this.JVM_ClassLoader = (function() {
+    function JVM_ClassLoader() {}
+    return JVM_ClassLoader;
+  })();
+  JVM.prototype.JVM_ClassLoader = new JVM_ClassLoader();
   JVM.prototype.JVM_RECOGNIZED_METHOD_MODIFIERS = {
     JVM_ACC_PUBLIC: 0x0001,
     JVM_ACC_PRIVATE: 0x0002,

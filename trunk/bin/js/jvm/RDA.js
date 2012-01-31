@@ -9,7 +9,8 @@
         permgen: {},
         oldgen: {},
         younggen: {},
-        id: 0
+        id: 0,
+        0: null
       };
       this.heap.allocate = function(object) {
         var ref;
@@ -111,6 +112,9 @@
     };
     Thread.prototype.resolveMethod = function(name, cls, type) {
       return this.RDA.JVM.JVM_ResolveMethod(cls, name, type);
+    };
+    Thread.prototype.resolveField = function(cls, name) {
+      return this.RDA.JVM.JVM_ResolveField(cls, name);
     };
     /*
       Called when waiting threads are notified by the RDA. Will continue opcode 

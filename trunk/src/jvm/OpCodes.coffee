@@ -1,3 +1,4 @@
+
 class this.OpCodes
       
   constructor : (thread) ->    
@@ -5,28 +6,28 @@ class this.OpCodes
     @[0] = new OpCode('nop', 'Does nothing', (frame) -> yes )
     
     @[1] = new OpCode('aconst_null', 'Push null object reference', (frame) -> 
-      frame.op_stack.push(null)
+      frame.op_stack.push(new JVM_Reference(0))
     )
     @[2] = new OpCode('iconst_m1', 'Push int constant -1', (frame) -> 
-      frame.op_stack.push(-1)
+      frame.op_stack.push(new CONSTANT_integer(-1))
     )
     @[3] = new OpCode('iconst_0', 'Push int constant 0', (frame) -> 
-      frame.op_stack.push(0)
+      frame.op_stack.push(new CONSTANT_integer(0))
     )
     @[4] = new OpCode('iconst_1', 'Push int constant 1', (frame) -> 
-      frame.op_stack.push(1)  
+      frame.op_stack.push(new CONSTANT_integer(1))
     )
     @[5] = new OpCode('iconst_2', 'Push int constant 2', (frame) -> 
-      frame.op_stack.push(2)
+      frame.op_stack.push(new CONSTANT_integer(2))
     )
     @[6] = new OpCode('iconst_3', 'Push int constant 3', (frame) -> 
-      frame.op_stack.push(3)
+      frame.op_stack.push(new CONSTANT_integer(3))
     )
     @[7] = new OpCode('iconst_4', 'Push int constant 4', (frame) -> 
-      frame.op_stack.push(4)
+      frame.op_stack.push(new CONSTANT_integer(4))
     )
     @[8] = new OpCode('iconst_5', 'Pushes int constant 5 to the frame.op_stack.', (frame) -> 
-      frame.op_stack.push(5)
+      frame.op_stack.push(new CONSTANT_integer(5))
     )
     @[9] = new OpCode('lconst_0', 'Push long constant 0', (frame) -> 
       frame.op_stack.push(new CONSTANT_long(0))
@@ -54,13 +55,13 @@ class this.OpCodes
       frame.op_stack.push(new CONSTANT_double(1.0))
     )
     @[16] = new OpCode('bipush', 'Push 8 bit signed integer', (frame) -> 
-      frame.op_stack.push(frame.method_stack[++thread.pc])
+      frame.op_stack.push(new CONSTANT_integer(@getIndexByte(1, frame, thread)))
     )
     @[17] = new OpCode('sipush', 'Push short', (frame) -> 
       byte1 = @getIndexByte(1, frame, thread)
       byte2 = @getIndexByte(2, frame, thread)
       short = (byte1 << 8) | byte2
-      frame.op_stack.push(short)
+      frame.op_stack.push(new CONSTANT_short(short))
     )
     @[18] = new OpCode('ldc', 'Push item from constant pool', (frame) -> 
       item = @getIndexByte(1, frame, thread)
@@ -70,19 +71,23 @@ class this.OpCodes
       if item == 'undefined'
         throw 'JVM_Error: Undefined item on stack'
       # TODO check item is valid
+      if item instanceof JVM_Object
+        item = new JVM_Reference(thread.RDA.heap.allocate(item))
       frame.op_stack.push(item)
     )
     @[19] = new OpCode('ldc_w', 'Push item from constant pool (wide index)', (frame) -> 
       item = @constructIndex(frame, thread)
       while typeof (item = @fromClass(item, thread)) is 'number' 
         continue
-      # TODO check item is valid
+      if item instanceof JVM_Object
+        item = new JVM_Reference(thread.RDA.heap.allocate(item))
       frame.op_stack.push(item)
     )
     @[20] = new OpCode('ldc2_w', 'Push long or double from constant pool (wide index)', (frame) -> 
       index = @constructIndex(frame, thread)
       item = thread.current_class.constant_pool[index]
       # TODO check item is long or double
+      frame.op_stack.push(item)
       frame.op_stack.push(item)
     )
     @[21] = new OpCode('iload', 'Load int from local variable', (frame) -> 
@@ -115,14 +120,18 @@ class this.OpCodes
     )
     @[30] = new OpCode('lload_0', 'Load long from local variable 0', (frame) -> 
       frame.op_stack.push(frame.locals[0])
+      frame.op_stack.push(frame.locals[0])
     )
     @[31] = new OpCode('lload_1', 'Load long from local variable 1', (frame) -> 
+      frame.op_stack.push(frame.locals[1])
       frame.op_stack.push(frame.locals[1])
     )
     @[32] = new OpCode('lload_2', 'Load long from local variable 2', (frame) -> 
       frame.op_stack.push(frame.locals[2])
+      frame.op_stack.push(frame.locals[2])
     )
     @[33] = new OpCode('lload_3', 'Load long from local variable 3', (frame) -> 
+      frame.op_stack.push(frame.locals[3])
       frame.op_stack.push(frame.locals[3])
     )
     @[34] = new OpCode('fload_0', 'Load float from local var 0', (frame) -> 
@@ -140,27 +149,28 @@ class this.OpCodes
     @[38] = new OpCode('dload_0', 'Load double from local variable', (frame) -> 
       halfDouble = frame.locals[0]
       secHalfDouble = frame.locals[1]  
+      # TODO doubles take two locals?
       frame.op_stack.push(halfDouble)
-      frame.op_stack.push(secHalfDouble)
+      frame.op_stack.push(halfDouble)
       # TODO Maybe use IEEE floating point doubles...?      
     )
-    @[39] = new OpCode('dload_1', 'Load double from local variable', (frame) -> 
+    @[39] = new OpCode('dload_1', 'Load double from local variable 1', (frame) -> 
       halfDouble = frame.locals[0]
       secHalfDouble = frame.locals[1]  
       frame.op_stack.push(halfDouble)
-      frame.op_stack.push(secHalfDouble)
+      frame.op_stack.push(halfDouble)
     )
-    @[40] = new OpCode('dload_2', 'Load double from local variable', (frame) -> 
+    @[40] = new OpCode('dload_2', 'Load double from local variable 2', (frame) -> 
       halfDouble = frame.locals[0]
       secHalfDouble = frame.locals[1]  
       frame.op_stack.push(halfDouble)
-      frame.op_stack.push(secHalfDouble)
+      frame.op_stack.push(halfDouble)
     )
-    @[41] = new OpCode('dload_3', 'Load double from local variable', (frame) -> 
+    @[41] = new OpCode('dload_3', 'Load double from local variable 3', (frame) -> 
       halfDouble = frame.locals[0]
       secHalfDouble = frame.locals[1]  
       frame.op_stack.push(halfDouble)
-      frame.op_stack.push(secHalfDouble)
+      frame.op_stack.push(halfDouble)
     )
     @[42] = new OpCode('aload_0', 'Load reference from local variable 0', (frame) -> 
       frame.op_stack.push(frame.locals[0])
@@ -226,8 +236,10 @@ class this.OpCodes
       frame.op_stack.push(ref)
     )
     @[51] = new OpCode('baload', 'Load byte or boolean from array', (frame) -> 
-      arrayref = frame.op_stack.pop()
+
       arrayindex = frame.op_stack.pop()
+      arrayref = frame.op_stack.pop()
+      
       if not arrayref instanceof JVM_Reference
         athrow('RuntimeException')
         return false
@@ -241,28 +253,30 @@ class this.OpCodes
       frame.op_stack.push(array[arrayindex])      
     )
     @[52] = new OpCode('caload', 'Load char from array', (frame) -> 
-      arrayref = frame.op_stack.pop()
       arrayindex = frame.op_stack.pop()
+      arrayref = frame.op_stack.pop()
+      
       if not arrayref instanceof JVM_Reference
         athrow('RuntimeException')
         return false
       if arrayref == null
         athrow('NullPointerException')
         return false
-      array = fromHeap(arrayref)
+      array = @fromHeap(arrayref, thread)
       # array must be of type 'char' 
-      if array.type != 'char'
+      #if array.type != 'char'
         #do something..?
         # throw runtimeexception
-        return false
+        #return false
       if arrayindex >= array.length or arrayindex < 0
         athrow('ArrayIndexOutOfBounds')
         return false
-      frame.op_stack.push(array[arrayindex])
+      frame.op_stack.push(new CONSTANT_char(array[arrayindex.val]))
     )
     @[53] = new OpCode('saload', 'Load short from array', (frame) -> 
-      arrayref = frame.op_stack.pop()
       arrayindex = frame.op_stack.pop()
+      arrayref = frame.op_stack.pop()
+      
       if not arrayref instanceof JVM_Reference
         athrow('RuntimeException')
         return false
@@ -393,9 +407,11 @@ class this.OpCodes
       yes
     )
     @[79] = new OpCode('iastore', 'Store into int array', (frame) -> 
-      arrayref = frame.op_stack.pop()
-      arrayindex = frame.op_stack.pop()
       value = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
+      arrayref = frame.op_stack.pop()
+      
+     
       
       array = thread.RDA.heap[arrayref]
       if array is null
@@ -405,9 +421,10 @@ class this.OpCodes
       array[arrayindex] = value
     )
     @[80] = new OpCode('lastore', 'Store into long array', (frame) -> 
-      arrayref = frame.op_stack.pop()
-      arrayindex = frame.op_stack.pop()
+      
       value = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
+      arrayref = frame.op_stack.pop()
       
       array = thread.RDA.heap[arrayref]
       if array is null
@@ -417,9 +434,9 @@ class this.OpCodes
       array[arrayindex] = value
     )
     @[81] = new OpCode('fastore', 'Store into float array', (frame) -> 
-      arrayref = frame.op_stack.pop()
-      arrayindex = frame.op_stack.pop()
       value = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
+      arrayref = frame.op_stack.pop()
       
       array = thread.RDA.heap[arrayref]
       if array is null
@@ -429,10 +446,10 @@ class this.OpCodes
       array[arrayindex] = value
     )
     @[82] = new OpCode('dastore', 'Store double into array', (frame) -> 
-      arrayref = frame.op_stack.pop()
-      arrayindex = frame.op_stack.pop()
       value = frame.op_stack.pop()
-      
+      arrayindex = frame.op_stack.pop()
+      arrayref = frame.op_stack.pop()
+
       array = thread.RDA.heap[arrayref]
       if array is null
         athrow('NullPointerException')
@@ -441,9 +458,11 @@ class this.OpCodes
       array[arrayindex] = value
     )
     @[83] = new OpCode('aastore', 'Store reference into Array', (frame) -> 
-      arrayref = frame.op_stack.pop()
-      arrayindex = frame.op_stack.pop()
       value = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
+      arrayref = frame.op_stack.pop()
+      
+      
       #TODO value must be compatable with the arraytype
       
       array = thread.RDA.heap[arrayref]
@@ -454,9 +473,10 @@ class this.OpCodes
       array[arrayindex] = value
     )
     @[84] = new OpCode('bastore', 'Store into byte or boolean Array', (frame) -> 
-      arrayref = frame.op_stack.pop()
-      arrayindex = frame.op_stack.pop()
       value = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
+      arrayref = frame.op_stack.pop()
+      
       array = @fromHeap(arrayref)
       if array is null
         athrow('NullPointerException')
@@ -476,9 +496,11 @@ class this.OpCodes
       array[arrayindex] = value
     )
     @[86] = new OpCode('sastore', 'Store into short array', (frame) -> 
-      arrayref = frame.op_stack.pop()
-      arrayindex = frame.op_stack.pop()
       value = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop()
+      arrayref = frame.op_stack.pop()
+      
+      
       array = @fromHeap(arrayref)
       if array is null
         athrow('NullPointerException')
@@ -777,7 +799,7 @@ class this.OpCodes
       value2 = frame.op_stack.pop().valueOf()
       s = value2 & 0x1f
       result = value1 >> s
-      frame.op_stack.push(new CONSTANT_Intger(result))
+      frame.op_stack.push(new CONSTANT_integer(result))
     )
     @[123] = new OpCode('lshr', 'Arithmetic shift right long', (frame) -> 
       value1 = frame.op_stack.pop().valueOf()
@@ -857,10 +879,11 @@ class this.OpCodes
       frame.op_stack.push(new CONSTANT_long(result))
     )
     @[132] = new OpCode('iinc', 'Increment local variable by constant', (frame) -> 
-      index = getIndexByte(1, frame, thread)
-      consta = getIndexByte(2, frame, thread)
-      result = index + consta
-      frame.op_stack.push(new CONSTANT_integer(result))
+      index = @getIndexByte(1, frame, thread)
+      consta = @getIndexByte(2, frame, thread)
+      variable = frame.locals[index]
+      variable += consta
+      frame.locals[index] = variable
     )
     @[133] = new OpCode('i2l', 'Convert int to long', (frame) -> 
       value = frame.op_stack.pop().valueOf()
@@ -1070,7 +1093,7 @@ class this.OpCodes
     @[161] = new OpCode('if_icmplt', 'Branch if int1 < int2', (frame) -> 
       value2 = frame.op_stack.pop()
       value1 = frame.op_stack.pop()
-      branch = @constructIndex(frame, thread)
+      branch = new CONSTANT_integer(@constructIndex(frame, thread), true)
       if value1 < value2
         thread.pc -= 3
         thread.pc += branch
@@ -1252,6 +1275,8 @@ class this.OpCodes
         
       # push the ref to the stack of the invoking method.
       invoker = thread.jvm_stack.peek()
+      if invoker is undefined
+        return true
       invoker.op_stack.push(returnref)
       # make invoker current and set pc to where invoker was left off
       thread.current_frame = invoker
@@ -1324,7 +1349,7 @@ class this.OpCodes
       nameandtype = @fromClass(fieldref.name_and_type_index, thread)
       fieldname = @fromClass(nameandtype.name_index, thread)
       descriptor = @fromClass(nameandtype.descriptor_index, thread)
-      field = @fromHeap(objectref.pointer, thread).fields[fieldname]
+      field = @fromHeap(objectref.pointer, thread)[fieldname]
       frame.op_stack.push(field)
       yes
       # TODO check method stuff (protected etc)
@@ -1340,7 +1365,7 @@ class this.OpCodes
       fieldname = @fromClass(nameandtype.name_index, thread)
       descriptor = @fromClass(nameandtype.descriptor_index, thread)
       object = @fromHeap(objectref.pointer, thread)
-      object.fields[fieldname] = value  
+      object[fieldname] = value  
       yes
       # TODO check method stuff (protected etc)
     )
@@ -1364,7 +1389,7 @@ class this.OpCodes
         athrow('AbstractMethodError')
              
               
-      newframe = thread.createFrame(method, cls)
+      newframe = thread.createFrame(method, method.belongsTo)
       thread.current_class = method.belongsTo
       frame.pc += 2
       thread.pc = -1
@@ -1494,6 +1519,8 @@ class this.OpCodes
         athrow('NegativeArraySizeException')
 
       arr = new Array(count)
+      while count-- > 0
+        arr[count] = new JVM_Reference(0) # reference to null
       arr['type'] = 'L' + cls.real_name
       arrayref = thread.RDA.heap.allocate(arr)
       frame.op_stack.push(arrayref)
@@ -1532,7 +1559,7 @@ class this.OpCodes
       if(T = thread.resolveClass(clsindex)) == null
         return false
                 
-      if objectref == null
+      if S == null
         return true
         
       # if T is class type then S must be the same class, or a subclass of T

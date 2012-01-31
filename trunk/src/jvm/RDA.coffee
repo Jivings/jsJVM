@@ -2,6 +2,7 @@
 Runtime Data Area of the JVM. Stores all class, method and stack data.
 ###
 
+
 class this.RDA 
   constructor : ->
     
@@ -17,6 +18,7 @@ class this.RDA
       oldgen : {}
       younggen : {}
       id : 0
+      0 : null # null object on heap, for all null references
     }
     
     @heap.allocate = (object) -> 
@@ -124,7 +126,9 @@ class this.Thread
      
   resolveMethod : (name, cls, type) ->
     @RDA.JVM.JVM_ResolveMethod(cls, name, type)    
-   
+  
+  resolveField : (cls, name) ->
+    @RDA.JVM.JVM_ResolveField(cls, name)
   ###
   Called when waiting threads are notified by the RDA. Will continue opcode 
   loop
@@ -196,6 +200,11 @@ class this.Frame
 
   execute : (@pc, opcodes) ->
     op = @method_stack[@pc]
+    
+    #if typeof opcodesUsed[op] == 'number'
+    #  opcodesUsed[op] = opcodesUsed[op]++
+    #else opcodesUsed[op] = 0
+    
     if(!opcodes[op].do(@)) then return false
     return yes
   

@@ -3,9 +3,10 @@ class this.ClassLoader
   stack : new Array
   ps_id : 0
   required_classes : [
+    'java/lang/Class'
     'java/lang/String'
     'java/lang/System'
-    'java/lang/Class'
+    
    # 'java/io/FileDescriptor'
    # 'java/io/FileInputStream'
    # 'java/io/FileOutputStream'
@@ -50,7 +51,7 @@ class this.ClassLoader
   ###
   Starts the Classloader, calls load evey 10th of a second
   ###
-  start : (JVM) ->
+  start : (@JVM) ->
     self = this
     @ps_id = setInterval((() ->  self.load()), 100)
 
@@ -87,13 +88,14 @@ class this.ClassLoader
   Adds class to Method Area and loads class dependancies
   ###
   loaded : (_class, self, waitingThreads) ->
+    
     # load dependancies, this way super class Object will always be the first class loaded.
 
     self.find _class.get_super()
     
     self.loaded_classes[_class.get_name()] = 'Loaded'
         
-
+  
     # notify JVM that class has been loaded
     self.returnMethod(_class.get_name(), _class, waitingThreads)
      

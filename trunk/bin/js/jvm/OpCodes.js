@@ -55,12 +55,12 @@
         return frame.op_stack.push(new CONSTANT_double(1.0));
       });
       this[16] = new OpCode('bipush', 'Push 8 bit signed integer', function(frame) {
-        return frame.op_stack.push(new CONSTANT_integer(this.getIndexByte(1, frame, thread)));
+        return frame.op_stack.push(new CONSTANT_integer(this.getIndexByte(1, frame, thread), false));
       });
       this[17] = new OpCode('sipush', 'Push short', function(frame) {
         var byte1, byte2, short;
         byte1 = this.getIndexByte(1, frame, thread);
-        byte2 = this.getIndexByte(2, frame, thread);
+        byte2 = this.getIndexByte(1, frame, thread);
         short = (byte1 << 8) | byte2;
         return frame.op_stack.push(new CONSTANT_short(short));
       });
@@ -194,8 +194,8 @@
       });
       this[46] = new OpCode('iaload', 'Load int from array', function(frame) {
         var array, arrayindex, arrayref, int;
-        arrayref = frame.op_stack.pop();
         arrayindex = frame.op_stack.pop();
+        arrayref = frame.op_stack.pop();
         if (arrayref === null) {
           athrow('NullPointerException');
         }
@@ -626,7 +626,7 @@
         var i1, i2;
         i1 = frame.op_stack.pop();
         i2 = frame.op_stack.pop();
-        if (isNaN(i1.value) || isNaN(i2.value)) {
+        if (isNaN(i1.valueOf()) || isNaN(i2.valueOf())) {
           frame.op_stack.push(new CONSTANT_integer(Number.NaN));
           return true;
         }
@@ -864,17 +864,17 @@
       });
       this[120] = new OpCode('ishl', 'Arithmetic shift left int', function(frame) {
         var result, s, value1, value2;
-        value1 = frame.op_stack.pop().valueOf();
         value2 = frame.op_stack.pop().valueOf();
+        value1 = frame.op_stack.pop().valueOf();
         s = value2 & 0x1f;
         result = value1 << s;
-        return frame.op_stack.push(new CONSTANT_Intger(result));
+        return frame.op_stack.push(new CONSTANT_integer(result));
       });
       this[121] = new OpCode('lshl', 'Arithmetic shift left long', function(frame) {
         var result, s, value1, value2;
-        value1 = frame.op_stack.pop().valueOf();
-        frame.op_stack.pop().valueOf();
         value2 = frame.op_stack.pop().valueOf();
+        frame.op_stack.pop().valueOf();
+        value1 = frame.op_stack.pop().valueOf();
         s = value2 & 0x3f;
         result = value1 << s;
         frame.op_stack.push(new CONSTANT_long(result));
@@ -882,17 +882,17 @@
       });
       this[122] = new OpCode('ishr', 'Arithmetic shift right int', function(frame) {
         var result, s, value1, value2;
-        value1 = frame.op_stack.pop().valueOf();
         value2 = frame.op_stack.pop().valueOf();
+        value1 = frame.op_stack.pop().valueOf();
         s = value2 & 0x1f;
         result = value1 >> s;
         return frame.op_stack.push(new CONSTANT_integer(result));
       });
       this[123] = new OpCode('lshr', 'Arithmetic shift right long', function(frame) {
         var result, s, value1, value2;
-        value1 = frame.op_stack.pop().valueOf();
-        frame.op_stack.pop().valueOf();
         value2 = frame.op_stack.pop().valueOf();
+        frame.op_stack.pop().valueOf();
+        value1 = frame.op_stack.pop().valueOf();
         s = value2 & 0x3f;
         result = value1 >> s;
         frame.op_stack.push(new CONSTANT_long(result));
@@ -900,8 +900,8 @@
       });
       this[124] = new OpCode('iushr', 'Logical shift right int', function(frame) {
         var result, s, value1, value2;
-        value1 = frame.op_stack.pop().valueOf();
         value2 = frame.op_stack.pop().valueOf();
+        value1 = frame.op_stack.pop().valueOf();
         s = value2 & 0x1f;
         if (value1 > 0) {
           result = value1 >> s;
@@ -912,9 +912,9 @@
       });
       this[125] = new OpCode('lushr', 'Logical shift right long', function(frame) {
         var result, s, value1, value2;
-        value1 = frame.op_stack.pop().valueOf();
-        frame.op_stack.pop().valueOf();
         value2 = frame.op_stack.pop().valueOf();
+        frame.op_stack.pop().valueOf();
+        value1 = frame.op_stack.pop().valueOf();
         s = value2 & 0x1f;
         if (value1 > 0) {
           result = value1 >> s;
@@ -976,11 +976,12 @@
         return frame.op_stack.push(new CONSTANT_long(result));
       });
       this[132] = new OpCode('iinc', 'Increment local variable by constant', function(frame) {
-        var consta, index, variable;
+        var consta, index, unsigned, variable;
         index = this.getIndexByte(1, frame, thread);
-        consta = this.getIndexByte(2, frame, thread);
+        unsigned = this.getIndexByte(1, frame, thread);
+        consta = new CONSTANT_byte(unsigned, true);
         variable = frame.locals[index];
-        variable += consta;
+        variable.val = variable.val + consta.value;
         return frame.locals[index] = variable;
       });
       this[133] = new OpCode('i2l', 'Convert int to long', function(frame) {
@@ -1155,7 +1156,7 @@
       });
       this[153] = new OpCode('ifeq', 'Branch if value is 0', function(frame) {
         var branch;
-        branch = this.constructIndex(frame, thread);
+        branch = new CONSTANT_integer(this.constructIndex(frame, thread), true);
         if (frame.op_stack.pop() === 0) {
           thread.pc -= 3;
           thread.pc += branch;
@@ -1164,8 +1165,8 @@
       });
       this[154] = new OpCode('ifne', 'Branch if value isnt 0', function(frame) {
         var branch;
-        branch = this.constructIndex(frame, thread);
-        if (frame.op_stack.pop() !== 0) {
+        branch = new CONSTANT_integer(this.constructIndex(frame, thread), true);
+        if (frame.op_stack.pop().valueOf() !== 0) {
           thread.pc -= 3;
           thread.pc += branch;
         }
@@ -1173,7 +1174,7 @@
       });
       this[155] = new OpCode('iflt', 'Branch if value < 0', function(frame) {
         var branch;
-        branch = this.constructIndex(frame, thread);
+        branch = new CONSTANT_integer(this.constructIndex(frame, thread), true);
         if (frame.op_stack.pop() < 0) {
           thread.pc -= 3;
           thread.pc += branch;
@@ -1182,7 +1183,7 @@
       });
       this[156] = new OpCode('ifge', 'Branch if value >= 0', function(frame) {
         var branch;
-        branch = this.constructIndex(frame, thread);
+        branch = new CONSTANT_integer(this.constructIndex(frame, thread), true);
         if (frame.op_stack.pop() >= 0) {
           thread.pc -= 3;
           thread.pc += branch;
@@ -1191,7 +1192,7 @@
       });
       this[157] = new OpCode('ifgt', 'Branch if value > 0', function(frame) {
         var branch;
-        branch = this.constructIndex(frame, thread);
+        branch = new CONSTANT_integer(this.constructIndex(frame, thread), true);
         if (frame.op_stack.pop() > 0) {
           thread.pc -= 3;
           thread.pc += branch;
@@ -1200,7 +1201,7 @@
       });
       this[158] = new OpCode('ifle', 'Branch if value <= 0', function(frame) {
         var branch;
-        branch = this.constructIndex(frame, thread);
+        branch = new CONSTANT_integer(this.constructIndex(frame, thread), true);
         if (frame.op_stack.pop() <= 0) {
           thread.pc -= 3;
           thread.pc += branch;
@@ -1211,7 +1212,7 @@
         var branch, value1, value2;
         value2 = frame.op_stack.pop();
         value1 = frame.op_stack.pop();
-        branch = this.constructIndex(frame, thread);
+        branch = new CONSTANT_integer(this.constructIndex(frame, thread), true);
         if (value1 === value2) {
           thread.pc -= 3;
           thread.pc += branch;
@@ -1222,7 +1223,7 @@
         var branch, value1, value2;
         value2 = frame.op_stack.pop();
         value1 = frame.op_stack.pop();
-        branch = this.constructIndex(frame, thread);
+        branch = new CONSTANT_integer(this.constructIndex(frame, thread), true);
         if (value1 !== value2) {
           thread.pc -= 3;
           thread.pc += branch;
@@ -1244,7 +1245,7 @@
         var branch, value1, value2;
         value2 = frame.op_stack.pop();
         value1 = frame.op_stack.pop();
-        branch = this.constructIndex(frame, thread);
+        branch = new CONSTANT_integer(this.constructIndex(frame, thread), true);
         if (value1 >= value2) {
           thread.pc -= 3;
           thread.pc += branch;
@@ -1255,7 +1256,7 @@
         var branch, value1, value2;
         value2 = frame.op_stack.pop();
         value1 = frame.op_stack.pop();
-        branch = this.constructIndex(frame, thread);
+        branch = new CONSTANT_integer(this.constructIndex(frame, thread), true);
         if (value1 > value2) {
           thread.pc -= 3;
           thread.pc += branch;
@@ -1266,7 +1267,7 @@
         var branch, value1, value2;
         value2 = frame.op_stack.pop();
         value1 = frame.op_stack.pop();
-        branch = this.constructIndex(frame, thread);
+        branch = new CONSTANT_integer(this.constructIndex(frame, thread), true);
         if (value1 <= value2) {
           thread.pc -= 3;
           thread.pc += branch;
@@ -1277,8 +1278,8 @@
         var branch, ref1, ref2;
         ref2 = frame.op_stack.pop();
         ref1 = frame.op_stack.pop();
+        branch = new CONSTANT_integer(this.constructIndex(frame, thread), true);
         if (ref1 === ref2) {
-          branch = this.constructIndex(frame, thread);
           thread.pc -= 3;
           thread.pc += branch;
         }
@@ -1288,7 +1289,7 @@
         var branch, ref1, ref2;
         ref2 = frame.op_stack.pop();
         ref1 = frame.op_stack.pop();
-        branch = this.constructIndex(frame, thread);
+        branch = new CONSTANT_integer(this.constructIndex(frame, thread), true);
         if (ref1 !== ref2) {
           thread.pc -= 3;
           thread.pc += branch;
@@ -1297,14 +1298,14 @@
       });
       this[167] = new OpCode('goto', 'Branch always', function(frame) {
         var offset;
-        offset = this.constructIndex(frame, thread);
+        offset = new CONSTANT_integer(this.constructIndex(frame, thread), true);
         thread.pc -= 3;
         return thread.pc += offset;
       });
       this[168] = new OpCode('jsr', 'Jump to subroutine', function(frame) {
         var offset;
         frame.op_stack.push(thread.pc);
-        offset = this.constructIndex(frame, thread);
+        offset = new CONSTANT_integer(this.constructIndex(frame, thread), true);
         thread.pc -= 3;
         return thread.pc += offset;
       });
@@ -1746,7 +1747,7 @@
         var branch, value;
         branch = this.constructIndex(frame, thread);
         value = frame.op_stack.pop();
-        if (value !== null) {
+        if (value.pointer !== 0) {
           thread.pc -= 3;
           thread.pc += branch;
         }

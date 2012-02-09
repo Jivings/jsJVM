@@ -86,9 +86,6 @@ class this.JVM
         scopedJVM.console.println(e.data.message)
       when 'class'
         scopedJVM.RDA.addClass(e.data.classname, e.data._class)
-        #scopedJVM.console.println "Loaded #{ e.data.classname }", 1
-       
-        #scopedJVM.RDA.clinit(e.data._class)
         # notify any threads waiting on this class
         if(e.data.waitingThreads) 
           scopedJVM.RDA.notifyAll(e.data.classname)

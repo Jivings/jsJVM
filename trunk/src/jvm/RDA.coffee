@@ -32,6 +32,8 @@ class this.RDA
     @method_area[name] = raw_class
   
   addClass : (classname, raw_class) ->
+    # create class object
+    
     # final resolution step, resolve superclass reference
     supercls = @method_area[raw_class.get_super()]
     raw_class.constant_pool[raw_class.super_class] = supercls

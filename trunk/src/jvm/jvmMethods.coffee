@@ -6,6 +6,8 @@
       if supercls != undefined
         @__proto__ = new JVM_Object(supercls)
         
+      # init class variable to null, this will get initialised later
+      @clsObject = new JVM_Reference(0)
       
       for field of @cls.fields
         fld = @cls.fields[field]
@@ -74,18 +76,17 @@
   class this.CONSTANT_integer extends JVM_Number
     constructor : (val = 0, sign = false) ->
       if sign
-        #signbit = val >> 15
-        #signed = val & 0x7fff
-        unsigned = val >> 0
-        signed = (~unsigned)&0xffff
-        signed += 1
-        if unsigned is 1
-          val = 0 - signed
-        else 
-          val = signed
-        
+        if (val & 0x8000) != 0 
+          next = ((~val)+1 & 0xffff)
+          val = (next * -1)
+      if isNaN(val)
+        throw 'UnexpectedNaN'
       super val    
-      
+  
+  class this.CONSTANT_int extends CONSTANT_integer
+    constructor : (val = 0, sign = false) ->
+      super(val, sign)
+          
   class this.CONSTANT_float extends JVM_Number
     constructor : (val = 0.0) ->
       super val
@@ -102,12 +103,17 @@
     constructor : (@value = '\u0000') ->
       @value = @value.charCodeAt();
   
-  class this.CONSTANT_short
-    constructor : (@value = 0) ->
+  class this.CONSTANT_short extends JVM_Number
+    constructor : (val = 0) ->
+      super val
     
   class this.CONSTANT_byte 
-    constructor : (@value = 0) ->
-    
+    constructor : (@value = 0, sign = false) ->
+      if sign
+        if (@value & 0x80) != 0 
+          next = ((~@value)+1 & 0xff)
+          @value = (next * -1)
+          
   class this.CONSTANT_boolean
     constructor : (@value = 0) ->
    
@@ -181,17 +187,20 @@
   JVM::JVM_MonitorWait = () -> 
     # Object will reside in locals[0]
     object = @locals[0]
+    throw 'NotYetImplementedException'
     
   yes
   
-  JVM::JVM_MonitorNotify = () -> yes
-  JVM::JVM_MonitorNotifyAll = () -> yes
-  JVM::JVM_Clone = () -> yes
-
+  JVM::JVM_MonitorNotify = () -> 
+    throw 'NotYetImplementedException'
+  JVM::JVM_MonitorNotifyAll = () -> 
+    throw 'NotYetImplementedException'
+  JVM::JVM_Clone = () -> 
+    throw 'NotYetImplementedException'
   # java.lang.String
 
   JVM::JVM_InternString = (env, jstring) ->
-
+    throw 'NotYetImplementedException'
 
   # java.lang.System
 
@@ -199,15 +208,24 @@
     return new CONSTANT_long(new Date().getTime())
     
   JVM::JVM_NanoTime = (env, ignoredJClass) ->
+    throw 'NotYetImplementedException'
 
-  JVM::JVM_ArrayCopy = (env, ignoredClass, srcObj, srcPos, destObj, dstPos, length) ->
+  JVM::JVM_ArrayCopy = (env, ignoredClass, length, dstPos, destObj, srcPos, srcObj) ->
+     src = env.JVM_FromHeap(srcObj)
+     arr = src.slice(srcPos.valueOf(), srcPos.valueOf() + length.valueOf())
+     dest = env.JVM_FromHeap(destObj)
+     destPos = dstPos.valueOf()
+     for index, ch of arr  
+        dest[new Number(index)+destPos] = ch;
+     yes
 
   JVM::JVM_InitProperties = (env, jobject) ->
-
+    throw 'NotYetImplementedException'
   # java.io.File
 
   JVM::JVM_OnExit = (func) ->
-
+    throw 'NotYetImplementedException'
+    
   JVM::GetStaticFieldID = (env, cls, fieldname, returnType) ->
     # TODO should be a field id!
     return fieldname
@@ -221,12 +239,22 @@
     return field
   # java.lang.Runtime
 
+  JVM::JVM_GetObjectClass = (objectReference) ->
+    obj = @JVM_FromHeap(objectReference)
+    if @JVM_FromHeap(obj.clsObject) is null
+      # this will always resolve
+      cls = @JVM_ResolveClass('java/lang/Class')
+      constructor = @JVM_ResolveMethod(cls, '<init>', '()V')
+      obj.clsObject = @JVM_NewObject(cls, constructor, [])
+    return @RDA.heap.allocate(obj.clsObject)
+
+  
   JVM::JVM_Exit = (code) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_Halt = (code) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_GC = () ->
-
+    throw 'NotYetImplementedException'
   ###
    Returns the number of real-time milliseconds that have elapsed since the
    least-recently-inspected heap object was last inspected by the garbage
@@ -244,27 +272,27 @@
   ###
 
   JVM::JVM_MaxObjectInspectionAge = () ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_TraceInstructions = (bool) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_TraceMethodCalls = (bool) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_TotalMemory = () ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_FreeMemory = () ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_MaxMemory = () ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_ActiveProcessorCount = () ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_LoadLibrary = (name) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_UnloadLibrary = (handle) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_FindLibraryEntry = (handle, name) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_IsSupportedJNIVersion = (version) ->
-
+    throw 'NotYetImplementedException'
 
   # java.lang.Float and java.lang.Double
 
@@ -277,88 +305,88 @@
     console.log('filling in stacktrace!')
 
   JVM::JVM_PrintStackTrace = (env, throwable, printable) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_GetStackTraceDepth = (env, throwable) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_GetStackTraceElement = (env, throwable, index) ->
-
+    throw 'NotYetImplementedException'
   # java.lang.Thread
 
   JVM::JVM_StartThread = (env, thread) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_StopThread = (env, thread, exception) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_IsThreadAlive = (env, thread) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_SuspendThread = (env, thread) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_ResumeThread = (env, thread) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_SetThreadPriority = (env, thread, prio) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_Yield = (env, threadClass) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_Sleep = (env, threadClass, millis) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_CurrentThread = (env, threadClass) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_CountStackFrames = (env, thread) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_Interrupt = (env, thread) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_IsInterrupted = (env, thread, clearInterrupted) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_HoldsLock  = (env, threadClass, obj) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_DumpAllStacks = (env, unused) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_GetAllThreads = (env, dummy) ->
-
+    throw 'NotYetImplementedException'
   # getStackTrace() and getAllStackTraces() method 
   JVM::JVM_DumpThreads = (env, threadClass, threads) ->
-
+    throw 'NotYetImplementedException'
   # java.lang.SecurityManager
 
   JVM::JVM_CurrentLoadedClass = (env) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_CurrentClassLoader = (env) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_GetClassContext = (env) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_ClassDepth = (env, name) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_ClassLoaderDepth = (env) ->
-
+    throw 'NotYetImplementedException'
   # java.lang.Package
     
   JVM::JVM_GetSystemPackage = (env, name) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_GetSystemPackages = (env) ->
-
+    throw 'NotYetImplementedException'
   # java.io.ObjectInputStream
 
   JVM::JVM_AllocateNewObject = (env, obj, currClass, initClass) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_AllocateNewArray = (env, obj, currClass, length) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_LatestUserDefinedLoader = (env) ->
 
   # java.lang.reflect.Array
 
   JVM::JVM_GetArrayLength = (env, arr) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_GetArrayElement = (env, arr, index) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_GetPrimitiveArrayElement = (env, arr, index, wCode) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_SetArrayElement = (env, arr, index, val) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_SetPrimitiveArrayElement = (env, arr, index, v, vCode) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_NewArray = (env, eltClass, length) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_NewMultiArray = (env, eltClass, dim) ->
-
+    throw 'NotYetImplementedException'
 
   ###
     java.lang.Class and java.lang.ClassLoader
@@ -372,14 +400,14 @@
   ###
    
   JVM::JVM_GetCallerClass = (env, n) ->
-
+    throw 'NotYetImplementedException'
   ###
    Find primitive classes
     utf: class name
   ###
 
   JVM::JVM_FindPrimitiveClass = (env, utf) ->
-
+    throw 'NotYetImplementedException'
   # Link the class
 
   JVM::JVM_ResolveClass = (clsname, thread) ->
@@ -397,7 +425,7 @@
     if @RDA.method_area[clsname] == undefined
       console.log('Resolve Class ' + clsname)
       # tell the RDA that this thread is currently waiting
-      @RDA.waiting[clsname] = thread
+      if thread then @RDA.waiting[clsname] = thread
      
       # request the ClassLoader loads the class this thread needs and say we are waiting
       @load(clsname, true)
@@ -482,6 +510,7 @@
     return @RDA.heap.allocate(@JVM_NewObject(cls, method, args))
   
   JVM::JVM_NewObject = (cls, constructor, args) ->  
+
     obj = new JVM_Object(cls)    
     objref = @RDA.heap.allocate(obj)
     t = new Thread(cls, @RDA, constructor)    
@@ -499,7 +528,7 @@
     
   
   JVM::JVM_ResolveNativeMethod = (cls, name, type) ->
-  
+    throw 'NotYetImplementedException'  
   ###
   JVM::JVM_ResolveField = (obj, name) ->
     loop
@@ -576,11 +605,11 @@
   # argument.
 
   JVM::JVM_FindClassFromClassLoader = (env, name, init, loader, throwError) ->
-
+    throw 'NotYetImplementedException'
   # Find a class from a given class.
    
   JVM::JVM_FindClassFromClass = (env, name, init, from) ->
-
+    throw 'NotYetImplementedException'
   # Find a loaded class cached by the VM 
 
   JVM::JVM_FindLoadedClass = (env, loader, name) ->
@@ -589,47 +618,48 @@
   # Define a class 
 
   JVM::JVM_DefineClass = (env, name, loader, buf, len, pd) ->
-
+    throw 'NotYetImplementedException'
   # Define a class with a source (added in JDK1.5) 
 
   JVM::JVM_DefineClassWithSource = (env, name, loader, buf, len, pd, source) ->
-
+    throw 'NotYetImplementedException'
 
   ###
     Reflection Support Functions
   ###
-
+      
   JVM::JVM_GetClassName  = (env, cls) ->
-    return cls.get_name()
+    cls = env.JVM_FromHeap(cls.object).cls
+    return env.JVM_ResolveStringLiteral(cls.real_name)
 
   JVM::JVM_GetClassInterfaces = (env, cls) ->
-
+    throw 'NotYetImplementedException'
 
   JVM::JVM_GetClassLoader = (env, cls) ->
     return env.RDA.heap.allocate(@JVM_ClassLoader)
 
   JVM::JVM_IsInterface = (env, cls) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_GetClassSigners = (env, cls) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_SetClassSigners = (env, cls, signers) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_GetProtectionDomain = (env, cls) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_SetProtectionDomain = (env, cls, protection_domain) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_IsArrayClass = (env, cls) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_IsPrimitiveClass = (env, cls) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_GetComponentType = (env, cls) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_GetClassModifiers = (env, cls) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_GetDeclaredClasses = (env, ofClass) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_GetDeclaringClass = (env, ofClass) ->
-
+    throw 'NotYetImplementedException'
   JVM::JVM_FromHeap = (reference) ->
     return @RDA.heap[reference.pointer]
       

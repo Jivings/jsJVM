@@ -12,7 +12,7 @@
     ClassLoader.prototype.classReader = 1;
     ClassLoader.prototype.stack = new Array;
     ClassLoader.prototype.ps_id = 0;
-    ClassLoader.prototype.required_classes = ['java/lang/String', 'java/lang/System', 'java/lang/Class'];
+    ClassLoader.prototype.required_classes = ['java/lang/Class', 'java/lang/String', 'java/lang/System'];
     ClassLoader.prototype.loaded_classes = {};
     ClassLoader.prototype.postMessage = function(data) {
       return this.find(data.classname, data.waitingThreads);
@@ -60,6 +60,7 @@
       */
     ClassLoader.prototype.start = function(JVM) {
       var self;
+      this.JVM = JVM;
       self = this;
       return this.ps_id = setInterval((function() {
         return self.load();

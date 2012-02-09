@@ -12,11 +12,12 @@ function() {
   }
   
   this.getClass = function(env, jObject) {
-    if( jObject == NULL) {
+    obj = env.JVM_FromHeap(jObject.object);
+    if(obj === null) {
       env.JVM_NullPointerException(env, NULL)
       return 0;
     }
     else 
-      return env.GetObjectClass(env, jObject)
+      return env.JVM_GetObjectClass(jObject.object)
   }
 }

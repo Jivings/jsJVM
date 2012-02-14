@@ -13,8 +13,6 @@ class this.NativeFrame
     
   execute : (pc, opcodes) ->
     
-   # if @resolved is false
-    #   console.log('UnsatisfiedLinkError: '+ @cls.real_name + '...' + method.name)
     nativeCls = @thread.RDA.method_area[@clsname]
     
     if nativeCls is undefined

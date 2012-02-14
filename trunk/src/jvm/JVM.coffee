@@ -29,7 +29,7 @@ class this.JVM
       @RDA = new RDA()
       @RDA.JVM = @
       
-      (@classLoader = new ClassLoader(@loaded, @loadedNative)).init()
+      (@classLoader = new ClassLoader()).init(@loaded)
       #@InitializeSystemClass()
       # Create ClassLoader WORKER TODO
       #@classLoader = new Worker('http://localhost/js-jvm/trunk/bin/js/classloader/ClassLoader.js')
@@ -47,14 +47,14 @@ class this.JVM
   load : (classname, bool) ->
     if @classLoader? 
       if classname? && classname.length > 0
-        @classLoader.postMessage({ 'classname' : classname , 'waitingThreads': bool })
+        @classLoader.find(classname, bool, @loaded)
         
       else 
         @stdout.write @helpText()
     this
     
   loadNative : (classname) ->
-    @classLoader.findNative(classname)
+    @classLoader.findNative(classname, @loadedNative)
   
   loadedNative : (classname, nativedata) ->
     if nativedata != null
@@ -69,7 +69,7 @@ class this.JVM
       #console.log('Loaded class ['+classname+']')
     
     if(waitingThreads) 
-      scopedJVM.RDA.notifyAll(classname)
+      scopedJVM.RDA.notifyAll(classname, classdata)
  
   end : () ->
     if @callback?

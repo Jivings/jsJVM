@@ -1,223 +1,4 @@
 (function() {
-  var JVM_Number;
-  var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
-    for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
-    function ctor() { this.constructor = child; }
-    ctor.prototype = parent.prototype;
-    child.prototype = new ctor;
-    child.__super__ = parent.prototype;
-    return child;
-  };
-  this.JVM_Object = (function() {
-    function JVM_Object(cls) {
-      var field, fld, supercls;
-      this.cls = cls;
-      supercls = this.cls.get_super();
-      if (supercls !== void 0) {
-        this.__proto__ = new JVM_Object(supercls);
-      }
-      this.clsObject = new JVM_Reference(0);
-      for (field in this.cls.fields) {
-        fld = this.cls.fields[field];
-        this[field] = fld;
-      }
-    }
-    JVM_Object.prototype.monitor = {
-      aquireLock: function(thread) {
-        console.log('Aquiring a lock');
-        if (this.owner === thread) {
-          console.log('Thread already has lock');
-          this.count++;
-        } else if (this.owner !== null) {
-          this.waiting.push(thread);
-          return false;
-        } else {
-          this.owner = thread;
-          this.count++;
-        }
-        return true;
-      },
-      releaseLock: function(thread) {
-        var _i, _len, _ref;
-        if (this.owner !== thread) {
-          return false;
-        }
-        this.owner = null;
-        this.count = 0;
-        _ref = this.waiting;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          thread = _ref[_i];
-          this.notify(thread);
-        }
-        this.waiting.length = 0;
-        return true;
-      },
-      notify: function(thread) {
-        return thread["continue"]();
-      },
-      owner: null,
-      count: 0,
-      waiting: new Array()
-    };
-    JVM_Object.prototype.compareTo = function(jvmObject) {
-      if (this.cls.real_name === jvmObject.cls.real_name) {
-        return true;
-      } else {
-        try {
-          return JVM_Object.__super__.compareTo.apply(this, arguments).compareTo(jvmObject);
-        } catch (err) {
-          return false;
-        }
-      }
-    };
-    return JVM_Object;
-  })();
-  this.JVM_Reference = (function() {
-    function JVM_Reference(pointer) {
-      this.pointer = pointer;
-    }
-    JVM_Reference.prototype.toString = function() {
-      return this.pointer;
-    };
-    return JVM_Reference;
-  })();
-  JVM_Number = (function() {
-    function JVM_Number(val) {
-      this.val = val;
-    }
-    JVM_Number.prototype.valueOf = function() {
-      return this.val;
-    };
-    return JVM_Number;
-  })();
-  this.CONSTANT_Array = (function() {
-    __extends(CONSTANT_Array, Array);
-    function CONSTANT_Array(length, type) {
-      this.length = length;
-      this.type = type;
-      CONSTANT_Array.__super__.constructor.call(this, this.length);
-    }
-    return CONSTANT_Array;
-  })();
-  this.CONSTANT_Object = (function() {
-    function CONSTANT_Object(classname) {
-      this.classname = classname;
-      this.value = null;
-    }
-    return CONSTANT_Object;
-  })();
-  this.CONSTANT_integer = (function() {
-    __extends(CONSTANT_integer, JVM_Number);
-    function CONSTANT_integer(val, sign) {
-      var next;
-      if (val == null) {
-        val = 0;
-      }
-      if (sign == null) {
-        sign = false;
-      }
-      if (sign) {
-        if ((val & 0x8000) !== 0) {
-          next = (~val) + 1 & 0xffff;
-          val = next * -1;
-        }
-      }
-      if (isNaN(val)) {
-        throw 'UnexpectedNaN';
-      }
-      CONSTANT_integer.__super__.constructor.call(this, val);
-    }
-    return CONSTANT_integer;
-  })();
-  this.CONSTANT_int = (function() {
-    __extends(CONSTANT_int, CONSTANT_integer);
-    function CONSTANT_int(val, sign) {
-      if (val == null) {
-        val = 0;
-      }
-      if (sign == null) {
-        sign = false;
-      }
-      CONSTANT_int.__super__.constructor.call(this, val, sign);
-    }
-    return CONSTANT_int;
-  })();
-  this.CONSTANT_float = (function() {
-    __extends(CONSTANT_float, JVM_Number);
-    function CONSTANT_float(val) {
-      if (val == null) {
-        val = 0.0;
-      }
-      CONSTANT_float.__super__.constructor.call(this, val);
-    }
-    return CONSTANT_float;
-  })();
-  this.CONSTANT_long = (function() {
-    __extends(CONSTANT_long, JVM_Number);
-    function CONSTANT_long(val) {
-      if (val == null) {
-        val = 0;
-      }
-      CONSTANT_long.__super__.constructor.call(this, val);
-    }
-    return CONSTANT_long;
-  })();
-  this.CONSTANT_double = (function() {
-    __extends(CONSTANT_double, JVM_Number);
-    function CONSTANT_double(val) {
-      if (val == null) {
-        val = 0.0;
-      }
-      CONSTANT_double.__super__.constructor.call(this, val);
-    }
-    return CONSTANT_double;
-  })();
-  this.CONSTANT_char = (function() {
-    function CONSTANT_char(value) {
-      this.value = value != null ? value : '\u0000';
-      this.value = this.value.charCodeAt();
-    }
-    return CONSTANT_char;
-  })();
-  this.CONSTANT_short = (function() {
-    __extends(CONSTANT_short, JVM_Number);
-    function CONSTANT_short(val) {
-      if (val == null) {
-        val = 0;
-      }
-      CONSTANT_short.__super__.constructor.call(this, val);
-    }
-    return CONSTANT_short;
-  })();
-  this.CONSTANT_byte = (function() {
-    function CONSTANT_byte(value, sign) {
-      var next;
-      this.value = value != null ? value : 0;
-      if (sign == null) {
-        sign = false;
-      }
-      if (sign) {
-        if ((this.value & 0x80) !== 0) {
-          next = (~this.value) + 1 & 0xff;
-          this.value = next * -1;
-        }
-      }
-    }
-    return CONSTANT_byte;
-  })();
-  this.CONSTANT_boolean = (function() {
-    function CONSTANT_boolean(value) {
-      this.value = value != null ? value : 0;
-    }
-    return CONSTANT_boolean;
-  })();
-  this.CONSTANT_String = (function() {
-    __extends(CONSTANT_String, String);
-    function CONSTANT_String(value) {
-      this.value = value != null ? value : '';
-    }
-    return CONSTANT_String;
-  })();
   JVM.prototype.JVM_InternedStrings = {};
   /* 
   Additional JVM functions exported from the main VM.
@@ -559,7 +340,7 @@
     method_desc = '()V';
     method = this.JVM_ResolveMethod(cls, method_id, method_desc);
     if (!this.JVM_InternedStrings[literal]) {
-      console.log('Interning a string (' + literal + ')');
+      console.log('Interning a string ("' + literal + '")');
       charArray = new Array();
       for (index in literal) {
         charArray[index] = literal[index];
@@ -638,6 +419,12 @@
     */
   JVM.prototype.JVM_ResolveMethod = function(cls, name, type) {
     var arg, args, descriptor, endarg, i, index, method, nargs;
+    if (!(cls instanceof CONSTANT_Class)) {
+      cls = this.JVM_ResolveClass(cls);
+    }
+    if (cls === null) {
+      throw 'NullClassException';
+    }
     if (cls.methods[name + type] != null) {
       return cls.methods[name + type];
     }
@@ -777,52 +564,4 @@
     return JVM_ClassLoader;
   })();
   JVM.prototype.JVM_ClassLoader = new JVM_ClassLoader();
-  JVM.prototype.JVM_RECOGNIZED_METHOD_MODIFIERS = {
-    JVM_ACC_PUBLIC: 0x0001,
-    JVM_ACC_PRIVATE: 0x0002,
-    JVM_ACC_PROTECTED: 0x0004,
-    JVM_ACC_STATIC: 0x0008,
-    JVM_ACC_FINAL: 0x0010,
-    JVM_ACC_SYNCHRONIZED: 0x0020,
-    JVM_ACC_BRIDGE: 0,
-    JVM_ACC_VARARGS: 0,
-    JVM_ACC_NATIVE: 0x0100,
-    JVM_ACC_ABSTRACT: 0x0400,
-    JVM_ACC_STRICT: 0,
-    JVM_ACC_SYNTHETIC: 0
-  };
-  JVM.prototype.JVM_RECOGNIZED_CLASS_MODIFIERS = {
-    JVM_ACC_PUBLIC: 0x0001,
-    JVM_ACC_FINAL: 0x0010,
-    JVM_ACC_SUPER: 0x0020,
-    JVM_ACC_INTERFACE: 0x0200,
-    JVM_ACC_ABSTRACT: 0x0400
-  };
-  /*                                        JVM_ACC_ANNOTATION | \
-                                          JVM_ACC_ENUM | \
-                                          JVM_ACC_SYNTHETIC)
-                                          */
-  JVM.prototype.JVM_RECOGNIZED_FIELD_MODIFIERS = {
-    JVM_ACC_PUBLIC: 0x0000,
-    JVM_ACC_PRIVATE: 0x0000,
-    JVM_ACC_PROTECTED: 0x0000,
-    JVM_ACC_STATIC: 0x0000,
-    JVM_ACC_FINAL: 0x0000,
-    JVM_ACC_VOLATILE: 0x0000,
-    JVM_ACC_TRANSIENT: 0x0000,
-    JVM_ACC_ENUM: 0x0000,
-    JVM_ACC_SYNTHETIC: 0x0000
-  };
-  JVM.prototype.FIELD_DESCRIPTORS = {
-    'B': 'CONSTANT_byte',
-    'C': 'CONSTANT_char',
-    'D': 'CONSTANT_double',
-    'F': 'CONSTANT_float',
-    'I': 'CONSTANT_integer',
-    'J': 'CONSTANT_long',
-    'L': 'CONSTANT_Class',
-    'S': 'CONSTANT_short',
-    'Z': 'CONSTANT_boolean',
-    '[': 'CONSTANT_Array'
-  };
 }).call(this);

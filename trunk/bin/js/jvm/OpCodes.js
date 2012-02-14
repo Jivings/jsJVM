@@ -70,11 +70,17 @@
         while (typeof (item = this.fromClass(item, thread)) === 'number') {
           continue;
         }
-        if (item === 'undefined') {
+        if (item instanceof CONSTANT_Stringref) {
+          thread.resolveString(this.fromClass(item.string_index, thread), function(string) {
+            return frame.op_stack.push(string);
+          }, this);
+          return false;
+        }
+        if (item === void 0) {
           throw 'JVM_Error: Undefined item on stack';
         }
         if (item instanceof JVM_Object) {
-          item = new JVM_Reference(thread.RDA.heap.allocate(item));
+          item = new JVM_Reference(thread.allocate(item));
         }
         return frame.op_stack.push(item);
       });
@@ -85,14 +91,17 @@
           continue;
         }
         if (item instanceof JVM_Object) {
-          item = new JVM_Reference(thread.RDA.heap.allocate(item));
+          item = new JVM_Reference(thread.allocate(item), function() {
+            return frame.op_stack.push(item);
+          });
+          return false;
         }
         return frame.op_stack.push(item);
       });
       this[20] = new OpCode('ldc2_w', 'Push long or double from constant pool (wide index)', function(frame) {
         var index, item;
         index = this.constructIndex(frame, thread);
-        item = thread.current_class.constant_pool[index];
+        item = this.fromClass(index, thread);
         frame.op_stack.push(item);
         return frame.op_stack.push(item);
       });
@@ -193,125 +202,137 @@
         return frame.op_stack.push(frame.locals[3]);
       });
       this[46] = new OpCode('iaload', 'Load int from array', function(frame) {
-        var array, arrayindex, arrayref, int;
+        var arrayindex, arrayref;
         arrayindex = frame.op_stack.pop();
         arrayref = frame.op_stack.pop();
-        if (arrayref === null) {
+        if (this.isNull(arrayref)) {
           athrow('NullPointerException');
         }
-        array = thread.RDA.heap[arrayref];
-        if (arrayindex > array.length) {
-          athrow('ArrayIndexOutOfBoundsException');
-        }
-        int = array[arrayindex];
-        return frame.op_stack.push(int);
+        thread.getObject(arrayref, function(array) {
+          var int;
+          if (arrayindex > array.length || arrayindex < 0) {
+            athrow('ArrayIndexOutOfBoundsException');
+          }
+          int = array[arrayindex];
+          return frame.op_stack.push(int);
+        }, this);
+        return false;
       });
       this[47] = new OpCode('laload', 'Load long from array', function(frame) {
-        var array, arrayindex, arrayref, long;
+        var arrayindex, arrayref;
         arrayref = frame.op_stack.pop();
         arrayindex = frame.op_stack.pop();
-        if (arrayref === null) {
+        if (this.isNull(arrayref)) {
           athrow('NullPointerException');
         }
-        array = thread.RDA.heap[arrayref];
-        if (arrayindex > array.length) {
-          athrow('ArrayIndexOutOfBoundsException');
-        }
-        long = array[arrayindex];
-        return frame.op_stack.push(long);
+        thread.getObject(arrayref, function(array) {
+          var long;
+          if (arrayindex > array.length || arrayindex < 0) {
+            athrow('ArrayIndexOutOfBoundsException');
+          }
+          long = array[arrayindex];
+          return frame.op_stack.push(long);
+        }, this);
+        return false;
       });
       this[48] = new OpCode('faload', 'Load float from array', function(frame) {
-        var array, arrayindex, arrayref, float;
+        var arrayindex, arrayref;
         arrayref = frame.op_stack.pop();
         arrayindex = frame.op_stack.pop();
-        if (arrayref === null) {
+        if (this.isNull(arrayref)) {
           athrow('NullPointerException');
         }
-        array = thread.RDA.heap[arrayref];
-        if (arrayindex > array.length) {
-          athrow('ArrayIndexOutOfBoundsException');
-        }
-        float = array[arrayindex];
-        return frame.op_stack.push(float);
+        thread.getObject(arrayref, function(array) {
+          var float;
+          if (arrayindex > array.length || arrayindex < 0) {
+            athrow('ArrayIndexOutOfBoundsException');
+          }
+          float = array[arrayindex];
+          return frame.op_stack.push(float);
+        }, this);
+        return false;
       });
       this[49] = new OpCode('daload', 'Load double from array', function(frame) {
-        var array, arrayindex, arrayref, double;
+        var arrayindex, arrayref;
         arrayref = frame.op_stack.pop();
         arrayindex = frame.op_stack.pop();
-        if (arrayref === null) {
+        if (this.isNull(arrayref)) {
           athrow('NullPointerException');
         }
-        array = thread.RDA.heap[arrayref];
-        if (arrayindex > array.length) {
-          athrow('ArrayIndexOutOfBoundsException');
-        }
-        double = array[arrayindex];
-        return frame.op_stack.push(double);
+        thread.getObject(arrayref, function(array) {
+          var double;
+          if (arrayindex > array.length || arrayindex < 0) {
+            athrow('ArrayIndexOutOfBoundsException');
+          }
+          double = array[arrayindex];
+          return frame.op_stack.push(double);
+        }, this);
+        return false;
       });
       this[50] = new OpCode('aaload', 'Load reference from array', function(frame) {
-        var array, arrayindex, arrayref, ref;
+        var arrayindex, arrayref;
         arrayindex = frame.op_stack.pop();
         arrayref = frame.op_stack.pop();
-        array = this.fromHeap(arrayref, thread);
-        ref = thread.RDA.heap[arrayref][arrayindex];
-        return frame.op_stack.push(ref);
+        thread.getObject(arrayref, function(array) {
+          var ref;
+          if (arrayindex > array.length || arrayindex < 0) {
+            athrow('ArrayIndexOutOfBoundsException');
+          }
+          ref = array[arrayindex];
+          return frame.op_stack.push(ref);
+        }, this);
+        return false;
       });
       this[51] = new OpCode('baload', 'Load byte or boolean from array', function(frame) {
-        var array, arrayindex, arrayref;
+        var arrayindex, arrayref;
         arrayindex = frame.op_stack.pop();
         arrayref = frame.op_stack.pop();
-        if (!arrayref instanceof JVM_Reference) {
-          athrow('RuntimeException');
-          return false;
-        }
-        if (arrayref === null) {
+        if (this.isNull(arrayref)) {
           athrow('NullPointerException');
-          return false;
         }
-        array = fromHeap(arrayref);
-        if (arrayindex >= array.length || arrayindex < 0) {
-          athrow('ArrayIndexOutOfBounds');
-          return false;
-        }
-        return frame.op_stack.push(array[arrayindex]);
+        thread.getObject(arrayref, function(array) {
+          var ba;
+          if (arrayindex > array.length || arrayindex < 0) {
+            athrow('ArrayIndexOutOfBoundsException');
+          }
+          ba = array[arrayindex];
+          return frame.op_stack.push(ba);
+        }, this);
+        return false;
       });
       this[52] = new OpCode('caload', 'Load char from array', function(frame) {
-        var array, arrayindex, arrayref;
+        var arrayindex, arrayref;
         arrayindex = frame.op_stack.pop();
         arrayref = frame.op_stack.pop();
-        if (!arrayref instanceof JVM_Reference) {
-          athrow('RuntimeException');
-          return false;
-        }
-        if (arrayref === null) {
+        if (this.isNull(arrayref)) {
           athrow('NullPointerException');
-          return false;
         }
-        array = this.fromHeap(arrayref, thread);
-        if (arrayindex >= array.length || arrayindex < 0) {
-          athrow('ArrayIndexOutOfBounds');
-          return false;
-        }
-        return frame.op_stack.push(new CONSTANT_char(array[arrayindex.val]));
+        thread.getObject(arrayref, function(array) {
+          var ch;
+          if (arrayindex > array.length || arrayindex < 0) {
+            athrow('ArrayIndexOutOfBoundsException');
+          }
+          ch = array[arrayindex];
+          return frame.op_stack.push(ch);
+        }, this);
+        return false;
       });
       this[53] = new OpCode('saload', 'Load short from array', function(frame) {
-        var array, arrayindex, arrayref;
+        var arrayindex, arrayref;
         arrayindex = frame.op_stack.pop();
         arrayref = frame.op_stack.pop();
-        if (!arrayref instanceof JVM_Reference) {
-          athrow('RuntimeException');
-          return false;
-        }
-        if (arrayref === null) {
+        if (this.isNull(arrayref)) {
           athrow('NullPointerException');
-          return false;
         }
-        array = fromHeap(arrayref);
-        if (arrayindex >= array.length || arrayindex < 0) {
-          athrow('ArrayIndexOutOfBounds');
-          return false;
-        }
-        return frame.op_stack.push(array[arrayindex]);
+        thread.getObject(arrayref, function(array) {
+          var sh;
+          if (arrayindex > array.length || arrayindex < 0) {
+            athrow('ArrayIndexOutOfBoundsException');
+          }
+          sh = array[arrayindex];
+          return frame.op_stack.push(sh);
+        }, this);
+        return false;
       });
       this[54] = new OpCode('istore', 'Store int into local variable', function(frame) {
         var index, int;
@@ -441,116 +462,156 @@
         return true;
       });
       this[79] = new OpCode('iastore', 'Store into int array', function(frame) {
-        var array, arrayindex, arrayref, value;
+        var arrayindex, arrayref, value;
         value = frame.op_stack.pop();
         arrayindex = frame.op_stack.pop();
         arrayref = frame.op_stack.pop();
-        array = thread.RDA.heap[arrayref];
-        if (array === null) {
+        if (this.isNull(arrayref)) {
           athrow('NullPointerException');
         }
-        if (arrayindex > array.length) {
-          athrow('ArrayIndexOutOfBoundsException');
-        }
-        return array[arrayindex] = value;
+        thread.getObject(arrayref, function(array) {
+          if (arrayindex > array.length || arrayindex < 0) {
+            athrow('ArrayIndexOutOfBoundsException');
+          }
+          array[arrayindex] = value;
+          return thread.updateObject(array, function() {
+            return false;
+          }, this);
+        }, this);
+        return false;
       });
       this[80] = new OpCode('lastore', 'Store into long array', function(frame) {
-        var array, arrayindex, arrayref, value;
+        var arrayindex, arrayref, value;
         value = frame.op_stack.pop();
         arrayindex = frame.op_stack.pop();
         arrayref = frame.op_stack.pop();
-        array = thread.RDA.heap[arrayref];
-        if (array === null) {
+        if (this.isNull(arrayref)) {
           athrow('NullPointerException');
         }
-        if (arrayindex > array.length) {
-          athrow('ArrayIndexOutOfBoundsException');
-        }
-        return array[arrayindex] = value;
+        thread.getObject(arrayref, function(array) {
+          if (arrayindex > array.length || arrayindex < 0) {
+            athrow('ArrayIndexOutOfBoundsException');
+          }
+          array[arrayindex] = value;
+          return thread.updateObject(array, function() {
+            return false;
+          }, this);
+        }, this);
+        return false;
       });
       this[81] = new OpCode('fastore', 'Store into float array', function(frame) {
-        var array, arrayindex, arrayref, value;
+        var arrayindex, arrayref, value;
         value = frame.op_stack.pop();
         arrayindex = frame.op_stack.pop();
         arrayref = frame.op_stack.pop();
-        array = thread.RDA.heap[arrayref];
-        if (array === null) {
+        if (this.isNull(arrayref)) {
           athrow('NullPointerException');
         }
-        if (arrayindex > array.length) {
-          athrow('ArrayIndexOutOfBoundsException');
-        }
-        return array[arrayindex] = value;
+        thread.getObject(arrayref, function(array) {
+          if (arrayindex > array.length || arrayindex < 0) {
+            athrow('ArrayIndexOutOfBoundsException');
+          }
+          array[arrayindex] = value;
+          return thread.updateObject(array, function() {
+            return false;
+          }, this);
+        }, this);
+        return false;
       });
       this[82] = new OpCode('dastore', 'Store double into array', function(frame) {
-        var array, arrayindex, arrayref, value;
+        var arrayindex, arrayref, value;
         value = frame.op_stack.pop();
         arrayindex = frame.op_stack.pop();
         arrayref = frame.op_stack.pop();
-        array = thread.RDA.heap[arrayref];
-        if (array === null) {
+        if (this.isNull(arrayref)) {
           athrow('NullPointerException');
         }
-        if (arrayindex > array.length) {
-          athrow('ArrayIndexOutOfBoundsException');
-        }
-        return array[arrayindex] = value;
+        thread.getObject(arrayref, function(array) {
+          if (arrayindex > array.length || arrayindex < 0) {
+            athrow('ArrayIndexOutOfBoundsException');
+          }
+          array[arrayindex] = value;
+          return thread.updateObject(array, function() {
+            return false;
+          }, this);
+        }, this);
+        return false;
       });
       this[83] = new OpCode('aastore', 'Store reference into Array', function(frame) {
-        var array, arrayindex, arrayref, value;
+        var arrayindex, arrayref, value;
         value = frame.op_stack.pop();
         arrayindex = frame.op_stack.pop();
         arrayref = frame.op_stack.pop();
-        array = thread.RDA.heap[arrayref];
-        if (array === null) {
+        if (this.isNull(arrayref)) {
           athrow('NullPointerException');
         }
-        if (arrayindex > array.length) {
-          athrow('ArrayIndexOutOfBoundsException');
-        }
-        return array[arrayindex] = value;
+        thread.getObject(arrayref, function(array) {
+          if (arrayindex > array.length || arrayindex < 0) {
+            athrow('ArrayIndexOutOfBoundsException');
+          }
+          array[arrayindex] = value;
+          return thread.updateObject(array, function() {
+            return false;
+          }, this);
+        }, this);
+        return false;
       });
       this[84] = new OpCode('bastore', 'Store into byte or boolean Array', function(frame) {
-        var array, arrayindex, arrayref, value;
+        var arrayindex, arrayref, value;
         value = frame.op_stack.pop();
         arrayindex = frame.op_stack.pop();
         arrayref = frame.op_stack.pop();
-        array = this.fromHeap(arrayref);
-        if (array === null) {
+        if (this.isNull(arrayref)) {
           athrow('NullPointerException');
         }
-        if (arrayindex > array.length) {
-          athrow('ArrayIndexOutOfBoundsException');
-        }
-        return array[arrayindex] = value;
+        thread.getObject(arrayref, function(array) {
+          if (arrayindex > array.length || arrayindex < 0) {
+            athrow('ArrayIndexOutOfBoundsException');
+          }
+          array[arrayindex] = value;
+          return thread.updateObject(array, function() {
+            return false;
+          }, this);
+        }, this);
+        return false;
       });
       this[85] = new OpCode('castore', 'Store into char array', function(frame) {
-        var array, arrayindex, arrayref, value;
+        var arrayindex, arrayref, value;
         value = frame.op_stack.pop();
         arrayindex = frame.op_stack.pop();
         arrayref = frame.op_stack.pop();
-        array = this.fromHeap(arrayref, thread);
-        if (array === null) {
+        if (this.isNull(arrayref)) {
           athrow('NullPointerException');
         }
-        if (arrayindex > array.length) {
-          athrow('ArrayIndexOutOfBoundsException');
-        }
-        return array[arrayindex] = value;
+        thread.getObject(arrayref, function(array) {
+          if (arrayindex > array.length || arrayindex < 0) {
+            athrow('ArrayIndexOutOfBoundsException');
+          }
+          array[arrayindex] = value;
+          return thread.updateObject(array, function() {
+            return false;
+          }, this);
+        }, this);
+        return false;
       });
       this[86] = new OpCode('sastore', 'Store into short array', function(frame) {
-        var array, arrayindex, arrayref, value;
+        var arrayindex, arrayref, value;
         value = frame.op_stack.pop();
         arrayindex = frame.op_stack.pop();
         arrayref = frame.op_stack.pop();
-        array = this.fromHeap(arrayref);
-        if (array === null) {
+        if (this.isNull(arrayref)) {
           athrow('NullPointerException');
         }
-        if (arrayindex > array.length) {
-          athrow('ArrayIndexOutOfBoundsException');
-        }
-        return array[arrayindex] = value;
+        thread.getObject(arrayref, function(array) {
+          if (arrayindex > array.length || arrayindex < 0) {
+            athrow('ArrayIndexOutOfBoundsException');
+          }
+          array[arrayindex] = value;
+          return thread.updateObject(array, function() {
+            return false;
+          }, this);
+        }, this);
+        return false;
       });
       this[87] = new OpCode('pop', 'Pops top stack word', function(frame) {
         frame.op_stack.pop();
@@ -829,10 +890,10 @@
         return frame.op_stack.push(new CONSTANT_long(result));
       });
       this[114] = new OpCode('frem', 'Remainder float', function(frame) {
-        return console.log('frem not implemented');
+        return thread.log('frem not implemented');
       });
       this[115] = new OpCode('drem', 'Remainder double', function(frame) {
-        return console.log('drem not implemented');
+        return thread.log('drem not implemented');
       });
       this[116] = new OpCode('ineg', 'Negate int', function(frame) {
         var result, value;
@@ -1315,10 +1376,10 @@
         return thread.pc = frame.locals[index];
       });
       this[170] = new OpCode('tableswitch', '', function(frame) {
-        return alert(this.mnemonic);
+        return thread.log(this.mnemonic);
       }, true);
       this[171] = new OpCode('lookupswitch', '', function(frame) {
-        return alert(this.mnemonic);
+        return thread.log(this.mnemonic);
       }, true);
       this[172] = new OpCode('ireturn', 'Return an int', function(frame) {
         var invoker, ireturn;
@@ -1441,158 +1502,168 @@
         return true;
       });
       this[178] = new OpCode('getstatic', 'Fetch static field from class', function(frame) {
-        var class_field_ref, class_ref, cls, field_name, field_name_type, ref;
+        var class_field_ref, class_ref, field_name, field_name_type, ref;
         ref = this.constructIndex(frame, thread);
-        class_field_ref = thread.current_class.constant_pool[ref];
-        class_ref = thread.current_class.constant_pool[class_field_ref.class_index];
-        if ((cls = thread.resolveClass(class_ref)) === null) {
-          return false;
-        }
-        field_name_type = thread.current_class.constant_pool[class_field_ref.name_and_type_index];
-        field_name = thread.current_class.constant_pool[field_name_type.name_index];
-        frame.op_stack.push(cls.fields[field_name]);
-        return true;
-      }, true);
+        class_field_ref = this.fromCP(ref, thread);
+        class_ref = this.fromCP(class_field_ref.class_index, thread);
+        field_name_type = this.fromCP(class_field_ref.name_and_type_index, thread);
+        field_name = this.fromCP(field_name_type.name_index, thread);
+        thread.getStatic(class_ref, field_name, function(value) {
+          return frame.op_stack.push(value);
+        });
+        return false;
+      });
       this[179] = new OpCode('putstatic', 'Set static field in class', function(frame) {
-        var class_field_ref, cls, field_name, field_ref, field_type, ref, value;
+        var class_field_ref, class_ref, field_name, field_name_type, ref, value;
         ref = this.constructIndex(frame, thread);
-        class_field_ref = thread.current_class.constant_pool[ref];
-        if ((cls = thread.resolveClass(class_field_ref.class_index)) === null) {
-          return false;
-        }
-        field_ref = thread.current_class.constant_pool[class_field_ref.name_and_type_index];
-        field_name = thread.current_class.constant_pool[field_ref.name_index];
-        field_type = thread.current_class.constant_pool[field_ref.descriptor_index];
+        class_field_ref = this.fromCP(ref, thread);
+        class_ref = this.fromCP(class_field_ref.class_index, thread);
+        field_name_type = this.fromCP(class_field_ref.name_and_type_index, thread);
+        field_name = this.fromCP(field_name_type.name_index, thread);
         value = frame.op_stack.pop();
-        return cls.fields[field_name] = value;
+        thread.setStatic(class_ref, field_name, value);
+        return false;
       });
       this[180] = new OpCode('getfield', 'Get a field from an object', function(frame) {
-        var descriptor, field, fieldname, fieldref, index, nameandtype, objectref;
+        var fieldname, fieldref, index, nameandtype, objectref;
         objectref = frame.op_stack.pop();
-        index = this.constructIndex(frame, thread);
-        fieldref = this.fromClass(index, thread);
-        if (objectref === null) {
+        if (this.isNull(objectref)) {
           athrow('NullPointerException');
         }
-        nameandtype = this.fromClass(fieldref.name_and_type_index, thread);
-        fieldname = this.fromClass(nameandtype.name_index, thread);
-        descriptor = this.fromClass(nameandtype.descriptor_index, thread);
-        field = this.fromHeap(objectref.pointer, thread)[fieldname];
-        frame.op_stack.push(field);
-        return true;
+        index = this.constructIndex(frame, thread);
+        fieldref = this.fromCP(index, thread);
+        nameandtype = this.fromCP(fieldref.name_and_type_index, thread);
+        fieldname = this.fromCP(nameandtype.name_index, thread);
+        thread.getObjectField(objectref, fieldname, function(field) {
+          return frame.op_stack.push(field);
+        }, this);
+        return false;
       });
       this[181] = new OpCode('putfield', 'Set a field in an object', function(frame) {
-        var descriptor, fieldname, fieldref, index, nameandtype, object, objectref, value;
-        value = frame.op_stack.pop();
+        var fieldname, fieldref, index, nameandtype, objectref, value;
         objectref = frame.op_stack.pop();
-        index = this.constructIndex(frame, thread);
-        fieldref = this.fromClass(index, thread);
-        if (objectref === null) {
+        if (this.isNull(objectref)) {
           athrow('NullPointerException');
         }
-        nameandtype = this.fromClass(fieldref.name_and_type_index, thread);
-        fieldname = this.fromClass(nameandtype.name_index, thread);
-        descriptor = this.fromClass(nameandtype.descriptor_index, thread);
-        object = this.fromHeap(objectref.pointer, thread);
-        object[fieldname] = value;
-        return true;
+        value = frame.op_stack.pop();
+        index = this.constructIndex(frame, thread);
+        fieldref = this.fromCP(index, thread);
+        nameandtype = this.fromCP(fieldref.name_and_type_index, thread);
+        fieldname = this.fromCP(nameandtype.name_index, thread);
+        thread.setObjectField(objectref, fieldname, value);
+        return false;
       });
       this[182] = new OpCode('invokevirtual', 'Invoke instance method; dispatch based on class', function(frame) {
-        var arg_num, cls, index, method, method_name, methodnameandtype, methodref, newframe, obj, type;
+        var classname, descriptor, index, method_name, methodnameandtype, methodref;
         index = this.constructIndex(frame, thread);
-        methodref = this.fromClass(index, thread);
+        methodref = this.fromCP(index, thread);
+        classname = this.fromCP(methodref.class_index, thread);
         methodnameandtype = this.fromClass(methodref.name_and_type_index, thread);
-        if ((cls = thread.resolveClass(methodref.class_index)) === null) {
-          return false;
-        }
-        method_name = this.fromClass(methodnameandtype.name_index, thread);
-        type = this.fromClass(methodnameandtype.descriptor_index, thread);
-        method = thread.resolveMethod(method_name, cls, type);
-        if (method.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_STATIC) {
-          athrow('IncompatibleClassChangeError');
-        }
-        if (method.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_ABSTRACT) {
-          athrow('AbstractMethodError');
-        }
-        newframe = thread.createFrame(method, method.belongsTo);
-        thread.current_class = method.belongsTo;
-        frame.pc += 2;
-        thread.pc = -1;
-        arg_num = method.nargs;
-        while (arg_num > 0) {
-          newframe.locals[arg_num--] = frame.op_stack.pop();
-        }
-        newframe.locals[0] = frame.op_stack.pop();
-        if (method.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_SYNCHRONIZED) {
-          obj = this.fromHeap(newframe.locals[0], thread);
-          if (obj === null) {
-            this.athrow('NullPointerException');
+        method_name = this.fromCP(methodnameandtype.name_index, thread);
+        descriptor = this.fromCP(methodnameandtype.descriptor_index, thread);
+        thread.resolveMethod(method_name, classname, descriptor, function(method) {
+          var arg_num, newframe, objectref;
+          if (method.access_flags & JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_STATIC) {
+            athrow('IncompatibleClassChangeError');
           }
-          if (!obj.monitor.aquireLock(thread)) {
-            return false;
+          if (method.access_flags & JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_ABSTRACT) {
+            athrow('AbstractMethodError');
           }
-        }
-        return true;
+          newframe = thread.createFrame(method, method.belongsTo);
+          thread.current_class = method.belongsTo;
+          frame.pc += 2;
+          thread.pc = -1;
+          arg_num = method.nargs;
+          while (arg_num > 0) {
+            newframe.locals[arg_num--] = frame.op_stack.pop();
+          }
+          objectref = frame.op_stack.pop();
+          newframe.locals[0] = objectref;
+          if (method.access_flags & JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_SYNCHRONIZED) {
+            return thread.aquireLock(objectref);
+          }
+        }, this);
+        return false;
       });
       this[183] = new OpCode('invokespecial', 'Invoke instance method', function(frame) {
-        var arg_num, cls, method, method_name, method_name_and_type, methodref, newframe, type;
-        methodref = this.fromClass(this.constructIndex(frame, thread), thread);
-        if (!(methodref instanceof CONSTANT_Methodref_info)) {
-          throw 'Opcode 183 error.';
-        }
-        if ((cls = thread.resolveClass(methodref.class_index)) === null) {
-          return false;
-        }
-        method_name_and_type = this.fromClass(methodref.name_and_type_index, thread);
-        method_name = this.fromClass(method_name_and_type.name_index, thread);
-        type = this.fromClass(method_name_and_type.descriptor_index, thread);
-        method = thread.resolveMethod(method_name, cls, type);
-        newframe = thread.createFrame(method, cls);
-        thread.current_class = cls;
-        frame.pc += 2;
-        thread.pc = -1;
-        arg_num = method.nargs;
-        while (arg_num > 0) {
-          newframe.locals[arg_num--] = frame.op_stack.pop();
-        }
-        newframe.locals[0] = frame.op_stack.pop();
-        return true;
+        var classname, descriptor, method_name, method_name_and_type, methodref;
+        methodref = this.fromCP(this.constructIndex(frame, thread), thread);
+        classname = this.fromCP(methodref.class_index, thread);
+        method_name_and_type = this.fromCP(methodref.name_and_type_index, thread);
+        method_name = this.fromCP(method_name_and_type.name_index, thread);
+        descriptor = this.fromCP(method_name_and_type.descriptor_index, thread);
+        thread.resolveMethod(method_name, classname, descriptor, function(method) {
+          var arg_num, newframe, objectref;
+          if (method.access_flags & JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_PRIVATE) {
+            athrow('RuntimeException');
+          }
+          if (method.access_flags & JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_STATIC) {
+            athrow('IncompatibleClassChangeError');
+          }
+          if (method.access_flags & JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_ABSTRACT) {
+            athrow('AbstractMethodError');
+          }
+          newframe = thread.createFrame(method, method.belongsTo);
+          thread.current_class = method.belongsTo;
+          frame.pc += 2;
+          thread.pc = -1;
+          arg_num = method.nargs;
+          while (arg_num > 0) {
+            newframe.locals[arg_num--] = frame.op_stack.pop();
+          }
+          objectref = frame.op_stack.pop();
+          if (this.isNull(objectref)) {
+            athrow('NullPointerException');
+          }
+          return newframe.locals[0] = objectref;
+        }, this);
+        return false;
       });
-      this[184] = new OpCode('invokestatic', 'Invoke a class (static) method', function(frame) {
-        var arg_num, cls, method, method_name, method_name_and_type, methodref, newframe, type;
-        methodref = this.fromClass(this.constructIndex(frame, thread), thread);
-        if ((cls = thread.resolveClass(methodref.class_index)) === null) {
-          return false;
-        }
-        method_name_and_type = this.fromClass(methodref.name_and_type_index, thread);
-        method_name = this.fromClass(method_name_and_type.name_index, thread);
-        type = this.fromClass(method_name_and_type.descriptor_index, thread);
-        method = thread.resolveMethod(method_name, cls, type);
-        thread.current_class = cls;
-        frame.pc += 2;
-        thread.pc = -1;
-        newframe = thread.createFrame(method, thread.current_class);
-        arg_num = method.nargs;
-        while (arg_num > 0) {
-          newframe.locals[--arg_num] = frame.op_stack.pop();
-        }
-        return true;
+      this[184] = new OpCode('invokestatic', 'Invoke class (static) method', function(frame) {
+        var classname, descriptor, method_name, method_name_and_type, methodref;
+        methodref = this.fromCP(this.constructIndex(frame, thread), thread);
+        classname = this.fromCP(methodref.class_index, thread);
+        method_name_and_type = this.fromCP(methodref.name_and_type_index, thread);
+        method_name = this.fromCP(method_name_and_type.name_index, thread);
+        descriptor = this.fromCP(method_name_and_type.descriptor_index, thread);
+        thread.resolveMethod(method_name, classname, descriptor, function(method) {
+          var arg_num, newframe, _results;
+          if (!(method.access_flags & JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_STATIC)) {
+            athrow('IncompatibleClassChangeError');
+          }
+          newframe = thread.createFrame(method, method.belongsTo);
+          thread.current_class = method.belongsTo;
+          frame.pc += 2;
+          thread.pc = -1;
+          arg_num = method.nargs;
+          _results = [];
+          while (arg_num > 0) {
+            _results.push(newframe.locals[--arg_num] = frame.op_stack.pop());
+          }
+          return _results;
+        }, this);
+        return false;
       });
       this[185] = new OpCode('invokeinterface', '', function(frame) {
-        return alert(this.mnemonic);
+        return thread.log(this.mnemonic);
       }, true);
       this[186] = new OpCode('xxxunusedxxx', '', function(frame) {
-        return alert(this.mnemonic);
+        return thread.log(this.mnemonic);
       }, true);
       this[187] = new OpCode('new', 'Create new Object', function(frame) {
-        var cls, clsref, index, objectref;
+        var clsref, index;
         index = this.constructIndex(frame, thread);
-        clsref = thread.current_class.constant_pool[index];
-        if ((cls = thread.resolveClass(clsref)) === null) {
+        clsref = this.fromCP(index, thread);
+        thread.resolveClass(clsref, function(cls) {
+          if (cls.access_flags & JVM_RECOGNIZED_CLASS_MODIFIERS.JVM_ACC_INTERFACE || cls.access_flags & JVM_RECOGNIZED_CLASS_MODIFIERS.JVM_ACC_ABSTRACT) {
+            athrow('InstantiationException');
+          }
+          thread.allocate(new JVM_Object(cls), function(objectref) {
+            return frame.op_stack.push(objectref);
+          }, this);
           return false;
-        }
-        objectref = thread.RDA.heap.allocate(new JVM_Object(cls));
-        return frame.op_stack.push(objectref);
+        }, this);
+        return false;
       });
       this[188] = new OpCode('newarray', 'Create a new array', function(frame) {
         var arrayref, atype, count, t;
@@ -1626,44 +1697,47 @@
           case 11:
             t = 'J';
         }
-        arrayref = thread.RDA.heap.allocate(new CONSTANT_Array(count, t));
-        frame.op_stack.push(arrayref);
-        return true;
+        arrayref = thread.allocate(new CONSTANT_Array(count, t), function() {
+          return frame.op_stack.push(arrayref);
+        });
+        return false;
       });
       this[189] = new OpCode('anewarray', 'Create new array of reference', function(frame) {
-        var arr, arrayref, cls, count, cpindex;
-        cpindex = this.constructIndex(frame, thread);
-        if ((cls = thread.resolveClass(cpindex)) === null) {
-          return false;
-        }
+        var classname, count;
+        classname = this.constructIndex(frame, thread);
         count = frame.op_stack.pop();
         if (count < 0) {
           athrow('NegativeArraySizeException');
         }
-        arr = new Array(count);
-        while (count-- > 0) {
-          arr[count] = new JVM_Reference(0);
-        }
-        arr['type'] = 'L' + cls.real_name;
-        arrayref = thread.RDA.heap.allocate(arr);
-        return frame.op_stack.push(arrayref);
+        thread.resolveClass(classname, function(cls) {
+          var arr, arrayref;
+          arr = new CONSTANT_Array(count, 'L' + cls.real_name);
+          while (count-- > 0) {
+            arr[count] = new JVM_Reference(0);
+          }
+          arrayref = thread.allocate(arr, function() {
+            return frame.op_stack.push(arrayref);
+          }, this);
+          return false;
+        }, this);
+        return false;
       });
       this[190] = new OpCode('arraylength', 'Get length of array', function(frame) {
-        var array, arrayref, len;
+        var arrayref;
         arrayref = frame.op_stack.pop();
-        if (arrayref === null) {
-          return false;
+        if (this.isNull(arrayref)) {
+          athrow('NullPointerException');
         }
-        array = thread.RDA.heap[arrayref.pointer];
-        len = array.length;
-        return frame.op_stack.push(len);
+        thread.getObject(arrayref, function(array) {
+          return frame.op_stack.push(array.length);
+        }, this);
+        return false;
       });
       this[191] = new OpCode('athrow', 'Throw exception or error', function(frame) {
         var caught, objectref, _results;
         objectref = frame.op_stack.pop();
-        if (ojectref === null) {
+        if (this.isNull(ojectref)) {
           athrow("NullPointerException");
-          return false;
         }
         caught = false;
         _results = [];
@@ -1675,57 +1749,51 @@
         return _results;
       });
       this[192] = new OpCode('checkcast', 'Check if object is of a given type', function(frame) {
-        var S, T, clsindex, objectref;
+        var clsindex, objectref;
         objectref = frame.op_stack.peek();
         clsindex = this.constructIndex(frame, thread);
-        S = this.fromHeap(objectref, thread);
-        if ((T = thread.resolveClass(clsindex)) === null) {
+        thread.getObject(objectref, function(S) {
+          if (this.isNull(S)) {
+            return true;
+          }
+          thread.resolveClass(clsindex, function(T) {
+            if (T.real_name === S.cls.real_name) {
+              frame.op_stack.push(objectref);
+              return true;
+              return athrow('ClassCastException');
+            }
+          }, this);
           return false;
-        }
-        if (S === null) {
-          return true;
-        }
-        if (T.real_name === S.cls.real_name) {
-          frame.op_stack.push(objectref);
-          return true;
-        }
-        return athrow('ClassCastException');
+        }, this);
+        return false;
       });
       this[193] = new OpCode('instanceof', 'Check if object is an instance of class', function(frame) {
-        var cls, clsindex, object, objectref;
+        var clsindex, objectref;
         objectref = frame.op_stack.pop();
         clsindex = this.fromClass(this.constructIndex(frame, thread), thread);
-        if ((cls = thread.resolveClass(clsindex)) === null) {
+        thread.resolveClass(clsindex, function(cls) {
+          thread.getObject(objectref, function(object) {
+            if (cls.real_name === object.cls.real_name) {
+              return frame.op_stack.push(1);
+            } else {
+              return frame.op_stack.push(0);
+            }
+          }, this);
           return false;
-        }
-        object = this.fromHeap(objectref, thread);
-        if (cls.real_name === object.cls.real_name) {
-          frame.op_stack.push(1);
-        } else {
-          frame.op_stack.push(0);
-        }
-        return true;
+        }, this);
+        return false;
       });
       this[194] = new OpCode('monitorenter', 'Enter monitor for object', function(frame) {
         var object;
         object = frame.op_stack.pop();
-        if (!object instanceof CONSTANT_Class) {
-          object = this.fromHeap(object, thread);
-        }
-        if (!object.monitor.aquireLock(thread)) {
-          console.log("Two locks on one object!");
-          return false;
-        }
-        return true;
+        thread.aquireLock(object);
+        return false;
       });
       this[195] = new OpCode('monitorexit', '', function(frame) {
-        var object, objectref;
+        var objectref;
         objectref = frame.op_stack.pop();
-        object = this.fromHeap(objectref, thread);
-        if (!object.monitor.releaseLock(thread)) {
-          athrow('IllegalMonitorStateException');
-        }
-        return true;
+        thread.releaseLock(objectref);
+        return false;
       });
       this[196] = new OpCode('wide', '', function(frame) {
         return alert(this.mnemonic);
@@ -1737,7 +1805,7 @@
         var branch, value;
         branch = this.constructIndex(frame, thread);
         value = frame.op_stack.pop();
-        if (value === null) {
+        if (this.isNull(value)) {
           thread.pc -= 3;
           thread.pc += branch;
         }
@@ -1747,7 +1815,7 @@
         var branch, value;
         branch = this.constructIndex(frame, thread);
         value = frame.op_stack.pop();
-        if (value.pointer !== 0) {
+        if (!this.isNull(value.pointer)) {
           thread.pc -= 3;
           thread.pc += branch;
         }
@@ -1825,10 +1893,21 @@
       this["do"] = _do;
       this;
     }
+    OpCode.prototype.isNull = function(objectref) {
+      return objectref === null || objectref.pointer === 0;
+    };
     OpCode.prototype.getIndexByte = function(index, frame, thread) {
       index = frame.method_stack[thread.pc + index];
       thread.pc++;
       return index;
+    };
+    OpCode.prototype.fromCP = function(index, thread) {
+      var item;
+      item = thread.current_class.constant_pool[index];
+      while (typeof item === 'number') {
+        item = thread.current_class.constant_pool[index];
+      }
+      return item;
     };
     OpCode.prototype.constructIndex = function(frame, thread) {
       var indexbyte1, indexbyte2;
@@ -1837,16 +1916,7 @@
       return indexbyte1 << 8 | indexbyte2;
     };
     OpCode.prototype.fromHeap = function(ref, thread) {
-      return thread.RDA.heap[ref];
-    };
-    OpCode.prototype.fromClass = function(index, thread) {
-      var item;
-      item = thread.current_class.constant_pool[index];
-      if (item instanceof CONSTANT_Stringref) {
-        item = thread.RDA.JVM.JVM_ResolveStringLiteral(thread.current_class.constant_pool[item.string_index]);
-        thread.current_class.constant_pool[index] = item;
-      }
-      return item;
+      return thread.getObject(ref);
     };
     OpCode.prototype.athrow = function(exception) {
       throw exception;

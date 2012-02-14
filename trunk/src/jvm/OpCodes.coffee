@@ -67,12 +67,18 @@ class this.OpCodes
       item = @getIndexByte(1, frame, thread)
       while typeof (item = @fromClass(item, thread)) is 'number' 
         continue
+      
+      if item instanceof CONSTANT_Stringref
+        thread.resolveString(@fromClass(item.string_index, thread), (string) -> 
+          frame.op_stack.push(string)
+        , @)
+        return false
      
-      if item == 'undefined'
+      if item is undefined
         throw 'JVM_Error: Undefined item on stack'
-      # TODO check item is valid
+      
       if item instanceof JVM_Object
-        item = new JVM_Reference(thread.RDA.heap.allocate(item))
+        item = new JVM_Reference(thread.allocate(item))
       frame.op_stack.push(item)
     )
     @[19] = new OpCode('ldc_w', 'Push item from constant pool (wide index)', (frame) -> 
@@ -80,12 +86,15 @@ class this.OpCodes
       while typeof (item = @fromClass(item, thread)) is 'number' 
         continue
       if item instanceof JVM_Object
-        item = new JVM_Reference(thread.RDA.heap.allocate(item))
-      frame.op_stack.push(item)
+        item = new JVM_Reference(thread.allocate(item), () -> 
+          frame.op_stack.push(item)
+        )
+        return false
+      frame.op_stack.push(item)      
     )
     @[20] = new OpCode('ldc2_w', 'Push long or double from constant pool (wide index)', (frame) -> 
       index = @constructIndex(frame, thread)
-      item = thread.current_class.constant_pool[index]
+      item = @fromClass(index, thread)
       # TODO check item is long or double
       frame.op_stack.push(item)
       frame.op_stack.push(item)
@@ -187,108 +196,110 @@ class this.OpCodes
     @[46] = new OpCode('iaload', 'Load int from array', (frame) -> 
       arrayindex = frame.op_stack.pop()
       arrayref = frame.op_stack.pop()
-      if arrayref is null
+      if @isNull(arrayref)
         athrow('NullPointerException')
-      array = thread.RDA.heap[arrayref]
-      if arrayindex > array.length
-        athrow('ArrayIndexOutOfBoundsException')
-      int = array[arrayindex]
-      frame.op_stack.push(int)
+        
+      thread.getObject(arrayref, (array) -> 
+        if arrayindex > array.length or arrayindex < 0
+          athrow('ArrayIndexOutOfBoundsException')
+        int = array[arrayindex]
+        frame.op_stack.push(int)
+      , @)  
+      return false      
     )
     @[47] = new OpCode('laload', 'Load long from array', (frame) -> 
       arrayref = frame.op_stack.pop()
       arrayindex = frame.op_stack.pop()
-      if arrayref is null
+      if @isNull(arrayref)
         athrow('NullPointerException')
-      array = thread.RDA.heap[arrayref]
-      if arrayindex > array.length
-        athrow('ArrayIndexOutOfBoundsException')
-      long = array[arrayindex]
-      frame.op_stack.push(long)
+        
+      thread.getObject(arrayref, (array) -> 
+        if arrayindex > array.length or arrayindex < 0
+          athrow('ArrayIndexOutOfBoundsException')
+        long = array[arrayindex]
+        frame.op_stack.push(long)
+      , @)
+      return false
     )
     @[48] = new OpCode('faload', 'Load float from array', (frame) -> 
       arrayref = frame.op_stack.pop()
       arrayindex = frame.op_stack.pop()
-      if arrayref is null
+      if @isNull(arrayref)
         athrow('NullPointerException')
-      array = thread.RDA.heap[arrayref]
-      if arrayindex > array.length
-        athrow('ArrayIndexOutOfBoundsException')
-      float = array[arrayindex]
-      frame.op_stack.push(float)
+      thread.getObject(arrayref, (array) -> 
+        if arrayindex > array.length or arrayindex < 0
+          athrow('ArrayIndexOutOfBoundsException')
+        float = array[arrayindex]
+        frame.op_stack.push(float)
+      , @)
+      return false
     )
     @[49] = new OpCode('daload', 'Load double from array', (frame) -> 
       arrayref = frame.op_stack.pop()
       arrayindex = frame.op_stack.pop()
-      if arrayref is null
+      if @isNull(arrayref)
         athrow('NullPointerException')
-      array = thread.RDA.heap[arrayref]
-      if arrayindex > array.length
-        athrow('ArrayIndexOutOfBoundsException')
-      double = array[arrayindex]
-      frame.op_stack.push(double)
+      thread.getObject(arrayref, (array) -> 
+        if arrayindex > array.length or arrayindex < 0
+          athrow('ArrayIndexOutOfBoundsException')
+        double = array[arrayindex]
+        frame.op_stack.push(double)
+      , @)
+      return false
     )
     @[50] = new OpCode('aaload', 'Load reference from array', (frame) -> 
       arrayindex = frame.op_stack.pop()
       arrayref = frame.op_stack.pop()
-      array = @fromHeap(arrayref, thread)
-      ref = thread.RDA.heap[arrayref][arrayindex]
-      frame.op_stack.push(ref)
+      thread.getObject(arrayref, (array)-> 
+        if arrayindex > array.length or arrayindex < 0
+          athrow('ArrayIndexOutOfBoundsException')
+        ref = array[arrayindex]
+        frame.op_stack.push(ref)
+      , @)
+      return false
     )
     @[51] = new OpCode('baload', 'Load byte or boolean from array', (frame) -> 
 
       arrayindex = frame.op_stack.pop()
       arrayref = frame.op_stack.pop()
       
-      if not arrayref instanceof JVM_Reference
-        athrow('RuntimeException')
-        return false
-      if arrayref == null
+      if @isNull(arrayref)
         athrow('NullPointerException')
-        return false
-      array = fromHeap(arrayref)
-      if arrayindex >= array.length or arrayindex < 0
-        athrow('ArrayIndexOutOfBounds')
-        return false
-      frame.op_stack.push(array[arrayindex])      
+      thread.getObject(arrayref, (array)-> 
+        if arrayindex > array.length or arrayindex < 0
+          athrow('ArrayIndexOutOfBoundsException')
+        ba = array[arrayindex]
+        frame.op_stack.push(ba)      
+      , @)
+      return false    
     )
     @[52] = new OpCode('caload', 'Load char from array', (frame) -> 
       arrayindex = frame.op_stack.pop()
       arrayref = frame.op_stack.pop()
       
-      if not arrayref instanceof JVM_Reference
-        athrow('RuntimeException')
-        return false
-      if arrayref == null
+      if @isNull(arrayref)
         athrow('NullPointerException')
-        return false
-      array = @fromHeap(arrayref, thread)
-      # array must be of type 'char' 
-      #if array.type != 'char'
-        #do something..?
-        # throw runtimeexception
-        #return false
-      if arrayindex >= array.length or arrayindex < 0
-        athrow('ArrayIndexOutOfBounds')
-        return false
-      frame.op_stack.push(new CONSTANT_char(array[arrayindex.val]))
+      thread.getObject(arrayref, (array) ->
+         if arrayindex > array.length or arrayindex < 0
+           athrow('ArrayIndexOutOfBoundsException')
+         ch = array[arrayindex]
+         frame.op_stack.push(ch)
+      , @)
+      return false  
     )
     @[53] = new OpCode('saload', 'Load short from array', (frame) -> 
       arrayindex = frame.op_stack.pop()
       arrayref = frame.op_stack.pop()
       
-      if not arrayref instanceof JVM_Reference
-        athrow('RuntimeException')
-        return false
-      if arrayref == null
+      if @isNull(arrayref)
         athrow('NullPointerException')
-        return false
-      array = fromHeap(arrayref)
-      # array must be of type 'char' 
-      if arrayindex >= array.length or arrayindex < 0
-        athrow('ArrayIndexOutOfBounds')
-        return false
-      frame.op_stack.push(array[arrayindex])      
+      thread.getObject(arrayref, (array) ->
+         if arrayindex > array.length or arrayindex < 0
+           athrow('ArrayIndexOutOfBoundsException')
+         sh = array[arrayindex]
+         frame.op_stack.push(sh)
+      , @)
+      return false       
     )
     @[54] = new OpCode('istore', 'Store int into local variable', (frame) -> 
       index = @getIndexByte(1, frame, thread)
@@ -410,103 +421,131 @@ class this.OpCodes
       value = frame.op_stack.pop()
       arrayindex = frame.op_stack.pop()
       arrayref = frame.op_stack.pop()
-      
-     
-      
-      array = thread.RDA.heap[arrayref]
-      if array is null
+      if @isNull(arrayref)
         athrow('NullPointerException')
-      if arrayindex > array.length
-        athrow('ArrayIndexOutOfBoundsException')
-      array[arrayindex] = value
+      thread.getObject(arrayref, (array) ->
+        if arrayindex > array.length or arrayindex < 0
+          athrow('ArrayIndexOutOfBoundsException')
+        array[arrayindex] = value
+        thread.updateObject(array, () ->
+          return false
+        , @)
+      , @)
+      return false  
     )
     @[80] = new OpCode('lastore', 'Store into long array', (frame) -> 
       
       value = frame.op_stack.pop()
       arrayindex = frame.op_stack.pop()
       arrayref = frame.op_stack.pop()
-      
-      array = thread.RDA.heap[arrayref]
-      if array is null
+      if @isNull(arrayref)
         athrow('NullPointerException')
-      if arrayindex > array.length
-        athrow('ArrayIndexOutOfBoundsException')
-      array[arrayindex] = value
+      thread.getObject(arrayref, (array) ->
+        if arrayindex > array.length or arrayindex < 0
+          athrow('ArrayIndexOutOfBoundsException')
+        array[arrayindex] = value
+        thread.updateObject(array, () ->
+          return false
+        , @)
+      , @)
+      return false  
     )
     @[81] = new OpCode('fastore', 'Store into float array', (frame) -> 
       value = frame.op_stack.pop()
       arrayindex = frame.op_stack.pop()
       arrayref = frame.op_stack.pop()
-      
-      array = thread.RDA.heap[arrayref]
-      if array is null
+      if @isNull(arrayref)
         athrow('NullPointerException')
-      if arrayindex > array.length
-        athrow('ArrayIndexOutOfBoundsException')
-      array[arrayindex] = value
+      thread.getObject(arrayref, (array) ->
+        if arrayindex > array.length or arrayindex < 0
+          athrow('ArrayIndexOutOfBoundsException')
+        array[arrayindex] = value
+        thread.updateObject(array, () ->
+          return false
+        , @)
+      , @)
+      return false  
     )
     @[82] = new OpCode('dastore', 'Store double into array', (frame) -> 
       value = frame.op_stack.pop()
       arrayindex = frame.op_stack.pop()
       arrayref = frame.op_stack.pop()
-
-      array = thread.RDA.heap[arrayref]
-      if array is null
+      if @isNull(arrayref)
         athrow('NullPointerException')
-      if arrayindex > array.length
-        athrow('ArrayIndexOutOfBoundsException')
-      array[arrayindex] = value
+      thread.getObject(arrayref, (array) ->
+        if arrayindex > array.length or arrayindex < 0
+          athrow('ArrayIndexOutOfBoundsException')
+        array[arrayindex] = value
+        thread.updateObject(array, () ->
+          return false
+        , @)
+      , @)
+      return false  
     )
     @[83] = new OpCode('aastore', 'Store reference into Array', (frame) -> 
       value = frame.op_stack.pop()
       arrayindex = frame.op_stack.pop()
       arrayref = frame.op_stack.pop()
-      
-      
-      #TODO value must be compatable with the arraytype
-      
-      array = thread.RDA.heap[arrayref]
-      if array is null
+      if @isNull(arrayref)
         athrow('NullPointerException')
-      if arrayindex > array.length
-        athrow('ArrayIndexOutOfBoundsException')
-      array[arrayindex] = value
+      thread.getObject(arrayref, (array) ->
+        if arrayindex > array.length or arrayindex < 0
+          athrow('ArrayIndexOutOfBoundsException')
+        array[arrayindex] = value
+        thread.updateObject(array, () ->
+          return false
+        , @)
+      , @)
+      return false
     )
     @[84] = new OpCode('bastore', 'Store into byte or boolean Array', (frame) -> 
       value = frame.op_stack.pop()
       arrayindex = frame.op_stack.pop()
       arrayref = frame.op_stack.pop()
-      
-      array = @fromHeap(arrayref)
-      if array is null
+      if @isNull(arrayref)
         athrow('NullPointerException')
-      if arrayindex > array.length
-        athrow('ArrayIndexOutOfBoundsException')
-      array[arrayindex] = value
+      thread.getObject(arrayref, (array) ->
+        if arrayindex > array.length or arrayindex < 0
+          athrow('ArrayIndexOutOfBoundsException')
+        array[arrayindex] = value
+        thread.updateObject(array, () ->
+          return false
+        , @)
+      , @)
+      return false
     )
     @[85] = new OpCode('castore', 'Store into char array', (frame) -> 
       value = frame.op_stack.pop()
       arrayindex = frame.op_stack.pop()
       arrayref = frame.op_stack.pop()
-      array = @fromHeap(arrayref, thread)
-      if array is null
+      
+      if @isNull(arrayref)
         athrow('NullPointerException')
-      if arrayindex > array.length
-        athrow('ArrayIndexOutOfBoundsException')
-      array[arrayindex] = value
+      thread.getObject(arrayref, (array) ->
+        if arrayindex > array.length or arrayindex < 0
+          athrow('ArrayIndexOutOfBoundsException')
+        array[arrayindex] = value
+        thread.updateObject(array, () ->
+          return false
+        , @)
+      , @)
+      return false
     )
     @[86] = new OpCode('sastore', 'Store into short array', (frame) -> 
       value = frame.op_stack.pop()
       arrayindex = frame.op_stack.pop()
       arrayref = frame.op_stack.pop()
-      
-      
-      array = @fromHeap(arrayref)
-      if array is null
+      if @isNull(arrayref)
         athrow('NullPointerException')
-      if arrayindex > array.length
-        athrow('ArrayIndexOutOfBoundsException')
-      array[arrayindex] = value
+      thread.getObject(arrayref, (array) ->
+        if arrayindex > array.length or arrayindex < 0
+          athrow('ArrayIndexOutOfBoundsException')
+        array[arrayindex] = value
+        thread.updateObject(array, () ->
+          return false
+        , @)
+      , @)
+      return false
     )
     @[87] = new OpCode('pop', 'Pops top stack word', (frame) -> 
       frame.op_stack.pop() 
@@ -749,10 +788,10 @@ class this.OpCodes
       frame.op_stack.push(new CONSTANT_long(result))
     )
     @[114] = new OpCode('frem', 'Remainder float', (frame) -> 
-      console.log('frem not implemented')
+      thread.log('frem not implemented')
     )
     @[115] = new OpCode('drem', 'Remainder double', (frame) -> 
-      console.log('drem not implemented')
+      thread.log('drem not implemented')
     )
     @[116] = new OpCode('ineg', 'Negate int', (frame) -> 
       value = frame.op_stack.pop().valueOf()
@@ -1163,10 +1202,10 @@ class this.OpCodes
       thread.pc = frame.locals[index]
     )
     @[170] = new OpCode('tableswitch', '', (frame) -> 
-      alert(@mnemonic)
+      thread.log(@mnemonic)
     yes )
     @[171] = new OpCode('lookupswitch', '', (frame) -> 
-      alert(@mnemonic)
+      thread.log(@mnemonic)
     yes )
     @[172] = new OpCode('ireturn', 'Return an int', (frame) -> 
       # get the int to return
@@ -1308,186 +1347,175 @@ class this.OpCodes
     )
     @[178] = new OpCode('getstatic', 'Fetch static field from class', (frame) -> 
       ref = @constructIndex(frame, thread)
-      class_field_ref = thread.current_class.constant_pool[ref]
+      class_field_ref = @fromCP(ref, thread)
       
       # get the class the owns the static field 
-      class_ref = thread.current_class.constant_pool[class_field_ref.class_index]
+      class_ref = @fromCP(class_field_ref.class_index, thread)
+      field_name_type = @fromCP(class_field_ref.name_and_type_index, thread)
+      field_name = @fromCP(field_name_type.name_index, thread)
       
-      if(cls = thread.resolveClass(class_ref)) == null
-        return false
-          
-      field_name_type = thread.current_class.constant_pool[class_field_ref.name_and_type_index]
-      field_name = thread.current_class.constant_pool[field_name_type.name_index]
-      frame.op_stack.push(cls.fields[field_name])
       
-      yes
-    # not yet implemented
-    yes )
+      thread.getStatic(class_ref, field_name, (value) ->
+        frame.op_stack.push(value)
+      );
+      return false
+    )
     @[179] = new OpCode('putstatic', 'Set static field in class', (frame) -> 
       ref = @constructIndex(frame, thread)
-      class_field_ref = thread.current_class.constant_pool[ref]
-
-      # get the class the owns the static field       
-      if(cls = thread.resolveClass(class_field_ref.class_index)) == null
-        return false
-
-      field_ref = thread.current_class.constant_pool[class_field_ref.name_and_type_index]
-      field_name = thread.current_class.constant_pool[field_ref.name_index]
-      field_type = thread.current_class.constant_pool[field_ref.descriptor_index]
-      #cls = thread.current_class.constant_pool[class_ref]
-      
+      class_field_ref = @fromCP(ref, thread)
+      class_ref = @fromCP(class_field_ref.class_index, thread)
+      field_name_type = @fromCP(class_field_ref.name_and_type_index, thread)
+      field_name = @fromCP(field_name_type.name_index, thread)
       
       value = frame.op_stack.pop()
-      # set field value
-      cls.fields[field_name] = value
+      thread.setStatic(class_ref, field_name, value)
+      return false
+
     )
     @[180] = new OpCode('getfield', 'Get a field from an object', (frame) -> 
       objectref = frame.op_stack.pop()
+      if @isNull(objectref) 
+        athrow('NullPointerException')        
       index = @constructIndex(frame, thread)
-      fieldref = @fromClass(index, thread)
-      if objectref is null
-        athrow('NullPointerException')
-      nameandtype = @fromClass(fieldref.name_and_type_index, thread)
-      fieldname = @fromClass(nameandtype.name_index, thread)
-      descriptor = @fromClass(nameandtype.descriptor_index, thread)
-      field = @fromHeap(objectref.pointer, thread)[fieldname]
-      frame.op_stack.push(field)
-      yes
+      fieldref = @fromCP(index, thread)
+      nameandtype = @fromCP(fieldref.name_and_type_index, thread)
+      fieldname = @fromCP(nameandtype.name_index, thread)
+      # descriptor = @fromCP(nameandtype.descriptor_index, thread)
       # TODO check method stuff (protected etc)
+      thread.getObjectField(objectref, fieldname, (field) ->
+        frame.op_stack.push(field)
+      , @)
+      return false
+      
     )
     @[181] = new OpCode('putfield', 'Set a field in an object', (frame) -> 
-      value =   frame.op_stack.pop()
+      
       objectref = frame.op_stack.pop() 
-      index = @constructIndex(frame, thread)
-      fieldref = @fromClass(index, thread)
-      if objectref is null
+      if @isNull(objectref) 
         athrow('NullPointerException')
-      nameandtype = @fromClass(fieldref.name_and_type_index, thread)
-      fieldname = @fromClass(nameandtype.name_index, thread)
-      descriptor = @fromClass(nameandtype.descriptor_index, thread)
-      object = @fromHeap(objectref.pointer, thread)
-      object[fieldname] = value  
-      yes
+      
+      value =   frame.op_stack.pop()  
+      index = @constructIndex(frame, thread)
+      fieldref = @fromCP(index, thread)
+      nameandtype = @fromCP(fieldref.name_and_type_index, thread)
+      fieldname = @fromCP(nameandtype.name_index, thread)
+      #descriptor = @fromClass(nameandtype.descriptor_index, thread)
       # TODO check method stuff (protected etc)
+      thread.setObjectField(objectref, fieldname, value)
+      return false
     )
     @[182] = new OpCode('invokevirtual', 'Invoke instance method; dispatch based on class', (frame) -> 
       index = @constructIndex(frame, thread)
-      methodref = @fromClass(index, thread)
+      methodref = @fromCP(index, thread)
+      classname = @fromCP(methodref.class_index, thread)
       
       methodnameandtype = @fromClass(methodref.name_and_type_index, thread)
+      method_name = @fromCP(methodnameandtype.name_index, thread)
+      descriptor = @fromCP(methodnameandtype.descriptor_index, thread)
       
-      if(cls = thread.resolveClass(methodref.class_index)) == null
-        return false
-        
+      thread.resolveMethod(method_name, classname, descriptor, (method) ->
+        if method.access_flags & JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_STATIC
+          athrow('IncompatibleClassChangeError')
+        if method.access_flags & JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_ABSTRACT
+          athrow('AbstractMethodError')
           
-      method_name = @fromClass(methodnameandtype.name_index, thread)
-      type = @fromClass(methodnameandtype.descriptor_index, thread)
-      method = thread.resolveMethod(method_name, cls, type)
-      
-      if method.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_STATIC
-        athrow('IncompatibleClassChangeError')
-      if method.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_ABSTRACT
-        athrow('AbstractMethodError')
-             
-              
-      newframe = thread.createFrame(method, method.belongsTo)
-      thread.current_class = method.belongsTo
-      frame.pc += 2
-      thread.pc = -1
-      
-      arg_num = method.nargs
-      while arg_num > 0
-        newframe.locals[arg_num--] = frame.op_stack.pop()
-      # push objectref to represent 'this' in the object
-      newframe.locals[0] = frame.op_stack.pop()
-      # AQUIRE LOCK
-      if method.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_SYNCHRONIZED
-        obj = @fromHeap(newframe.locals[0], thread)
-        if obj is null
-          @athrow('NullPointerException')
-        if !obj.monitor.aquireLock(thread)
-          # TODO this will break flow, as operands have already been popped from the stack
-          return false
+        newframe = thread.createFrame(method, method.belongsTo)
+        thread.current_class = method.belongsTo
+        frame.pc += 2
+        thread.pc = -1
+        arg_num = method.nargs
+        while arg_num > 0
+          newframe.locals[arg_num--] = frame.op_stack.pop()
+        # push objectref to represent 'this' in the object
+        objectref = frame.op_stack.pop()
+        newframe.locals[0] = objectref
         
-      yes 
+        # AQUIRE LOCK
+        if method.access_flags & JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_SYNCHRONIZED
+          thread.aquireLock(objectref);
+      , @)
+      return false
     )
     @[183] = new OpCode('invokespecial', 'Invoke instance method', (frame) -> 
       # get method ref from operands
-      methodref = @fromClass(@constructIndex(frame, thread), thread)
+      methodref = @fromCP(@constructIndex(frame, thread), thread)
+      classname = @fromCP(methodref.class_index, thread)      
+             
+      method_name_and_type = @fromCP(methodref.name_and_type_index, thread)
+      method_name = @fromCP(method_name_and_type.name_index, thread)
+      descriptor = @fromCP(method_name_and_type.descriptor_index, thread)
       
-      if not(methodref instanceof CONSTANT_Methodref_info)
-        throw 'Opcode 183 error.'
-      
-      if(cls = thread.resolveClass(methodref.class_index)) == null
-        return false
-              
-      method_name_and_type = @fromClass(methodref.name_and_type_index, thread)
-      method_name = @fromClass(method_name_and_type.name_index, thread)
-      type = @fromClass(method_name_and_type.descriptor_index, thread)
-      method = thread.resolveMethod(method_name, cls, type)
-      
-      #if thread.current_class == cls && cls.access_flags & thread.RDA.JVM.JVM_RECOGNIZED_CLASS_MODIFIERS.JVM_ACC_SUPER 
-      #return true
-        
-      # set frame and class
-      newframe = thread.createFrame(method, cls)
-      thread.current_class = cls
-      
-      # set frame pc to skip operands, and machine pc to nil for new method
-      frame.pc += 2
-      thread.pc = -1
-      # pop the args off the current op_stack into the local vars of the new frame
-      arg_num = method.nargs
-      while arg_num > 0
-        newframe.locals[arg_num--] = frame.op_stack.pop()
-      # put objectref (this) in new method local 0
-      newframe.locals[0] = frame.op_stack.pop()
-      yes
+      thread.resolveMethod(method_name, classname, descriptor, (method)->
+        if method.access_flags & JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_PRIVATE
+          athrow('RuntimeException')
+        if method.access_flags & JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_STATIC
+          athrow('IncompatibleClassChangeError')
+        if method.access_flags & JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_ABSTRACT
+          athrow('AbstractMethodError')
+          
+        newframe = thread.createFrame(method, method.belongsTo)
+        thread.current_class = method.belongsTo
+          
+        # set frame pc to skip operands, and machine pc to nil for new method
+        frame.pc += 2
+        thread.pc = -1
+        arg_num = method.nargs
+        # pop the args off the current op_stack into the local vars of new frame
+        while arg_num > 0
+          newframe.locals[arg_num--] = frame.op_stack.pop()
+        objectref = frame.op_stack.pop()
+        if @isNull(objectref)
+          athrow('NullPointerException')
+        newframe.locals[0] = objectref
+      , @)
+      return false
     )
-    @[184] = new OpCode('invokestatic', 'Invoke a class (static) method', (frame) -> 
+    @[184] = new OpCode('invokestatic','Invoke class (static) method', (frame) -> 
       # cp ref
-      methodref = @fromClass(@constructIndex(frame, thread), thread)
-            
-      if(cls = thread.resolveClass(methodref.class_index)) == null
-        return false
+      methodref = @fromCP(@constructIndex(frame, thread), thread)
+      classname = @fromCP(methodref.class_index, thread)
          
-      method_name_and_type = @fromClass(methodref.name_and_type_index, thread)
-      method_name = @fromClass(method_name_and_type.name_index, thread)   
-      type = @fromClass(method_name_and_type.descriptor_index, thread)
-      method = thread.resolveMethod(method_name, cls, type)
-      
-      thread.current_class = cls
-      # set frame pc to skip operands, and machine pc to nil for new method
-      frame.pc += 2
-      thread.pc = -1
-      
-      # create new frame for the static method
-      newframe = thread.createFrame(method, thread.current_class)
-      # pop the args off the current op_stack into the local vars of the new frame
-      arg_num = method.nargs
-      # store args in locals; arg1 = locals[0] etc
-      while arg_num > 0
-        newframe.locals[--arg_num] = frame.op_stack.pop()
-      # put objectref (this) in new method local 0
-      yes
-       
+      method_name_and_type = @fromCP(methodref.name_and_type_index, thread)
+      method_name = @fromCP(method_name_and_type.name_index, thread)   
+      descriptor = @fromCP(method_name_and_type.descriptor_index, thread)
+
+      thread.resolveMethod(method_name, classname, descriptor, (method) ->
+        if !(method.access_flags & JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_STATIC)
+          athrow('IncompatibleClassChangeError')
+        newframe = thread.createFrame(method, method.belongsTo)
+        thread.current_class = method.belongsTo
+        # set frame pc to skip operands, and machine pc to nil for new method
+        frame.pc += 2
+        thread.pc = -1
+        # pop the args off the current op_stack into the local vars new frame
+        arg_num = method.nargs
+        # store args in locals; arg1 = locals[0] etc
+        while arg_num > 0
+          newframe.locals[--arg_num] = frame.op_stack.pop()
+      , @)
+      return false
     )
     @[185] = new OpCode('invokeinterface', '', (frame) -> 
-      alert(@mnemonic)
+      thread.log(@mnemonic)
     yes )
     @[186] = new OpCode('xxxunusedxxx', '', (frame) -> 
-      alert(@mnemonic)
+      thread.log(@mnemonic)
     yes )
     @[187] = new OpCode('new', 'Create new Object', (frame) -> 
       index = @constructIndex(frame, thread)
-      clsref = thread.current_class.constant_pool[index]
+      clsref = @fromCP(index, thread)
       # TODO check if interface, array or abstract and throw instantiationException
       
-      if(cls = thread.resolveClass(clsref)) == null
-        return false
-        
-      objectref = thread.RDA.heap.allocate(new JVM_Object(cls))
-      frame.op_stack.push(objectref)
+      thread.resolveClass(clsref, (cls) ->
+        if cls.access_flags & JVM_RECOGNIZED_CLASS_MODIFIERS.JVM_ACC_INTERFACE or cls.access_flags & JVM_RECOGNIZED_CLASS_MODIFIERS.JVM_ACC_ABSTRACT
+          athrow('InstantiationException')
+          
+        thread.allocate(new JVM_Object(cls), (objectref) ->
+          frame.op_stack.push(objectref)
+        , @)
+        return false        
+      , @)
+      return false        
       
     )
     @[188] = new OpCode('newarray', 'Create a new array', (frame) -> 
@@ -1504,42 +1532,43 @@ class this.OpCodes
         when 9 then t = 'S'
         when 10 then t = 'I'
         when 11 then t = 'J'
-      arrayref = thread.RDA.heap.allocate(new CONSTANT_Array(count, t))
-      frame.op_stack.push(arrayref)
-      yes
+      arrayref = thread.allocate(new CONSTANT_Array(count, t), () ->
+        frame.op_stack.push(arrayref)
+      )
+      return false
     )
     @[189] = new OpCode('anewarray', 'Create new array of reference', (frame) -> 
       
-      cpindex = @constructIndex(frame, thread)
-
-      if(cls = thread.resolveClass(cpindex)) == null
-        return false
-        
+      classname = @constructIndex(frame, thread)
       count = frame.op_stack.pop()
       if count < 0
         athrow('NegativeArraySizeException')
-
-      arr = new Array(count)
-      while count-- > 0
-        arr[count] = new JVM_Reference(0) # reference to null
-      arr['type'] = 'L' + cls.real_name
-      arrayref = thread.RDA.heap.allocate(arr)
-      frame.op_stack.push(arrayref)
+        
+      thread.resolveClass(classname, (cls) ->
+        arr = new CONSTANT_Array(count, 'L' + cls.real_name)
+        # init array to nulls
+        while count-- > 0
+          arr[count] = new JVM_Reference(0) # reference to null
+        arrayref = thread.allocate(arr, () ->
+          frame.op_stack.push(arrayref)
+        , @)
+        return false
+      , @)
+      return false
     )
     @[190] = new OpCode('arraylength', 'Get length of array', (frame) -> 
       arrayref = frame.op_stack.pop()
-      if arrayref == null 
-        # TODO throw NullPointerException
-        return false
-      array = thread.RDA.heap[arrayref.pointer]
-      len = array.length
-      frame.op_stack.push(len)    
+      if @isNull(arrayref)
+        athrow ('NullPointerException')
+      thread.getObject(arrayref, (array) ->
+        frame.op_stack.push(array.length)
+      , @)
+      return false    
     )
     @[191] = new OpCode('athrow', 'Throw exception or error', (frame) -> 
       objectref = frame.op_stack.pop()
-      if ojectref == null
+      if @isNull(ojectref)
         athrow("NullPointerException")
-        return false
       # while a catch clause is not found
       caught = false
       while not caught
@@ -1555,58 +1584,52 @@ class this.OpCodes
       objectref = frame.op_stack.peek()
       clsindex = @constructIndex(frame, thread)
       # s comes from heap, T from the class constant pool
-      S = @fromHeap(objectref, thread)
-      
-      if(T = thread.resolveClass(clsindex)) == null
+      thread.getObject(objectref, (S) ->
+        if @isNull(S)
+          return true
+        thread.resolveClass(clsindex, (T) ->
+          # if T is class type then S must be the same class, or a subclass of T
+          if T.real_name is S.cls.real_name
+            frame.op_stack.push(objectref)
+            return true
+            # TODO check other shit here pg 175            
+            athrow('ClassCastException')
+        , @)
         return false
-                
-      if S == null
-        return true
-        
-      # if T is class type then S must be the same class, or a subclass of T
-      if T.real_name is S.cls.real_name
-        frame.op_stack.push(objectref)
-        return true
-      athrow('ClassCastException')
-          
-      # TODO check shit here pg 175
+      , @)
+      return false
+                      
+
              
     )
     @[193] = new OpCode('instanceof', 'Check if object is an instance of class', (frame) -> 
       objectref = frame.op_stack.pop()
       clsindex = @fromClass(@constructIndex(frame, thread), thread)
       
-      if(cls = thread.resolveClass(clsindex)) == null
+      thread.resolveClass(clsindex, (cls) ->
+        thread.getObject(objectref, (object) ->
+          if cls.real_name is object.cls.real_name
+            frame.op_stack.push(1)
+          else 
+            frame.op_stack.push(0)
+        , @)
         return false
-       
-      object = @fromHeap(objectref, thread)
-      # make a new object of type cls to compare with object
-      
-      if cls.real_name is object.cls.real_name
-        frame.op_stack.push(1)
-      else 
-        frame.op_stack.push(0)
-      
-      yes  
+      , @)
+      return false
     )
     @[194] = new OpCode('monitorenter', 'Enter monitor for object', (frame) -> 
       object = frame.op_stack.pop()
-      if !object instanceof CONSTANT_Class
-        object = @fromHeap(object, thread)
-      # aquire monitor
-      if !object.monitor.aquireLock(thread)
-        # wait to be notified by objects monitor
-        console.log("Two locks on one object!")
-        return false
-      yes
+      # aquire monitor lock
+      thread.aquireLock(object)
+      # wait to be notified by objects monitor
+      return false
     )
     @[195] = new OpCode('monitorexit', '', (frame) -> 
       objectref = frame.op_stack.pop()
-      object = @fromHeap(objectref, thread)
-      # release monitor
-      if !object.monitor.releaseLock(thread)
-        athrow('IllegalMonitorStateException')
-      yes 
+      # release monitor lock
+      thread.releaseLock(objectref);
+      #TODO something should throw this: athrow('IllegalMonitorStateException')
+      return false 
     )
     @[196] = new OpCode('wide', '', (frame) -> 
       alert(@mnemonic)#  not yet implemented
@@ -1617,7 +1640,7 @@ class this.OpCodes
     @[198] = new OpCode('ifnull', 'Branch if null', (frame) -> 
       branch = @constructIndex(frame, thread)
       value = frame.op_stack.pop()
-      if value is null
+      if @isNull(value)
         thread.pc -= 3
         thread.pc += branch
       yes  
@@ -1625,7 +1648,7 @@ class this.OpCodes
     @[199] = new OpCode('ifnonnull', 'Branch if non-null', (frame) -> 
       branch = @constructIndex(frame, thread)
       value = frame.op_stack.pop()
-      if value.pointer isnt 0
+      if !@isNull(value.pointer)
         thread.pc -= 3
         thread.pc += branch
       yes      
@@ -1806,14 +1829,20 @@ class OpCode
   constructor : (@mnemonic, @description, @do) ->
     this
     
-  
-    
+  isNull : (objectref) ->
+    return objectref is null or objectref.pointer == 0
+      
   getIndexByte : (index, frame, thread) ->
     index = frame.method_stack[(thread.pc)+index]
     thread.pc++
     return index
     
-  
+  fromCP : (index, thread) ->
+    item = thread.current_class.constant_pool[index]
+    while typeof item is 'number'
+      item = thread.current_class.constant_pool[index]
+    return item
+    
   constructIndex : (frame, thread) ->  
     indexbyte1 = @getIndexByte(1, frame, thread)
     indexbyte2 = @getIndexByte(1, frame, thread)
@@ -1821,15 +1850,8 @@ class OpCode
     
     
   fromHeap : (ref, thread) ->
-    return thread.RDA.heap[ref]
-      
-  fromClass : (index, thread) ->
-    item = thread.current_class.constant_pool[index]
-    if item instanceof CONSTANT_Stringref
-      item = thread.RDA.JVM.JVM_ResolveStringLiteral(thread.current_class.constant_pool[item.string_index])
-      thread.current_class.constant_pool[index] = item
-    return item  
-      
+    return thread.getObject(ref)
+               
   
   athrow : (exception) ->
     throw exception

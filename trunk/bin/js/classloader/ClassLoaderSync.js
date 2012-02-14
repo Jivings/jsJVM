@@ -12,7 +12,7 @@
     ClassLoader.prototype.classReader = 1;
     ClassLoader.prototype.stack = new Array;
     ClassLoader.prototype.ps_id = 0;
-    ClassLoader.prototype.required_classes = ['java/lang/Class', 'java/lang/String', 'java/lang/System'];
+    ClassLoader.prototype.required_classes = ['java/lang/Class', 'java/lang/String'];
     ClassLoader.prototype.loaded_classes = {};
     ClassLoader.prototype.postMessage = function(data) {
       return this.find(data.classname, data.waitingThreads);
@@ -38,15 +38,14 @@
         Seperate to Constructor so that the JVM can resolve required classes and 
         their native counterparts. 
       */
-    ClassLoader.prototype.init = function() {
-      var cls, _i, _len, _ref, _results;
+    ClassLoader.prototype.init = function(callback) {
+      var cls, _i, _len, _ref;
       _ref = this.required_classes;
-      _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         cls = _ref[_i];
-        _results.push(this.find(cls));
+        this.find(cls, false, callback);
       }
-      return _results;
+      return true;
     };
     /*
       doAction : (message) -> 
@@ -74,7 +73,7 @@
       classReader = new ClassReader(hexstream);
       return classReader.parse(this.loaded, this, waitingThreads);
     };
-    ClassLoader.prototype.findNative = function(class_name, waitingThreads) {
+    ClassLoader.prototype.findNative = function(class_name, waitingThreads, callback) {
       var name, req, _native;
       name = 'native/' + class_name;
       _native = null;
@@ -89,7 +88,7 @@
           throw err;
         }
         _native = new _native();
-        this.returnNative(name, _native);
+        callback(name, _native);
       }
       return null;
     };
@@ -98,17 +97,25 @@
     Neccessary due to Async AJAX request during find
     Adds class to Method Area and loads class dependancies
     */
-    ClassLoader.prototype.loaded = function(_class, self, waitingThreads) {
-      self.find(_class.get_super());
-      self.loaded_classes[_class.get_name()] = 'Loaded';
-      self.returnMethod(_class.get_name(), _class, waitingThreads);
-      return true;
-    };
+    /*loaded : (_class, self, waitingThreads) ->
+      
+      # load dependancies, this way super class Object will always be the first class loaded.
+    
+      self.find _class.get_super()
+      
+      self.loaded_classes[_class.get_name()] = 'Loaded'
+          
+    
+      # notify JVM that class has been loaded
+      self.returnMethod(_class.get_name(), _class, waitingThreads)
+       
+      yes
+    */
     /*
       Finds a class on the classpath
       */
-    ClassLoader.prototype.find = function(class_name, waitingThreads) {
-      var req;
+    ClassLoader.prototype.find = function(class_name, waitingThreads, callback) {
+      var classReader, req, _class;
       if (waitingThreads == null) {
         waitingThreads = false;
       }
@@ -119,18 +126,22 @@
         return;
       }
       req = new XMLHttpRequest();
-      req.open('GET', "../rt/" + class_name + ".class", false);
+      req.open('GET', "js/classes/rt/" + class_name + ".class", false);
       req.overrideMimeType('text/plain; charset=x-user-defined');
       req.send(null);
       if (req.status !== 200) {
-        req.open('GET', "../" + class_name + ".class", false);
+        req.open('GET', "js/classes/" + class_name + ".class", false);
         req.overrideMimeType('text/plain; charset=x-user-defined');
         req.send(null);
         if (req.status !== 200) {
           throw 'NoClassDefFoundError';
         }
       }
-      return this.add(req.responseText, class_name, waitingThreads);
+      classReader = new ClassReader(req.responseText);
+      _class = classReader.parse();
+      this.find(_class.get_super(), false, callback);
+      this.loaded_classes[_class.get_name()] = 'Loaded';
+      return callback(_class.get_name(), _class, waitingThreads);
     };
     return ClassLoader;
   })();
@@ -150,7 +161,7 @@
         }
       };
     }
-    ClassReader.prototype.parse = function(whenFinished, classLoader, waitingThreads) {
+    ClassReader.prototype.parse = function() {
       var _class;
       _class = new CONSTANT_Class();
       this.parseClassVars(_class);
@@ -159,7 +170,7 @@
       this.parseInterfaces(_class);
       this.parseFields(_class);
       this.parseMethods(_class);
-      return whenFinished(_class, classLoader, waitingThreads);
+      return _class;
     };
     ClassReader.prototype.read = function(length) {
       switch (length) {
@@ -449,40 +460,6 @@
       return count;
     };
     return CONSTANT_Class;
-  })();
-  this.CONSTANT_Methodref_info = (function() {
-    function CONSTANT_Methodref_info(class_index, name_and_type_index) {
-      this.class_index = class_index;
-      this.name_and_type_index = name_and_type_index;
-    }
-    return CONSTANT_Methodref_info;
-  })();
-  this.CONSTANT_InterfaceMethodref_info = (function() {
-    function CONSTANT_InterfaceMethodref_info(class_index, name_and_type_index) {
-      this.class_index = class_index;
-      this.name_and_type_index = name_and_type_index;
-    }
-    return CONSTANT_InterfaceMethodref_info;
-  })();
-  this.CONSTANT_Fieldref_info = (function() {
-    function CONSTANT_Fieldref_info(class_index, name_and_type_index) {
-      this.class_index = class_index;
-      this.name_and_type_index = name_and_type_index;
-    }
-    return CONSTANT_Fieldref_info;
-  })();
-  this.CONSTANT_NameAndType_info = (function() {
-    function CONSTANT_NameAndType_info(name_index, descriptor_index) {
-      this.name_index = name_index;
-      this.descriptor_index = descriptor_index;
-    }
-    return CONSTANT_NameAndType_info;
-  })();
-  this.CONSTANT_Stringref = (function() {
-    function CONSTANT_Stringref(string_index) {
-      this.string_index = string_index;
-    }
-    return CONSTANT_Stringref;
   })();
   
 compatibility = {

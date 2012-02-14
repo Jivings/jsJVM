@@ -1,6 +1,7 @@
 (function() {
   /*
-  Runtime Data Area of the JVM. Stores all class, method and stack data.
+    Runtime Data Area of the JVM. Stores all loaded Classes, 
+    instantiated Objects and running or paused Threads.
   */  this.RDA = (function() {
     function RDA() {
       this.waiting = new Array();
@@ -19,10 +20,20 @@
         return new JVM_Reference(ref);
       };
       this.threads = new Array();
+      this.clinitThread = new Worker('js/jvm/Thread.js');
+      this.clinitThread['finished'] = true;
+      this.clinitThread.waiting = new Array();
     }
     RDA.prototype.addNative = function(name, raw_class) {
       return this.method_area[name] = raw_class;
     };
+    /*
+        Adds a Class loaded by the ClassLoader to the Method Area. 
+        If the Class has a <clinit> method, that will be executed here.
+        
+        If the Class is the entry point to the application, the main method will be
+        resolved and executed.
+      */
     RDA.prototype.addClass = function(classname, raw_class) {
       var method, supercls;
       supercls = this.method_area[raw_class.get_super()];
@@ -34,151 +45,185 @@
         return this.createThread(classname, method);
       }
     };
+    /*
+        Creates a new Thread instance to execute Java methods. Each Java Thread 
+        is represented by a JavaScript worker
+      */
     RDA.prototype.createThread = function(mainClassName, method) {
-      var t, that, thread_id;
-      that = this;
-      t = new Thread(this.method_area[mainClassName], this, method);
+      var args, id, self, t;
+      id = this.threads.length - 1;
+      t = new Worker('js/jvm/Thread.js');
+      self = this;
+      t.onmessage = function(e) {
+        return self.message.call(self, e);
+      };
+      t.onerror = function(e) {
+        return console.log(e);
+      };
       this.threads.push(t);
-      thread_id = this.threads.length - 1;
-      t.start(function() {
-        return that.threads.splice(thread_id, thread_id + 1);
-      });
-      return this;
+      args = {
+        'action': 'new',
+        'resource': {
+          'class': this.method_area[mainClassName],
+          'id': id,
+          'entryMethod': method
+        }
+      };
+      t.postMessage(args);
+      return true;
     };
+    /*
+        If a Class contains a <clinit> method, it is executed as the class
+        is loaded
+      */
     RDA.prototype.clinit = function(classname, raw_class) {
-      var clsini, t;
+      var clsini, message;
       clsini = this.JVM.JVM_ResolveMethod(raw_class, '<clinit>', '()V');
       if (clsini) {
-        t = new Thread(raw_class, this, clsini);
-        t.start();
+        message = {
+          'action': 'new',
+          'resource': {
+            'class': raw_class,
+            'id': 0,
+            'entryMethod': clsini
+          }
+        };
+        if (this.clinitThread.finished) {
+          this.clinitThread.finished = false;
+          this.clinitThread.postMessage(message);
+        } else {
+          this.clinitThread.waiting.push(message);
+        }
       }
       return true;
     };
-    RDA.prototype.notifyAll = function(notifierName) {
+    /*
+        Notify all threads waiting on a particular notifier object.
+        Threads will continue executing from where they were paused.
+        @see Thread.notify()
+      */
+    RDA.prototype.notifyAll = function(notifierName, data) {
       var lock, thread, _ref;
       _ref = this.waiting;
       for (lock in _ref) {
         thread = _ref[lock];
         if (lock === notifierName) {
-          thread['continue'](notifierName);
+          thread.postMessage({
+            'action': 'resource',
+            'resource': data
+          });
         }
       }
       return true;
+    };
+    RDA.prototype.lockAquired = function(thread) {
+      return thread.postMessage({
+        'action': 'notify'
+      });
+    };
+    /*
+        Thread interface methods. The following are messages received from 
+        running Threads. These are detailed individually, but are usually requests
+        for resources such as Objects.
+      */
+    RDA.prototype.message = function(e) {
+      var actions;
+      actions = {
+        'resolveClass': function(data) {
+          return this.JVM.JVM_ResolveClass(data.name, e.target);
+        },
+        'resolveMethod': function(data) {
+          var method;
+          method = this.JVM.JVM_ResolveMethod(data.classname, data.methodname, data.descriptor);
+          return e.target.postMessage({
+            'action': 'resource',
+            'resource': method
+          });
+        },
+        'resolveField': function(data) {},
+        'resolveString': function(data) {
+          var stringref;
+          stringref = this.JVM.JVM_ResolveStringLiteral(data.string);
+          return e.target.postMessage({
+            'action': 'resource',
+            'resource': stringref
+          });
+        },
+        'getObject': function(data) {
+          var object;
+          object = this.heap[data.reference.pointer];
+          return e.target.postMessage({
+            'action': 'resource',
+            'resource': object
+          });
+        },
+        'updateObject': function(data) {
+          this.heap[data.reference.pointer] = data.object;
+          return e.target.postMessage({
+            'action': 'notify'
+          });
+        },
+        'getStatic': function(data) {
+          var field;
+          field = this.method_area[data.classname].fields[data.fieldname];
+          return e.target.postMessage({
+            'action': 'resource',
+            'resource': field
+          });
+        },
+        'setStatic': function(data) {
+          this.method_area[data.classname].fields[data.fieldname] = data.value;
+          return e.target.postMessage({
+            'action': 'notify'
+          });
+        },
+        'setObjectField': function(data) {
+          var obj;
+          obj = this.heap[data.reference.pointer];
+          obj[data.fieldname] = data.value;
+          return e.target.postMessage({
+            'action': 'notify'
+          });
+        },
+        'getObjectField': function(data) {
+          var obj, value;
+          obj = this.heap[data.reference.pointer];
+          value = obj[data.fieldname];
+          return e.target.postMessage({
+            'action': 'resource',
+            'resource': value
+          });
+        },
+        'aquireLock': function(data) {
+          if (this.heap[data.reference.pointer].monitor.aquireLock(e.target)) {
+            return lockAquired(e.target);
+          }
+        },
+        'releaseLock': function(data) {
+          return this.heap[data.reference.pointer].monitor.releaseLock(e.target);
+        },
+        'allocate': function(data) {
+          var ref;
+          ref = this.heap.allocate(data.object);
+          return e.target.postMessage({
+            'action': 'resource',
+            'resource': ref
+          });
+        },
+        'log': function(data) {
+          return console.log(data.message);
+        },
+        'finished': function() {
+          console.log('Thread #' + data.id + ' finished');
+          if (e.target === this.clinitThread) {
+            return this.clinitThread.postMessage(this.clinitThread.waiting.pop());
+          } else {
+            return this.clinitThread.finished = true;
+          }
+        }
+      };
+      return actions[e.data.action](e.data);
     };
     return RDA;
-  })();
-  this.Thread = (function() {
-    function Thread(_class, RDA, startMethod) {
-      this.RDA = RDA;
-      this.opcodes = new OpCodes(this);
-      this.methodFactory = new MethodFactory(this, this.RDA.JVM);
-      this.current_class = _class;
-      this.methods = this.current_class.methods;
-      this.pc = 0;
-      this.jvm_stack = new Array();
-      this.jvm_stack.peek = function() {
-        return this[this.length - 1];
-      };
-      this.native_stack = new Array();
-      this.native_stack.peek = function() {
-        return this[this.length - 1];
-      };
-      this.current_frame = this.createFrame(startMethod, this.current_class);
-      this;
-    }
-    Thread.prototype.createFrame = function(method, cls) {
-      return this.methodFactory.createFrame(method, cls);
-    };
-    Thread.prototype.start = function(destroy) {
-      var opcode, value;
-      this.pc = this.current_frame.pc;
-      while (this.current_frame != null) {
-        if (this.current_frame instanceof Frame) {
-          opcode = this.opcodes[this.current_frame.method_stack[this.pc]];
-          value = this.current_frame.method_stack[this.pc];
-          console.log(this.current_class.real_name + '-' + this.current_frame.name + '\t\t' + value + '\t\t' + opcode.description);
-        } else {
-          console.log(this.current_class.real_name + '-' + this.current_frame.name);
-        }
-        if (!this.current_frame.execute(this.pc, this.opcodes)) {
-          return false;
-        }
-        this.pc++;
-      }
-      return true;
-    };
-    Thread.prototype.resolveClass = function(clsname) {
-      return this.RDA.JVM.JVM_ResolveClass(clsname, this);
-    };
-    Thread.prototype.resolveMethod = function(name, cls, type) {
-      return this.RDA.JVM.JVM_ResolveMethod(cls, name, type);
-    };
-    Thread.prototype.resolveField = function(cls, name) {
-      return this.RDA.JVM.JVM_ResolveField(cls, name);
-    };
-    /*
-      Called when waiting threads are notified by the RDA. Will continue opcode 
-      loop
-      */
-    Thread.prototype["continue"] = function(name) {
-      this.current_class.constant_pool[this.index] = this.RDA.method_area[name];
-      return this.start();
-    };
-    /*
-      Called when a method is invoked. Allocates a section of 
-      memory to the method and begins bytecode execution.
-      When the method is finished, it is removed from memory.
-      */
-    Thread.prototype.execute = function() {
-      return true;
-    };
-    return Thread;
-  })();
-  /*
-  A stack frame contains the state of one method invocation. When a method is invoked, 
-  a new frame is pushed onto the threads stack.
-  */
-  this.Frame = (function() {
-    function Frame(method, cls) {
-      this.cls = cls;
-      this.method_stack = method.attributes.Code.code;
-      this.op_stack = new Array();
-      this.op_stack.peek = function() {
-        return this[this.length - 1];
-      };
-      this.op_stack.push = function(word) {
-        if (word === void 0) {
-          throw "NullStackException";
-        } else if (word instanceof JVM_Object) {
-          throw "ObjectOnStackException";
-        }
-        this[this.length] = word;
-        return true;
-      };
-      this.constant_pool = this.cls.constant_pool;
-      this.resolveSelf(this.cls);
-      this.name = method.name;
-      this.locals = {};
-      this.pc = 0;
-      this;
-    }
-    Frame.prototype.execute = function(pc, opcodes) {
-      var op;
-      this.pc = pc;
-      op = this.method_stack[this.pc];
-      if (!opcodes[op]["do"](this)) {
-        return false;
-      }
-      return true;
-    };
-    Frame.prototype.resolveSelf = function(cls) {
-      return this.constant_pool[cls.this_class] = cls;
-    };
-    Frame.prototype.resolveMethod = function(cls, name) {
-      var cls_ref, method_ref;
-      cls_ref = this.constant_pool[cls];
-      return method_ref = this.constant_pool[name];
-    };
-    return Frame;
   })();
 }).call(this);

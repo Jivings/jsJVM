@@ -5,14 +5,6 @@ class this.ClassLoader
   required_classes : [
     'java/lang/Class'
     'java/lang/String'
-    'java/lang/System'
-    
-   # 'java/io/FileDescriptor'
-   # 'java/io/FileInputStream'
-   # 'java/io/FileOutputStream'
-   # 'java/io/BufferedInputStream'
-   # 'java/io/PrintStream'
-   # 'java/io/BufferedOutputStream'
   ]
     
   loaded_classes : {}
@@ -25,7 +17,7 @@ class this.ClassLoader
   Set runtime data area and grab console from global scope
   ###
   constructor : (@returnMethod, @returnNative) ->
-    @console = { 
+    @console = {
       debug : (message) -> console.log(message)
       print : (message) -> console.log(message)
     }
@@ -35,9 +27,12 @@ class this.ClassLoader
     Seperate to Constructor so that the JVM can resolve required classes and 
     their native counterparts. 
   ###
-  init : () ->
-    for cls in @required_classes 
-      @find cls
+  
+  init : (callback) ->
+    for cls in @required_classes
+      @find cls, false, callback
+    yes
+        
       
   
   ###
@@ -62,7 +57,7 @@ class this.ClassLoader
     classReader = new ClassReader hexstream 
     classReader.parse(@loaded, this, waitingThreads)
 
-  findNative : (class_name, waitingThreads) ->
+  findNative : (class_name, waitingThreads, callback) ->
     name = 'native/' + class_name
     _native = null
     req = new XMLHttpRequest()
@@ -77,7 +72,7 @@ class this.ClassLoader
       
       
       _native = new _native()
-      @returnNative(name, _native)
+      callback(name, _native)
     return null
     
       
@@ -87,7 +82,7 @@ class this.ClassLoader
   Neccessary due to Async AJAX request during find
   Adds class to Method Area and loads class dependancies
   ###
-  loaded : (_class, self, waitingThreads) ->
+  ###loaded : (_class, self, waitingThreads) ->
     
     # load dependancies, this way super class Object will always be the first class loaded.
 
@@ -100,29 +95,33 @@ class this.ClassLoader
     self.returnMethod(_class.get_name(), _class, waitingThreads)
      
     yes
-    
+  ###
   ###
   Finds a class on the classpath
   ###
-  find : (class_name, waitingThreads = false) ->
+  find : (class_name, waitingThreads = false, callback) ->
     if(@loaded_classes[class_name]?) 
       return
     # java/lang/Object super class will be undefined
     if typeof class_name is 'undefined'
       return 
     req = new XMLHttpRequest()
-    req.open 'GET', "../rt/#{class_name}.class", false
+    req.open 'GET', "js/classes/rt/#{class_name}.class", false
     # The following line says we want to receive data as Binary and not as Unicode
     req.overrideMimeType 'text/plain; charset=x-user-defined'
     req.send null
     if req.status isnt 200
-      req.open 'GET', "../#{class_name}.class", false
+      req.open 'GET', "js/classes/#{class_name}.class", false
       req.overrideMimeType 'text/plain; charset=x-user-defined'
       req.send null
       if req.status isnt 200
         throw 'NoClassDefFoundError'
-    return @add req.responseText, class_name, waitingThreads
-
+    #return @add req.responseText, class_name, waitingThreads
+    classReader = new ClassReader req.responseText
+    _class = classReader.parse()
+    @find(_class.get_super(), false, callback)
+    @loaded_classes[_class.get_name()] = 'Loaded'
+    callback(_class.get_name(), _class, waitingThreads)
  
     
     
@@ -137,7 +136,7 @@ class ClassReader
     @console = { debug : -> yes 
     writeConstant : -> yes}
     
-  parse : (whenFinished, classLoader, waitingThreads) ->
+  parse : () ->
     _class = new CONSTANT_Class()  
     @parseClassVars _class 
     @parseConstantPool _class
@@ -145,7 +144,8 @@ class ClassReader
     @parseInterfaces _class
     @parseFields _class
     @parseMethods _class
-    whenFinished _class, classLoader, waitingThreads
+    return _class
+    #whenFinished _class, classLoader, waitingThreads
 
   read : (length) ->
     switch length
@@ -180,9 +180,9 @@ class ClassReader
         new CONSTANT_long(@binaryReader.getFloat64())
       when 6 # Double
         new CONSTANT_double(@binaryReader.getFloat64())
-      when 7 # Class Reference, String Reference
+      when 7 # Class Reference
         @read 2 
-      when 8
+      when 8 # String Reference
         new CONSTANT_Stringref(@read 2)
       when 9 # Field Reference,
         new CONSTANT_Fieldref_info(@read(2), @read(2))
@@ -405,20 +405,6 @@ class this.CONSTANT_Class extends JVM_Object
     @attributes = new Array parseInt count, 16
     return count
     
-class this.CONSTANT_Methodref_info
-  constructor : (@class_index, @name_and_type_index) ->
-    
-class this.CONSTANT_InterfaceMethodref_info
-  constructor : (@class_index, @name_and_type_index) ->
-  
-class this.CONSTANT_Fieldref_info
-  constructor : (@class_index, @name_and_type_index) ->
-
-class this.CONSTANT_NameAndType_info
-  constructor : (@name_index, @descriptor_index) ->
-  
-class this.CONSTANT_Stringref
-  constructor : (@string_index) ->
 `
 compatibility = {
 ArrayBuffer: typeof ArrayBuffer !== 'undefined',

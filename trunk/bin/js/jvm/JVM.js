@@ -24,7 +24,7 @@
       } else {
         this.RDA = new RDA();
         this.RDA.JVM = this;
-        (this.classLoader = new ClassLoader(this.loaded, this.loadedNative)).init();
+        (this.classLoader = new ClassLoader()).init(this.loaded);
         this.JNI = new InternalJNI(this);
         this.load(this.mainclassname);
       }
@@ -37,10 +37,7 @@
     JVM.prototype.load = function(classname, bool) {
       if (this.classLoader != null) {
         if ((classname != null) && classname.length > 0) {
-          this.classLoader.postMessage({
-            'classname': classname,
-            'waitingThreads': bool
-          });
+          this.classLoader.find(classname, bool, this.loaded);
         } else {
           this.stdout.write(this.helpText());
         }
@@ -48,7 +45,7 @@
       return this;
     };
     JVM.prototype.loadNative = function(classname) {
-      return this.classLoader.findNative(classname);
+      return this.classLoader.findNative(classname, this.loadedNative);
     };
     JVM.prototype.loadedNative = function(classname, nativedata) {
       if (nativedata !== null) {
@@ -61,7 +58,7 @@
         scopedJVM.RDA.addClass(classname, classdata);
       }
       if (waitingThreads) {
-        return scopedJVM.RDA.notifyAll(classname);
+        return scopedJVM.RDA.notifyAll(classname, classdata);
       }
     };
     JVM.prototype.end = function() {

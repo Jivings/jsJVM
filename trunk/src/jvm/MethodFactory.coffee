@@ -1,12 +1,11 @@
 class this.MethodFactory
 
-  constructor : (@thread, @JVM_env) ->
-    @method_modifiers = @JVM_env.JVM_RECOGNIZED_METHOD_MODIFIERS
+  constructor : (@thread) ->
             
   createFrame : (method, cls) ->
   
-    if method.access_flags & @method_modifiers.JVM_ACC_NATIVE 
-      frame = new NativeFrame(method, cls, @JVM_env, @thread)
+    if method.access_flags & 0x0100
+      frame = new NativeFrame(method, cls, null, @thread)
       @thread.current_frame = frame
       @thread.native_stack.push(frame)
       return frame

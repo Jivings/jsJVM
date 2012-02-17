@@ -28,10 +28,17 @@ class this.RDA
     
     @threads = new Array()
     
+    # Define a thread foo clinit methods. These we want to take place synchronously
     @clinitThread = new Worker('js/jvm/Thread.js')
     @clinitThread['finished'] = true 
     @clinitThread.waiting = new Array() 
-     
+    self = @
+    @clinitThread.onmessage = (e) -> 
+      self.message.call(self, e)
+    @clinitThread.onerror = (e) ->
+      console.log(e)
+    @clinitThread.init = true
+         
   addNative : (name, raw_class) ->
     @method_area[name] = raw_class
   
@@ -50,11 +57,15 @@ class this.RDA
     raw_class.constant_pool[raw_class.super_class] = supercls
     @method_area[classname] = raw_class
 
-    @clinit(classname, raw_class)
-    
-    if classname is @JVM.mainclassname
-      method = @JVM.JVM_ResolveMethod(raw_class, 'main', '([Ljava/lang/String;)V')
-      @createThread classname, method      
+    @clinit(classname, raw_class, () =>
+      # when the class is initialised, run the main method if it has one
+      if classname is @JVM.mainclassname
+        method = @JVM.JVM_ResolveMethod(raw_class, 'main', '([Ljava/lang/String;)V')
+        @createThread classname, method 
+         
+    )
+    # If a class needs to be initialised synchronously, a callback can be used here
+   
     
   ###
     Creates a new Thread instance to execute Java methods. Each Java Thread 
@@ -89,7 +100,7 @@ class this.RDA
     If a Class contains a <clinit> method, it is executed as the class
     is loaded
   ###
-  clinit : (classname, raw_class) ->
+  clinit : (classname, raw_class, callback) ->
     # resolve the clinit method
     clsini = @JVM.JVM_ResolveMethod(raw_class, '<clinit>', '()V')
     if clsini 
@@ -101,12 +112,14 @@ class this.RDA
             'entryMethod' : clsini          
           }
       }
+      @clinitThread.callback = callback
       if @clinitThread.finished
         @clinitThread.finished = false
         @clinitThread.postMessage(message)
       else
         @clinitThread.waiting.push(message)
-
+    else
+      callback()
     yes
   
   ###
@@ -121,8 +134,11 @@ class this.RDA
           'action' : 'resource',
           'resource' : data
         })
+        delete @waiting[notifierName]
+    
     yes
-   
+  
+    
   lockAquired : (thread) ->
      thread.postMessage({
           'action' : 'notify'
@@ -135,15 +151,26 @@ class this.RDA
   ###
 
   message : (e) ->
+    
     actions = {
       'resolveClass' : (data) ->
         @JVM.JVM_ResolveClass(data.name, e.target)
+        
+      'resolveNativeClass' : (data) ->
+        @JVM.JVM_ResolveNativeClass(data.name, e.target)
                 
       'resolveMethod' : (data) ->
-        method = @JVM.JVM_ResolveMethod(data.classname, data.methodname, data.descriptor)
+        method = @JVM.JVM_ResolveMethod(data.classname, data.name, data.descriptor)
         e.target.postMessage({
           'action' : 'resource',
           'resource' : method
+        })
+       
+      'executeNativeMethod' : (data) ->
+        returnval = @JVM.JVM_ExecuteNativeMethod(data.classname, data.methodname, data.args)
+        e.target.postMessage({
+          'action' : 'resource',
+          'resource' : returnval
         })
         
       'resolveField' : (data) ->
@@ -211,15 +238,22 @@ class this.RDA
       'log' : (data) ->
         console.log(data.message)
         
-      'finished' : () ->  
+      'finished' : (data) ->  
         console.log('Thread #' + data.id + ' finished')
         if e.target is @clinitThread
-          @clinitThread.postMessage(@clinitThread.waiting.pop())
-        else
-          @clinitThread.finished = true
+          @clinitThread.callback.call(@)
+          nextClinit = @clinitThread.waiting.pop()
+          if nextClinit
+            @clinitThread.postMessage(nextClinit)
+          else
+            @clinitThread.finished = true
+            if @clinitThread.init
+              @clinitThread.init = false
+              # finally, JVM init is complete so we can load the main class
+              @JVM.load(@JVM.mainclassname)
     }
     
-    actions[e.data.action](e.data)
+    actions[e.data.action].call(@, e.data)
     
    
   

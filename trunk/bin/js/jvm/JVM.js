@@ -24,9 +24,8 @@
       } else {
         this.RDA = new RDA();
         this.RDA.JVM = this;
-        (this.classLoader = new ClassLoader()).init(this.loaded);
+        (this.classLoader = new ClassLoader(this.loaded, this.loadedNative)).init();
         this.JNI = new InternalJNI(this);
-        this.load(this.mainclassname);
       }
     }
     /*
@@ -34,18 +33,22 @@
       When the RDA requests a class to be loaded, a callback method will be provided. 
       This is so that opcode execution can continue after the class is loaded.
       */
-    JVM.prototype.load = function(classname, bool) {
+    JVM.prototype.load = function(classname, threadsWaiting) {
+      var cls;
       if (this.classLoader != null) {
         if ((classname != null) && classname.length > 0) {
-          this.classLoader.find(classname, bool, this.loaded);
+          cls = this.classLoader.find(classname);
+          if (threadsWaiting) {
+            scopedJVM.RDA.notifyAll(classname, cls);
+          }
         } else {
           this.stdout.write(this.helpText());
         }
       }
       return this;
     };
-    JVM.prototype.loadNative = function(classname) {
-      return this.classLoader.findNative(classname, this.loadedNative);
+    JVM.prototype.loadNative = function(classname, waitingThreads) {
+      return this.classLoader.findNative(classname, waitingThreads, this.loadedNative);
     };
     JVM.prototype.loadedNative = function(classname, nativedata) {
       if (nativedata !== null) {
@@ -55,10 +58,7 @@
     };
     JVM.prototype.loaded = function(classname, classdata, waitingThreads) {
       if (classdata !== null) {
-        scopedJVM.RDA.addClass(classname, classdata);
-      }
-      if (waitingThreads) {
-        return scopedJVM.RDA.notifyAll(classname, classdata);
+        return scopedJVM.RDA.addClass(classname, classdata);
       }
     };
     JVM.prototype.end = function() {

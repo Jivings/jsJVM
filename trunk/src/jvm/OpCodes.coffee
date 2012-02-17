@@ -65,11 +65,11 @@ class this.OpCodes
     )
     @[18] = new OpCode('ldc', 'Push item from constant pool', (frame) -> 
       item = @getIndexByte(1, frame, thread)
-      while typeof (item = @fromClass(item, thread)) is 'number' 
+      while typeof (item = @fromCP(item, thread)) is 'number' 
         continue
       
       if item instanceof CONSTANT_Stringref
-        thread.resolveString(@fromClass(item.string_index, thread), (string) -> 
+        thread.resolveString(@fromCP(item.string_index, thread), (string) -> 
           frame.op_stack.push(string)
         , @)
         return false
@@ -83,7 +83,7 @@ class this.OpCodes
     )
     @[19] = new OpCode('ldc_w', 'Push item from constant pool (wide index)', (frame) -> 
       item = @constructIndex(frame, thread)
-      while typeof (item = @fromClass(item, thread)) is 'number' 
+      while typeof (item = @fromCP(item, thread)) is 'number' 
         continue
       if item instanceof JVM_Object
         item = new JVM_Reference(thread.allocate(item), () -> 
@@ -94,7 +94,7 @@ class this.OpCodes
     )
     @[20] = new OpCode('ldc2_w', 'Push long or double from constant pool (wide index)', (frame) -> 
       index = @constructIndex(frame, thread)
-      item = @fromClass(index, thread)
+      item = @fromCP(index, thread)
       # TODO check item is long or double
       frame.op_stack.push(item)
       frame.op_stack.push(item)
@@ -1354,10 +1354,11 @@ class this.OpCodes
       field_name_type = @fromCP(class_field_ref.name_and_type_index, thread)
       field_name = @fromCP(field_name_type.name_index, thread)
       
-      
-      thread.getStatic(class_ref, field_name, (value) ->
-        frame.op_stack.push(value)
-      );
+      thread.resolveClass(class_ref, (cls) ->
+        thread.getStatic(cls, field_name, (value) ->
+          frame.op_stack.push(value)
+        );
+      , @)  
       return false
     )
     @[179] = new OpCode('putstatic', 'Set static field in class', (frame) -> 
@@ -1367,8 +1368,10 @@ class this.OpCodes
       field_name_type = @fromCP(class_field_ref.name_and_type_index, thread)
       field_name = @fromCP(field_name_type.name_index, thread)
       
-      value = frame.op_stack.pop()
-      thread.setStatic(class_ref, field_name, value)
+      thread.resolveClass(class_ref, (cls) ->
+        value = frame.op_stack.pop()
+        thread.setStatic(cls, field_name, value)
+      , @)  
       return false
 
     )
@@ -1399,7 +1402,7 @@ class this.OpCodes
       fieldref = @fromCP(index, thread)
       nameandtype = @fromCP(fieldref.name_and_type_index, thread)
       fieldname = @fromCP(nameandtype.name_index, thread)
-      #descriptor = @fromClass(nameandtype.descriptor_index, thread)
+      #descriptor = @fromCP(nameandtype.descriptor_index, thread)
       # TODO check method stuff (protected etc)
       thread.setObjectField(objectref, fieldname, value)
       return false
@@ -1409,7 +1412,7 @@ class this.OpCodes
       methodref = @fromCP(index, thread)
       classname = @fromCP(methodref.class_index, thread)
       
-      methodnameandtype = @fromClass(methodref.name_and_type_index, thread)
+      methodnameandtype = @fromCP(methodref.name_and_type_index, thread)
       method_name = @fromCP(methodnameandtype.name_index, thread)
       descriptor = @fromCP(methodnameandtype.descriptor_index, thread)
       
@@ -1421,8 +1424,6 @@ class this.OpCodes
           
         newframe = thread.createFrame(method, method.belongsTo)
         thread.current_class = method.belongsTo
-        frame.pc += 2
-        thread.pc = -1
         arg_num = method.nargs
         while arg_num > 0
           newframe.locals[arg_num--] = frame.op_stack.pop()
@@ -1446,8 +1447,8 @@ class this.OpCodes
       descriptor = @fromCP(method_name_and_type.descriptor_index, thread)
       
       thread.resolveMethod(method_name, classname, descriptor, (method)->
-        if method.access_flags & JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_PRIVATE
-          athrow('RuntimeException')
+        #if (method.access_flags & JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_PRIVATE) 
+        #  athrow('RuntimeException')
         if method.access_flags & JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_STATIC
           athrow('IncompatibleClassChangeError')
         if method.access_flags & JVM_RECOGNIZED_METHOD_MODIFIERS.JVM_ACC_ABSTRACT
@@ -1457,8 +1458,7 @@ class this.OpCodes
         thread.current_class = method.belongsTo
           
         # set frame pc to skip operands, and machine pc to nil for new method
-        frame.pc += 2
-        thread.pc = -1
+
         arg_num = method.nargs
         # pop the args off the current op_stack into the local vars of new frame
         while arg_num > 0
@@ -1485,8 +1485,7 @@ class this.OpCodes
         newframe = thread.createFrame(method, method.belongsTo)
         thread.current_class = method.belongsTo
         # set frame pc to skip operands, and machine pc to nil for new method
-        frame.pc += 2
-        thread.pc = -1
+
         # pop the args off the current op_stack into the local vars new frame
         arg_num = method.nargs
         # store args in locals; arg1 = locals[0] etc
@@ -1549,7 +1548,7 @@ class this.OpCodes
         # init array to nulls
         while count-- > 0
           arr[count] = new JVM_Reference(0) # reference to null
-        arrayref = thread.allocate(arr, () ->
+        thread.allocate(arr, (arrayref) ->
           frame.op_stack.push(arrayref)
         , @)
         return false
@@ -1604,7 +1603,7 @@ class this.OpCodes
     )
     @[193] = new OpCode('instanceof', 'Check if object is an instance of class', (frame) -> 
       objectref = frame.op_stack.pop()
-      clsindex = @fromClass(@constructIndex(frame, thread), thread)
+      clsindex = @fromCP(@constructIndex(frame, thread), thread)
       
       thread.resolveClass(clsindex, (cls) ->
         thread.getObject(objectref, (object) ->
@@ -1833,14 +1832,14 @@ class OpCode
     return objectref is null or objectref.pointer == 0
       
   getIndexByte : (index, frame, thread) ->
-    index = frame.method_stack[(thread.pc)+index]
-    thread.pc++
+    index = frame.method_stack[(frame.pc)+index]
+    frame.pc++
     return index
     
   fromCP : (index, thread) ->
     item = thread.current_class.constant_pool[index]
     while typeof item is 'number'
-      item = thread.current_class.constant_pool[index]
+      item = thread.current_class.constant_pool[item]
     return item
     
   constructIndex : (frame, thread) ->  

@@ -29,39 +29,16 @@ class this.ClassLoader
   ###
   
   init : (callback) ->
-    for cls in @required_classes
-      @find cls, false, callback
+    for index, cls of @required_classes
+      @find cls
     yes
-        
       
-  
-  ###
-  doAction : (message) -> 
-    
-    switch message.action
-      when 'start' then @start()
-      when 'find' then @find(message.param, message.waitingThreads)
-  ### 
 
-  ###
-  Starts the Classloader, calls load evey 10th of a second
-  ###
-  start : (@JVM) ->
-    self = this
-    @ps_id = setInterval((() ->  self.load()), 100)
-
-  ###
-  Adds a class to the load stack
-  ###
-  add : (hexstream, name, waitingThreads) ->
-    classReader = new ClassReader hexstream 
-    classReader.parse(@loaded, this, waitingThreads)
-
-  findNative : (class_name, waitingThreads, callback) ->
-    name = 'native/' + class_name
+  findNative : (name) ->
+    # declare so that it can be used with eval
     _native = null
     req = new XMLHttpRequest()
-    req.open 'GET', "../#{name}.js", false
+    req.open 'GET', "js/classes/#{name}.js", false
     req.send null
     if req.status is 200
       try 
@@ -69,39 +46,19 @@ class this.ClassLoader
       catch err 
         console.log("#{name}")
         throw err
-      
-      
       _native = new _native()
-      callback(name, _native)
-    return null
-    
-      
-      
-  ### 
-  Callback method to execute when class has finished loading.
-  Neccessary due to Async AJAX request during find
-  Adds class to Method Area and loads class dependancies
-  ###
-  ###loaded : (_class, self, waitingThreads) ->
-    
-    # load dependancies, this way super class Object will always be the first class loaded.
-
-    self.find _class.get_super()
-    
-    self.loaded_classes[_class.get_name()] = 'Loaded'
-        
+      @returnNative(name, _native)
+      return _native
+    else
+      throw 'NoClassDefFoundError' 
   
-    # notify JVM that class has been loaded
-    self.returnMethod(_class.get_name(), _class, waitingThreads)
-     
-    yes
-  ###
+      
   ###
   Finds a class on the classpath
   ###
-  find : (class_name, waitingThreads = false, callback) ->
+  find : (class_name) ->
     if(@loaded_classes[class_name]?) 
-      return
+      return @loaded_classes[class_name]
     # java/lang/Object super class will be undefined
     if typeof class_name is 'undefined'
       return 
@@ -119,9 +76,10 @@ class this.ClassLoader
     #return @add req.responseText, class_name, waitingThreads
     classReader = new ClassReader req.responseText
     _class = classReader.parse()
-    @find(_class.get_super(), false, callback)
-    @loaded_classes[_class.get_name()] = 'Loaded'
-    callback(_class.get_name(), _class, waitingThreads)
+    @find(_class.get_super(), false, @returnMethod)
+    @loaded_classes[_class.get_name()] = _class
+    @returnMethod(_class.get_name(), _class)
+    return _class
  
     
     

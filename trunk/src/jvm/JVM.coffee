@@ -29,14 +29,13 @@ class this.JVM
       @RDA = new RDA()
       @RDA.JVM = @
       
-      (@classLoader = new ClassLoader()).init(@loaded)
+      (@classLoader = new ClassLoader(@loaded, @loadedNative)).init()
       #@InitializeSystemClass()
       # Create ClassLoader WORKER TODO
       #@classLoader = new Worker('http://localhost/js-jvm/trunk/bin/js/classloader/ClassLoader.js')
       #@classLoader.onmessage = @message
       
       @JNI = new InternalJNI(@)
-      @load(@mainclassname)
       
 
   ###
@@ -44,32 +43,31 @@ class this.JVM
   When the RDA requests a class to be loaded, a callback method will be provided. 
   This is so that opcode execution can continue after the class is loaded.
   ###
-  load : (classname, bool) ->
+  load : (classname, threadsWaiting) ->
     if @classLoader? 
       if classname? && classname.length > 0
-        @classLoader.find(classname, bool, @loaded)
-        
+        #@classLoader.find(classname, bool, @loaded)
+        cls = @classLoader.find(classname)
+        if threadsWaiting
+          scopedJVM.RDA.notifyAll(classname, cls)
       else 
         @stdout.write @helpText()
     this
     
-  loadNative : (classname) ->
-    @classLoader.findNative(classname, @loadedNative)
+  loadNative : (classname, waitingThreads) ->
+    @classLoader.findNative(classname, waitingThreads, @loadedNative)
   
   loadedNative : (classname, nativedata) ->
     if nativedata != null
       scopedJVM.RDA.addNative(classname, nativedata)
-      #console.log('Loaded class ['+classname+']')
+      # no data needs to be sent as native execution takes place on the JVM
       scopedJVM.RDA.notifyAll(classname)
    
   loaded : (classname, classdata, waitingThreads) ->
     if(classdata != null)
-      #newclass = scopedJVM.JVM_CreateClass(classdata)
       scopedJVM.RDA.addClass(classname, classdata)
-      #console.log('Loaded class ['+classname+']')
-    
-    if(waitingThreads) 
-      scopedJVM.RDA.notifyAll(classname, classdata)
+      
+      
  
   end : () ->
     if @callback?

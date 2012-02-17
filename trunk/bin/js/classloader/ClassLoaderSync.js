@@ -39,46 +39,19 @@
         their native counterparts. 
       */
     ClassLoader.prototype.init = function(callback) {
-      var cls, _i, _len, _ref;
+      var cls, index, _ref;
       _ref = this.required_classes;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        cls = _ref[_i];
-        this.find(cls, false, callback);
+      for (index in _ref) {
+        cls = _ref[index];
+        this.find(cls);
       }
       return true;
     };
-    /*
-      doAction : (message) -> 
-        
-        switch message.action
-          when 'start' then @start()
-          when 'find' then @find(message.param, message.waitingThreads)
-      */
-    /*
-      Starts the Classloader, calls load evey 10th of a second
-      */
-    ClassLoader.prototype.start = function(JVM) {
-      var self;
-      this.JVM = JVM;
-      self = this;
-      return this.ps_id = setInterval((function() {
-        return self.load();
-      }), 100);
-    };
-    /*
-      Adds a class to the load stack
-      */
-    ClassLoader.prototype.add = function(hexstream, name, waitingThreads) {
-      var classReader;
-      classReader = new ClassReader(hexstream);
-      return classReader.parse(this.loaded, this, waitingThreads);
-    };
-    ClassLoader.prototype.findNative = function(class_name, waitingThreads, callback) {
-      var name, req, _native;
-      name = 'native/' + class_name;
+    ClassLoader.prototype.findNative = function(name) {
+      var req, _native;
       _native = null;
       req = new XMLHttpRequest();
-      req.open('GET', "../" + name + ".js", false);
+      req.open('GET', "js/classes/" + name + ".js", false);
       req.send(null);
       if (req.status === 200) {
         try {
@@ -88,39 +61,19 @@
           throw err;
         }
         _native = new _native();
-        callback(name, _native);
+        this.returnNative(name, _native);
+        return _native;
+      } else {
+        throw 'NoClassDefFoundError';
       }
-      return null;
     };
-    /* 
-    Callback method to execute when class has finished loading.
-    Neccessary due to Async AJAX request during find
-    Adds class to Method Area and loads class dependancies
-    */
-    /*loaded : (_class, self, waitingThreads) ->
-      
-      # load dependancies, this way super class Object will always be the first class loaded.
-    
-      self.find _class.get_super()
-      
-      self.loaded_classes[_class.get_name()] = 'Loaded'
-          
-    
-      # notify JVM that class has been loaded
-      self.returnMethod(_class.get_name(), _class, waitingThreads)
-       
-      yes
-    */
     /*
       Finds a class on the classpath
       */
-    ClassLoader.prototype.find = function(class_name, waitingThreads, callback) {
+    ClassLoader.prototype.find = function(class_name) {
       var classReader, req, _class;
-      if (waitingThreads == null) {
-        waitingThreads = false;
-      }
       if ((this.loaded_classes[class_name] != null)) {
-        return;
+        return this.loaded_classes[class_name];
       }
       if (typeof class_name === 'undefined') {
         return;
@@ -139,9 +92,10 @@
       }
       classReader = new ClassReader(req.responseText);
       _class = classReader.parse();
-      this.find(_class.get_super(), false, callback);
-      this.loaded_classes[_class.get_name()] = 'Loaded';
-      return callback(_class.get_name(), _class, waitingThreads);
+      this.find(_class.get_super(), false, this.returnMethod);
+      this.loaded_classes[_class.get_name()] = _class;
+      this.returnMethod(_class.get_name(), _class);
+      return _class;
     };
     return ClassLoader;
   })();

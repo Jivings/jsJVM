@@ -62,7 +62,7 @@ function() {
     
     
     this.registerNatives = function(env, jclass) {
-      env.RegisterNatives(env, jclass, this.nativeMethods);
+      env.RegisterNatives(env, this, this.nativeMethods);
     }
     
     /*

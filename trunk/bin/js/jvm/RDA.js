@@ -2,8 +2,11 @@
   /*
     Runtime Data Area of the JVM. Stores all loaded Classes, 
     instantiated Objects and running or paused Threads.
-  */  this.RDA = (function() {
+  */
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+  this.RDA = (function() {
     function RDA() {
+      var self;
       this.waiting = new Array();
       this.method_area = {};
       this.heap = {
@@ -23,6 +26,14 @@
       this.clinitThread = new Worker('js/jvm/Thread.js');
       this.clinitThread['finished'] = true;
       this.clinitThread.waiting = new Array();
+      self = this;
+      this.clinitThread.onmessage = function(e) {
+        return self.message.call(self, e);
+      };
+      this.clinitThread.onerror = function(e) {
+        return console.log(e);
+      };
+      this.clinitThread.init = true;
     }
     RDA.prototype.addNative = function(name, raw_class) {
       return this.method_area[name] = raw_class;
@@ -35,15 +46,17 @@
         resolved and executed.
       */
     RDA.prototype.addClass = function(classname, raw_class) {
-      var method, supercls;
+      var supercls;
       supercls = this.method_area[raw_class.get_super()];
       raw_class.constant_pool[raw_class.super_class] = supercls;
       this.method_area[classname] = raw_class;
-      this.clinit(classname, raw_class);
-      if (classname === this.JVM.mainclassname) {
-        method = this.JVM.JVM_ResolveMethod(raw_class, 'main', '([Ljava/lang/String;)V');
-        return this.createThread(classname, method);
-      }
+      return this.clinit(classname, raw_class, __bind(function() {
+        var method;
+        if (classname === this.JVM.mainclassname) {
+          method = this.JVM.JVM_ResolveMethod(raw_class, 'main', '([Ljava/lang/String;)V');
+          return this.createThread(classname, method);
+        }
+      }, this));
     };
     /*
         Creates a new Thread instance to execute Java methods. Each Java Thread 
@@ -76,7 +89,7 @@
         If a Class contains a <clinit> method, it is executed as the class
         is loaded
       */
-    RDA.prototype.clinit = function(classname, raw_class) {
+    RDA.prototype.clinit = function(classname, raw_class, callback) {
       var clsini, message;
       clsini = this.JVM.JVM_ResolveMethod(raw_class, '<clinit>', '()V');
       if (clsini) {
@@ -88,12 +101,15 @@
             'entryMethod': clsini
           }
         };
+        this.clinitThread.callback = callback;
         if (this.clinitThread.finished) {
           this.clinitThread.finished = false;
           this.clinitThread.postMessage(message);
         } else {
           this.clinitThread.waiting.push(message);
         }
+      } else {
+        callback();
       }
       return true;
     };
@@ -112,6 +128,7 @@
             'action': 'resource',
             'resource': data
           });
+          delete this.waiting[notifierName];
         }
       }
       return true;
@@ -132,12 +149,23 @@
         'resolveClass': function(data) {
           return this.JVM.JVM_ResolveClass(data.name, e.target);
         },
+        'resolveNativeClass': function(data) {
+          return this.JVM.JVM_ResolveNativeClass(data.name, e.target);
+        },
         'resolveMethod': function(data) {
           var method;
-          method = this.JVM.JVM_ResolveMethod(data.classname, data.methodname, data.descriptor);
+          method = this.JVM.JVM_ResolveMethod(data.classname, data.name, data.descriptor);
           return e.target.postMessage({
             'action': 'resource',
             'resource': method
+          });
+        },
+        'executeNativeMethod': function(data) {
+          var returnval;
+          returnval = this.JVM.JVM_ExecuteNativeMethod(data.classname, data.methodname, data.args);
+          return e.target.postMessage({
+            'action': 'resource',
+            'resource': returnval
           });
         },
         'resolveField': function(data) {},
@@ -213,16 +241,25 @@
         'log': function(data) {
           return console.log(data.message);
         },
-        'finished': function() {
+        'finished': function(data) {
+          var nextClinit;
           console.log('Thread #' + data.id + ' finished');
           if (e.target === this.clinitThread) {
-            return this.clinitThread.postMessage(this.clinitThread.waiting.pop());
-          } else {
-            return this.clinitThread.finished = true;
+            this.clinitThread.callback.call(this);
+            nextClinit = this.clinitThread.waiting.pop();
+            if (nextClinit) {
+              return this.clinitThread.postMessage(nextClinit);
+            } else {
+              this.clinitThread.finished = true;
+              if (this.clinitThread.init) {
+                this.clinitThread.init = false;
+                return this.JVM.load(this.JVM.mainclassname);
+              }
+            }
           }
         }
       };
-      return actions[e.data.action](e.data);
+      return actions[e.data.action].call(this, e.data);
     };
     return RDA;
   })();

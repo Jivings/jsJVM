@@ -7,8 +7,8 @@ function() {
         "clone"     : { "name" : "JVM_Clone", "descriptor" : "()Ljava/lang/Object;" }
     }
   
-  this.registerNatives = function(env, jclass) {
-    env.RegisterNatives(env, jclass, this.nativeMethods)
+  this.registerNatives = function(env) {
+    env.RegisterNatives(env, this, this.nativeMethods)
   }
   
   this.getClass = function(env, jObject) {

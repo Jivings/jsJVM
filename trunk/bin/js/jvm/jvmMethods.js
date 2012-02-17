@@ -298,39 +298,40 @@
     throw 'NotYetImplementedException';
   };
   JVM.prototype.JVM_ResolveClass = function(clsname, thread) {
-    var cls, index;
-    index = clsname;
-    while (typeof clsname === 'number') {
-      clsname = thread.current_class.constant_pool[clsname];
+    var cls;
+    if (thread) {
+      this.RDA.waiting[clsname] = thread;
     }
-    if (clsname instanceof CONSTANT_Class) {
-      return clsname;
+    if (clsname instanceof CONSTANT_Class || (clsname.magic_number != null)) {
+      this.RDA.notifyAll(clsname.real_name, clsname);
     }
     if (this.RDA.method_area[clsname] === void 0) {
       console.log('Resolve Class ' + clsname);
-      if (thread) {
-        this.RDA.waiting[clsname] = thread;
-      }
-      this.load(clsname, true);
-      return null;
+      cls = this.load(clsname, true);
+    } else {
+      cls = this.RDA.method_area[clsname];
+      this.RDA.notifyAll(clsname, cls);
     }
-    cls = this.RDA.method_area[clsname];
-    if (thread !== void 0) {
-      thread.current_class.constant_pool[index] = cls;
+    if (!thread) {
+      return cls;
     }
-    return this.RDA.method_area[clsname];
   };
-  JVM.prototype.JVM_ResolveNativeClass = function(cls, thread) {
-    var name, nativeName, _native;
-    name = cls.real_name;
-    nativeName = 'native/' + name;
-    if (this.RDA.method_area[name]["native"] === void 0) {
+  JVM.prototype.JVM_ResolveNativeClass = function(nativeName, thread) {
+    var nativeCls, _native;
+    if (this.RDA.method_area[nativeName] === void 0) {
       this.RDA.waiting[nativeName] = thread;
-      this.loadNative(name);
-      return null;
+      nativeCls = this.loadNative(nativeName);
+    } else {
+      _native = this.RDA.method_area[nativeName];
     }
-    _native = this.RDA.method_area[nativeName];
     return _native;
+  };
+  JVM.prototype.JVM_ExecuteNativeMethod = function(classname, methodname, args) {
+    var nativeCls, nmethod, returnval;
+    nativeCls = this.RDA.method_area[classname];
+    nmethod = nativeCls[methodname];
+    returnval = nmethod.apply(nativeCls, [this, args]);
+    return returnval;
   };
   JVM.prototype.JVM_ResolveStringLiteral = function(literal) {
     var charArray, cls, enc, index, method, method_desc, method_id, stringobj;
@@ -420,7 +421,7 @@
   JVM.prototype.JVM_ResolveMethod = function(cls, name, type) {
     var arg, args, descriptor, endarg, i, index, method, nargs;
     if (!(cls instanceof CONSTANT_Class)) {
-      cls = this.JVM_ResolveClass(cls);
+      cls = this.JVM_ResolveClass(cls, false);
     }
     if (cls === null) {
       throw 'NullClassException';

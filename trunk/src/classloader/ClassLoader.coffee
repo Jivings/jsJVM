@@ -14,7 +14,7 @@ class this.ClassLoader
     'java/io/BufferedInputStream'
     'java/io/PrintStream'
     
-  loaded_classes : {}
+  loaded_classes : {}\
   
 
   ###

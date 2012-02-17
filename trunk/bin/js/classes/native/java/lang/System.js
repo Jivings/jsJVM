@@ -8,7 +8,7 @@ function() {
   };
   
   this.registerNatives = function(env, cls) {
-    env.RegisterNatives(env, cls, this.nativeMethods);
+    env.RegisterNatives(env, this, this.nativeMethods);
   };
  
   this.identityHashCode = function(env, jobject) {

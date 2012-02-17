@@ -293,43 +293,42 @@
 
   JVM::JVM_ResolveClass = (clsname, thread) ->
     
-    index = clsname
-    # resolve index until we get a String or Class 
-    while typeof clsname is 'number'
-      clsname = thread.current_class.constant_pool[clsname]
+    # tell the RDA that this thread is currently waiting
+    if thread then @RDA.waiting[clsname] = thread      
     # if a class, resolution done      
-    if clsname instanceof CONSTANT_Class
-      return clsname
-      
+    if (clsname instanceof CONSTANT_Class or clsname.magic_number?)
+      @RDA.notifyAll(clsname.real_name, clsname)
+    
     # if a string then we need to resolve 
     # if already in the method_area, then return that instance. 
     if @RDA.method_area[clsname] == undefined
       console.log('Resolve Class ' + clsname)
-      # tell the RDA that this thread is currently waiting
-      if thread then @RDA.waiting[clsname] = thread
-     
       # request the ClassLoader loads the class this thread needs and say we are waiting
-      @load(clsname, true)
-      # return null so opcode knows to pause execution
-      return null
-     
-    # actually resolve the class reference so this doesn't need to occur next time
-    cls = @RDA.method_area[clsname] 
-    if thread != undefined
-      thread.current_class.constant_pool[index] = cls
-    return @RDA.method_area[clsname]
-   
-  JVM::JVM_ResolveNativeClass = (cls, thread) ->
-    name = cls.real_name
-    nativeName = 'native/' + name
-    if @RDA.method_area[name].native == undefined
-      @RDA.waiting[nativeName] = thread
-      @loadNative(name)
-      return null
-      
-    _native = @RDA.method_area[nativeName]
-    return _native
+      cls = @load(clsname, true)
+    else 
+      # actually resolve the class reference so this doesn't need to occur next time
+      cls = @RDA.method_area[clsname] 
+      @RDA.notifyAll(clsname, cls)
     
+    if !thread 
+      return cls
+   
+  JVM::JVM_ResolveNativeClass = (nativeName, thread) ->
+    
+    if @RDA.method_area[nativeName] == undefined
+      @RDA.waiting[nativeName] = thread
+      nativeCls = @loadNative(nativeName)
+    else       
+      _native = @RDA.method_area[nativeName]
+    return _native
+  
+  JVM::JVM_ExecuteNativeMethod = (classname, methodname, args) ->
+    nativeCls = @RDA.method_area[classname]
+    nmethod = nativeCls[methodname]
+
+    returnval = nmethod.apply(nativeCls, [@, args])
+    return returnval
+  
   JVM::JVM_ResolveStringLiteral = (literal) ->
     enc = 'sun.jnu.encoding'
     # will always resolve as String is needed to pass arguments to the JVM
@@ -418,7 +417,7 @@
   
   JVM::JVM_ResolveMethod = (cls, name, type) ->
     if !(cls instanceof CONSTANT_Class)
-      cls = @JVM_ResolveClass(cls)
+      cls = @JVM_ResolveClass(cls, false)
     if cls is null
       throw 'NullClassException'
       

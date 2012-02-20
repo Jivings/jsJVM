@@ -38,7 +38,7 @@ class this.ClassLoader
     # declare so that it can be used with eval
     _native = null
     req = new XMLHttpRequest()
-    req.open 'GET', "js/classes/#{name}.js", false
+    req.open 'GET', Settings.classpath + "native/#{name}.js", false
     req.send null
     if req.status is 200
       try 
@@ -363,6 +363,7 @@ class this.CONSTANT_Class extends JVM_Object
     @attributes = new Array parseInt count, 16
     return count
     
+###
 `
 compatibility = {
 ArrayBuffer: typeof ArrayBuffer !== 'undefined',
@@ -670,6 +671,173 @@ this._offset = byteOffset + size;
 return value;
 };
 })(type);
-}`
+}`###
 
+compatibility =
+  ArrayBuffer: typeof ArrayBuffer isnt "undefined"
+  DataView: typeof DataView isnt "undefined" and "getFloat64" of DataView::
 
+jDataView = (buffer, byteOffset, byteLength, littleEndian) ->
+  @_buffer = buffer
+  throw new TypeError("Type error")  if not (compatibility.ArrayBuffer and buffer instanceof ArrayBuffer) and (typeof buffer isnt "string")
+  @_isArrayBuffer = compatibility.ArrayBuffer and buffer instanceof ArrayBuffer
+  @_isDataView = compatibility.DataView and @_isArrayBuffer
+  @_littleEndian = (if littleEndian is `undefined` then true else littleEndian)
+  bufferLength = (if @_isArrayBuffer then buffer.byteLength else buffer.length)
+  byteOffset = 0  if byteOffset is `undefined`
+  byteLength = bufferLength - byteOffset  if byteLength is `undefined`
+  unless @_isDataView
+    throw new TypeError("Type error")  if typeof byteOffset isnt "number"
+    throw new TypeError("Type error")  if typeof byteLength isnt "number"
+    throw new Error("INDEX_SIZE_ERR: DOM Exception 1")  if typeof byteOffset < 0
+    throw new Error("INDEX_SIZE_ERR: DOM Exception 1")  if typeof byteLength < 0
+  if @_isDataView
+    @_view = new DataView(buffer, byteOffset, byteLength)
+    @_start = 0
+  @_start = byteOffset
+  throw new Error("INDEX_SIZE_ERR: DOM Exception 1")  if byteOffset >= bufferLength
+  @_offset = 0
+  @length = byteLength
+
+jDataView.createBuffer = ->
+  if typeof ArrayBuffer isnt "undefined"
+    buffer = new ArrayBuffer(arguments.length)
+    view = new Int8Array(buffer)
+    i = 0
+
+    while i < arguments.length
+      view[i] = arguments[i]
+      ++i
+    return buffer
+  String.fromCharCode.apply null, arguments
+
+jDataView:: =
+  getString: (length, byteOffset) ->
+    value = undefined
+    byteOffset = @_offset  if byteOffset is `undefined`
+    throw new TypeError("Type error")  if typeof byteOffset isnt "number"
+    throw new Error("INDEX_SIZE_ERR: DOM Exception 1")  if length < 0 or byteOffset + length > @length
+    if @_isArrayBuffer
+      int8array = new Int8Array(@_buffer, @_start + byteOffset, length)
+      stringarray = []
+      i = 0
+
+      while i < length
+        stringarray[i] = int8array[i]
+        ++i
+      value = String.fromCharCode.apply(null, stringarray)
+    else
+      value = @_buffer.substr(@_start + byteOffset, length)
+    @_offset = byteOffset + length
+    value
+
+  getChar: (byteOffset) ->
+    value = undefined
+    size = 1
+    byteOffset = @_offset  if byteOffset is `undefined`
+    if @_isArrayBuffer
+      value = String.fromCharCode(@getUint8(byteOffset))
+    else
+      throw new TypeError("Type error")  if typeof byteOffset isnt "number"
+      throw new Error("INDEX_SIZE_ERR: DOM Exception 1")  if byteOffset + size > @length
+      value = @_buffer.charAt(@_start + byteOffset)
+      @_offset = byteOffset + size
+    value
+
+  tell: ->
+    @_offset
+
+  seek: (byteOffset) ->
+    throw new TypeError("Type error")  if typeof byteOffset isnt "number"
+    throw new Error("INDEX_SIZE_ERR: DOM Exception 1")  if byteOffset < 0 or byteOffset > @length
+    @_offset = byteOffset
+
+  _endianness: (offset, pos, max, littleEndian) ->
+    offset + (if littleEndian then max - pos - 1 else pos)
+
+  _getFloat64: (offset, littleEndian) ->
+    b0 = @_getUint8(@_endianness(offset, 0, 8, littleEndian))
+    b1 = @_getUint8(@_endianness(offset, 1, 8, littleEndian))
+    b2 = @_getUint8(@_endianness(offset, 2, 8, littleEndian))
+    b3 = @_getUint8(@_endianness(offset, 3, 8, littleEndian))
+    b4 = @_getUint8(@_endianness(offset, 4, 8, littleEndian))
+    b5 = @_getUint8(@_endianness(offset, 5, 8, littleEndian))
+    b6 = @_getUint8(@_endianness(offset, 6, 8, littleEndian))
+    b7 = @_getUint8(@_endianness(offset, 7, 8, littleEndian))
+    sign = 1 - (2 * (b0 >> 7))
+    exponent = (((b0 << 1) & 0xff) << 3) | (b1 >> 4) - (Math.pow(2, 10) - 1)
+    mantissa = (b1 & 0x0f) * Math.pow(2, 48) + (b2 * Math.pow(2, 40)) + (b3 * Math.pow(2, 32)) + (b4 * Math.pow(2, 24)) + (b5 * Math.pow(2, 16)) + (b6 * Math.pow(2, 8)) + b7
+    return 0.0  if mantissa is 0 and exponent is -(Math.pow(2, 10) - 1)
+    return sign * mantissa * Math.pow(2, -1022 - 52)  if exponent is -1023
+    sign * (1 + mantissa * Math.pow(2, -52)) * Math.pow(2, exponent)
+
+  _getFloat32: (offset, littleEndian) ->
+    b0 = @_getUint8(@_endianness(offset, 0, 4, littleEndian))
+    b1 = @_getUint8(@_endianness(offset, 1, 4, littleEndian))
+    b2 = @_getUint8(@_endianness(offset, 2, 4, littleEndian))
+    b3 = @_getUint8(@_endianness(offset, 3, 4, littleEndian))
+    sign = 1 - (2 * (b0 >> 7))
+    exponent = ((b0 << 1) & 0xff) | (b1 >> 7) - 127
+    mantissa = ((b1 & 0x7f) << 16) | (b2 << 8) | b3
+    return 0.0  if mantissa is 0 and exponent is -127
+    return sign * mantissa * Math.pow(2, -126 - 23)  if exponent is -127
+    sign * (1 + mantissa * Math.pow(2, -23)) * Math.pow(2, exponent)
+
+  _getInt32: (offset, littleEndian) ->
+    b = @_getUint32(offset, littleEndian)
+    (if b > Math.pow(2, 31) - 1 then b - Math.pow(2, 32) else b)
+
+  _getUint32: (offset, littleEndian) ->
+    b3 = @_getUint8(@_endianness(offset, 0, 4, littleEndian))
+    b2 = @_getUint8(@_endianness(offset, 1, 4, littleEndian))
+    b1 = @_getUint8(@_endianness(offset, 2, 4, littleEndian))
+    b0 = @_getUint8(@_endianness(offset, 3, 4, littleEndian))
+    (b3 * Math.pow(2, 24)) + (b2 << 16) + (b1 << 8) + b0
+
+  _getInt16: (offset, littleEndian) ->
+    b = @_getUint16(offset, littleEndian)
+    (if b > Math.pow(2, 15) - 1 then b - Math.pow(2, 16) else b)
+
+  _getUint16: (offset, littleEndian) ->
+    b1 = @_getUint8(@_endianness(offset, 0, 2, littleEndian))
+    b0 = @_getUint8(@_endianness(offset, 1, 2, littleEndian))
+    (b1 << 8) + b0
+
+  _getInt8: (offset) ->
+    b = @_getUint8(offset)
+    (if b > Math.pow(2, 7) - 1 then b - Math.pow(2, 8) else b)
+
+  _getUint8: (offset) ->
+    if @_isArrayBuffer
+      new Uint8Array(@_buffer, @_start + offset, 1)[0]
+    else
+      @_buffer.charCodeAt(@_start + offset) & 0xff
+
+dataTypes =
+  Int8: 1
+  Int16: 2
+  Int32: 4
+  Uint8: 1
+  Uint16: 2
+  Uint32: 4
+  Float32: 4
+  Float64: 8
+
+for type of dataTypes
+  ((type) ->
+    size = dataTypes[type]
+    jDataView::["get" + type] = (byteOffset, littleEndian) ->
+      value = undefined
+      littleEndian = @_littleEndian  if littleEndian is `undefined`
+      byteOffset = @_offset  if byteOffset is `undefined`
+      if @_isDataView
+        value = @_view["get" + type](byteOffset, littleEndian)
+      else if @_isArrayBuffer and byteOffset % size is 0 and (size is 1 or littleEndian)
+        value = new self[type + "Array"](@_buffer, byteOffset, 1)[0]
+      else
+        throw new TypeError("Type error")  if typeof byteOffset isnt "number"
+        throw new Error("INDEX_SIZE_ERR: DOM Exception 1")  if byteOffset + size > @length
+        value = this["_get" + type](@_start + byteOffset, littleEndian)
+      @_offset = byteOffset + size
+      value
+  ) type

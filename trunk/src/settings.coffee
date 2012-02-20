@@ -1,0 +1,4 @@
+this.Settings = {
+  classpath : 'compiler/'
+}
+  

@@ -74,18 +74,7 @@ function() {
   };
 
   this.setOut0 = function(env, cls, stream) {
-    var stream;
-    /*stream = {
-      methods : {
-        0 : { 
-          args : [ 'Ljava/lang/String' ],
-          nargs : 1,
-          access_flags : 1,
-          descriptor : '(Ljava/lang/String;)V',
-          name : 'print',
-      }
-    };*/
-    env.SetStaticObjectField(env,cls,fieldId,stream);
+    env.SetStaticObjectField(cls,'out',stream);
   };
 
   this.setErr0 = function(env, cls, stream) {

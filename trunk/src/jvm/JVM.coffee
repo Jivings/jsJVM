@@ -29,7 +29,9 @@ class this.JVM
       @RDA = new RDA()
       @RDA.JVM = @
       
-      (@classLoader = new ClassLoader(@loaded, @loadedNative)).init()
+      (@classLoader = new ClassLoader()).init((cls) =>
+        @RDA.addClass(cls.real_name, cls)
+      )
       #@InitializeSystemClass()
       # Create ClassLoader WORKER TODO
       #@classLoader = new Worker('http://localhost/js-jvm/trunk/bin/js/classloader/ClassLoader.js')
@@ -43,31 +45,38 @@ class this.JVM
   When the RDA requests a class to be loaded, a callback method will be provided. 
   This is so that opcode execution can continue after the class is loaded.
   ###
-  load : (classname, threadsWaiting) ->
+  load : (classname, threadsWaiting, finishedLoading) =>
+    if !finishedLoading
+      throw 'bugfixexception' #TODO remove
     if @classLoader? 
       if classname? && classname.length > 0
-        #@classLoader.find(classname, bool, @loaded)
+        
         cls = @classLoader.find(classname)
-        if threadsWaiting
-          scopedJVM.RDA.notifyAll(classname, cls)
+        @RDA.addClass(classname, cls, () =>
+          if threadsWaiting
+            @RDA.notifyAll(classname, cls)
+            
+          finishedLoading(cls)
+        )
       else 
         @stdout.write @helpText()
     this
     
   loadNative : (classname, waitingThreads) ->
-    @classLoader.findNative(classname, waitingThreads, @loadedNative)
-  
-  loadedNative : (classname, nativedata) ->
+    _native = @classLoader.findNative(classname)
+    @RDA.addNative(classname, _native)
+    # no data needs to be sent as native execution takes place on the JVM
+    @RDA.notifyAll(classname)
+    return _native
+    
+    
+  ###
+  loadedNative : (classname, nativedata) =>
     if nativedata != null
-      scopedJVM.RDA.addNative(classname, nativedata)
+      @RDA.addNative(classname, nativedata)
       # no data needs to be sent as native execution takes place on the JVM
-      scopedJVM.RDA.notifyAll(classname)
-   
-  loaded : (classname, classdata, waitingThreads) ->
-    if(classdata != null)
-      scopedJVM.RDA.addClass(classname, classdata)
-      
-      
+      @RDA.notifyAll(classname)
+  ###
  
   end : () ->
     if @callback?

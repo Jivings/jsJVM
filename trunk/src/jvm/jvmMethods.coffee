@@ -21,7 +21,38 @@
       jclass[name] = JVM::[JVM_MethodName]
     yes
     
+  JVM::InitializeSystem = (initDone) ->
+    system = @RDA.method_area['native/java/lang/System']
+    cls = @RDA.method_area['java/lang/System']
+    @assert( system isnt null, 
+      "System not loaded before InitializeSystemClass")
+      
+    @JVM_ResolveClass('javascript/io/JavaScriptOutputStream', (outputStream) =>
+      method_id = '<init>'
+      method_desc = '(Ljava/lang/String;)V'
+      method = @JVM_ResolveMethod(outputStream, method_id, method_desc)
+      @JVM_ResolveStringLiteral('terminal', (str) => 
+        @JVM_NewObject(outputStream, method, [str], (outputStreamObj) =>
+          
+          # JavaScript outputStream needs to be wrapped by a printstream
+          @JVM_ResolveClass('java/io/PrintStream', (printStream) =>
+            method_desc = '(Ljava/io/OutputStream;)V'
+            method = @JVM_ResolveMethod(printStream, method_id, method_desc)
+            @JVM_NewObject(printStream, method, [outputStreamObj], (printStreamObj) =>
+              
+              # set the printStream to out in System
+              @JVM_ExecuteNativeMethod('native/java/lang/System', 'setOut0', [cls, printStreamObj])
+              initDone()
+              )
+          )
+        )
+      )
+    )
     
+    
+    
+    
+  ###  
   JVM::InitializeSystemClass = () ->
     @assert( (system = @RDA.method_area['java/lang/System']) isnt null, 
       "System not loaded before InitializeSystemClass")
@@ -54,7 +85,7 @@
     method = @JVM_ResolveMethod(printStreamCls, method_id, method_desc)
     printStreamObj = @RDA.heap.allocate(@JVM_NewObject(printStreamCls, method, [bufferedOutputStreamObj, new CONSTANT_boolean(1)]))
     # call setOut0
-    
+  ###  
     
   # Our own Java Data Structures. These provide an extra 'type' var to allow 
   # our typeless language to still follow strict Java typing.
@@ -107,12 +138,12 @@
   JVM::JVM_OnExit = (func) ->
     throw 'NotYetImplementedException'
     
-  JVM::GetStaticFieldID = (env, cls, fieldname, returnType) ->
+  JVM::GetStaticFieldID = (cls, fieldname, returnType) ->
     # TODO should be a field id!
     return fieldname
     
-  JVM::SetStaticObjectField = (env,cls,fieldId,stream) ->
-    cls.fields[fieldId].value = stream
+  JVM::SetStaticObjectField = (cls,fieldname,stream) ->
+    cls.fields[fieldname] = stream
 
   JVM::GetObjectField = (objectReference, fieldname) ->
     obj = @RDA.heap[objectReference.pointer]
@@ -120,14 +151,18 @@
     return field
   # java.lang.Runtime
 
-  JVM::JVM_GetObjectClass = (objectReference) ->
+  JVM::JVM_GetObjectClass = (objectReference, callback) ->
+    if !callback
+      throw 'NoFixError'
     obj = @JVM_FromHeap(objectReference)
     if @JVM_FromHeap(obj.clsObject) is null
       # this will always resolve
-      cls = @JVM_ResolveClass('java/lang/Class')
-      constructor = @JVM_ResolveMethod(cls, '<init>', '()V')
-      obj.clsObject = @JVM_NewObject(cls, constructor, [])
-    return @RDA.heap.allocate(obj.clsObject)
+      @JVM_ResolveClass('java/lang/Class', (cls)=>
+        constructor = @JVM_ResolveMethod(cls, '<init>', '()V')
+        obj.clsObject = @JVM_NewObject(cls, constructor, [])
+        callback(@RDA.heap.allocate(obj.clsObject))
+      )
+    
 
   
   JVM::JVM_Exit = (code) ->
@@ -137,7 +172,7 @@
   JVM::JVM_GC = () ->
     throw 'NotYetImplementedException'
   ###
-   Returns the number of real-time milliseconds that have elapsed since the
+   Returns the number of realtime milliseconds that have elapsed since the
    least-recently-inspected heap object was last inspected by the garbage
    collector.
 
@@ -291,10 +326,12 @@
     throw 'NotYetImplementedException'
   # Link the class
 
-  JVM::JVM_ResolveClass = (clsname, thread) ->
-    
+  JVM::JVM_ResolveClass = (clsname, thread, resolved) ->
+    # sometimes thread doesn't get passed
+    if !resolved then resolved = thread
     # tell the RDA that this thread is currently waiting
-    if thread then @RDA.waiting[clsname] = thread      
+    if thread then @RDA.waiting[clsname] = thread
+          
     # if a class, resolution done      
     if (clsname instanceof CONSTANT_Class or clsname.magic_number?)
       @RDA.notifyAll(clsname.real_name, clsname)
@@ -304,57 +341,60 @@
     if @RDA.method_area[clsname] == undefined
       console.log('Resolve Class ' + clsname)
       # request the ClassLoader loads the class this thread needs and say we are waiting
-      cls = @load(clsname, true)
+      @load(clsname, true, resolved)
+    
     else 
       # actually resolve the class reference so this doesn't need to occur next time
       cls = @RDA.method_area[clsname] 
-      @RDA.notifyAll(clsname, cls)
+      resolved(cls)
     
-    if !thread 
-      return cls
-   
   JVM::JVM_ResolveNativeClass = (nativeName, thread) ->
     
+    if thread then @RDA.waiting[nativeName] = thread
+    
     if @RDA.method_area[nativeName] == undefined
-      @RDA.waiting[nativeName] = thread
-      nativeCls = @loadNative(nativeName)
-    else       
-      _native = @RDA.method_area[nativeName]
-    return _native
+      @loadNative(nativeName)
+    yes
   
   JVM::JVM_ExecuteNativeMethod = (classname, methodname, args) ->
     nativeCls = @RDA.method_area[classname]
     nmethod = nativeCls[methodname]
-
-    returnval = nmethod.apply(nativeCls, [@, args])
+    if args
+      args.unshift(this)
+    else 
+      args = new Array()
+      args.push(this)
+    returnval = nmethod.apply(nativeCls, args)
     return returnval
   
-  JVM::JVM_ResolveStringLiteral = (literal) ->
+  JVM::JVM_ResolveStringLiteral = (literal, callback) ->
     enc = 'sun.jnu.encoding'
     # will always resolve as String is needed to pass arguments to the JVM
-    cls = @JVM_ResolveClass('java/lang/String')
-    method_id = '<init>'
-    method_desc = '()V'
-    method = @JVM_ResolveMethod(cls, method_id, method_desc)
-    
-    # if this String is not already interned, then create it.
-    if !@JVM_InternedStrings[literal]
-      console.log('Interning a string ("'+literal+'")')
-      #asBytes = @JVM_StringLiteralToBytes(literal)
-      #byteArray = @RDA.heap.allocate(asBytes)      
-      charArray = new Array()
-      for index of literal
-        charArray[index] = literal[index]
+    @JVM_ResolveClass('java/lang/String', (cls) =>
+      method_id = '<init>'
+      method_desc = '()V'
+      method = @JVM_ResolveMethod(cls, method_id, method_desc)
       
-      charArray = @RDA.heap.allocate(charArray)
-      stringobj = @JVM_NewObject(cls, method, [])
-      stringobj.count = literal.length
-      stringobj.value = charArray
-      console.log('Done interning')
-      @JVM_InternedStrings[literal] = stringobj
-    
-    return @RDA.heap.allocate(@JVM_InternedStrings[literal])
-    
+      # if this String is not already interned, then create it.
+      if !@JVM_InternedStrings[literal]
+        console.log('Interning a string ("'+literal+'")')
+        #asBytes = @JVM_StringLiteralToBytes(literal)
+        #byteArray = @RDA.heap.allocate(asBytes)      
+        charArray = new Array()
+        for index of literal
+          charArray[index] = literal[index]
+        
+        charArray = @RDA.heap.allocate(charArray)
+        @JVM_NewObject(cls, method, [], (stringobj) =>
+          stringobj.count = literal.length
+          stringobj.value = charArray
+          console.log('Done interning')
+          @JVM_InternedStrings[literal] = stringobj
+          callback(stringobj)
+        )
+      else
+        callback(@JVM_InternedStrings[literal])
+    )    
     
   JVM::JVM_StringLiteralToBytes = (literal) ->
     i = 0
@@ -380,29 +420,32 @@
         
     t.start()
   
-  JVM::JVM_NewObjectByReference = (clsname, constructorname, descriptor, args, thread) ->
-    if (cls = @JVM_ResolveClass(clsname, thread)) == null
-      return
-    method = @JVM_ResolveMethod(cls, constructorname, descriptor)
-    return @RDA.heap.allocate(@JVM_NewObject(cls, method, args))
+  JVM::JVM_NewObjectByReference = (clsname, constructorname, descriptor, args, thread, callback) ->
+    if !callback then throw 'NoFixException' #TODO remove
+    @JVM_ResolveClass(clsname, thread, (cls) =>
+      method = @JVM_ResolveMethod(cls, constructorname, descriptor)
+      callback(@JVM_NewObject(cls, method, args))
+    )
   
-  JVM::JVM_NewObject = (cls, constructor, args) ->  
-
+  JVM::JVM_NewObject = (cls, constructor, args, objectCreated) ->  
+    if !objectCreated #TODO remove test code
+      throw 'bugfix'
+      
     obj = new JVM_Object(cls)    
     objref = @RDA.heap.allocate(obj)
-    t = new Thread(cls, @RDA, constructor)    
     
-    t.current_frame.locals[0] = objref
+    locals = new Array()
+    locals[0] = objref
     
     arg_num = args.length
     while arg_num > 0
-      t.current_frame.locals[arg_num] = args[arg_num-1]
+      locals[arg_num] = args[arg_num-1]
       arg_num--
         
-    t.start()
-    return obj
-    
-    
+    @RDA.createThread(cls.real_name, constructor, locals, () ->
+      objectCreated(objref)
+    )
+       
   
   JVM::JVM_ResolveNativeMethod = (cls, name, type) ->
     throw 'NotYetImplementedException'  
@@ -416,8 +459,7 @@
   ###    
   
   JVM::JVM_ResolveMethod = (cls, name, type) ->
-    if !(cls instanceof CONSTANT_Class)
-      cls = @JVM_ResolveClass(cls, false)
+    
     if cls is null
       throw 'NullClassException'
       
@@ -462,17 +504,18 @@
    
   
   JVM::JVM_InvokeStaticMethod = (clsname, method_name, descriptor, args, thread) ->
-    if(cls = @JVM_ResolveClass(clsname, thread)) == null
-      return false
-    method = @JVM_ResolveMethod(cls, method_name, descriptor)
-    
-    t = new Thread(cls, @RDA, method) 
-    arg_num = args.length-1
-    while arg_num > -1
-      t.current_frame.locals[arg_num] = args[arg_num]
-      arg_num--
-        
-    t.start() 
+    @JVM_ResolveClass(clsname, thread, (cls) =>
+      
+      method = @JVM_ResolveMethod(cls, method_name, descriptor)
+      
+      t = new Thread(cls, @RDA, method) 
+      arg_num = args.length-1
+      while arg_num > -1
+        t.current_frame.locals[arg_num] = args[arg_num]
+        arg_num--
+          
+      t.start()
+    ) 
     
   
   JVM::JVM_FindClassFromBootLoader = (env, name) ->
@@ -518,8 +561,12 @@
     throw 'NotYetImplementedException'
 
   JVM::JVM_GetClassLoader = (env, cls) ->
-    return env.RDA.heap.allocate(@JVM_ClassLoader)
-
+    # return null
+    return new JVM_Reference(0)
+    
+  JVM::JVM_DesiredAssertionStatus = (cls) ->
+    return false
+  
   JVM::JVM_IsInterface = (env, cls) ->
     throw 'NotYetImplementedException'
   JVM::JVM_GetClassSigners = (env, cls) ->
@@ -545,8 +592,8 @@
   JVM::JVM_FromHeap = (reference) ->
     return @RDA.heap[reference.pointer]
       
-  class this.JVM_ClassLoader
-  JVM::JVM_ClassLoader = new JVM_ClassLoader()
+  #class this.JVM_ClassLoader
+  #JVM::JVM_ClassLoader = new JVM_ClassLoader()
 
 	
   

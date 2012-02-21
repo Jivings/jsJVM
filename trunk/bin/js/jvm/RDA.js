@@ -18,15 +18,19 @@
       };
       this.heap.allocate = function(object) {
         var ref;
+        if (object instanceof JVM_Reference) {
+          throw "Reference on heap?";
+        }
         ref = ++this.id;
         this[ref] = object;
         return new JVM_Reference(ref);
       };
       this.threads = new Array();
-      this.clinitThread = new Worker('js/jvm/Thread.js');
+      this.clinitThread = new Worker(Settings.workerpath + '/Thread.js');
       this.clinitThread['finished'] = true;
       this.clinitThread.waiting = new Array();
       self = this;
+      this.clinitThread.loaded = 0;
       this.clinitThread.onmessage = function(e) {
         return self.message.call(self, e);
       };
@@ -45,7 +49,7 @@
         If the Class is the entry point to the application, the main method will be
         resolved and executed.
       */
-    RDA.prototype.addClass = function(classname, raw_class) {
+    RDA.prototype.addClass = function(classname, raw_class, instantiatedCallback) {
       var supercls;
       supercls = this.method_area[raw_class.get_super()];
       raw_class.constant_pool[raw_class.super_class] = supercls;
@@ -54,7 +58,10 @@
         var method;
         if (classname === this.JVM.mainclassname) {
           method = this.JVM.JVM_ResolveMethod(raw_class, 'main', '([Ljava/lang/String;)V');
-          return this.createThread(classname, method);
+          this.createThread(classname, method);
+        }
+        if (instantiatedCallback) {
+          return instantiatedCallback();
         }
       }, this));
     };
@@ -62,10 +69,10 @@
         Creates a new Thread instance to execute Java methods. Each Java Thread 
         is represented by a JavaScript worker
       */
-    RDA.prototype.createThread = function(mainClassName, method) {
+    RDA.prototype.createThread = function(mainClassName, method, locals, callback) {
       var args, id, self, t;
       id = this.threads.length - 1;
-      t = new Worker('js/jvm/Thread.js');
+      t = new Worker(Settings.workerpath + '/Thread.js');
       self = this;
       t.onmessage = function(e) {
         return self.message.call(self, e);
@@ -74,12 +81,16 @@
         return console.log(e);
       };
       this.threads.push(t);
+      if (callback) {
+        t.callback = callback;
+      }
       args = {
         'action': 'new',
         'resource': {
           'class': this.method_area[mainClassName],
           'id': id,
-          'entryMethod': method
+          'entryMethod': method,
+          'locals': locals
         }
       };
       t.postMessage(args);
@@ -119,24 +130,7 @@
         @see Thread.notify()
       */
     RDA.prototype.notifyAll = function(notifierName, data) {
-      var lock, thread, _ref;
-      _ref = this.waiting;
-      for (lock in _ref) {
-        thread = _ref[lock];
-        if (lock === notifierName) {
-          thread.postMessage({
-            'action': 'resource',
-            'resource': data
-          });
-          delete this.waiting[notifierName];
-        }
-      }
       return true;
-    };
-    RDA.prototype.lockAquired = function(thread) {
-      return thread.postMessage({
-        'action': 'notify'
-      });
     };
     /*
         Thread interface methods. The following are messages received from 
@@ -147,18 +141,29 @@
       var actions;
       actions = {
         'resolveClass': function(data) {
-          return this.JVM.JVM_ResolveClass(data.name, e.target);
+          return this.JVM.JVM_ResolveClass(data.name, e.target, __bind(function(cls) {
+            return e.target.postMessage({
+              'action': 'resource',
+              'resource': cls
+            });
+          }, this));
         },
         'resolveNativeClass': function(data) {
-          return this.JVM.JVM_ResolveNativeClass(data.name, e.target);
+          if (this.JVM.JVM_ResolveNativeClass(data.name, e.target)) {
+            return e.target.postMessage({
+              'action': 'notify'
+            });
+          }
         },
         'resolveMethod': function(data) {
-          var method;
-          method = this.JVM.JVM_ResolveMethod(data.classname, data.name, data.descriptor);
-          return e.target.postMessage({
-            'action': 'resource',
-            'resource': method
-          });
+          return this.JVM.JVM_ResolveClass(data.classname, e.target, __bind(function(cls) {
+            var method;
+            method = this.JVM.JVM_ResolveMethod(cls, data.name, data.descriptor);
+            return e.target.postMessage({
+              'action': 'resource',
+              'resource': method
+            });
+          }, this));
         },
         'executeNativeMethod': function(data) {
           var returnval;
@@ -224,7 +229,9 @@
         },
         'aquireLock': function(data) {
           if (this.heap[data.reference.pointer].monitor.aquireLock(e.target)) {
-            return lockAquired(e.target);
+            return e.target.postMessage({
+              'action': 'notify'
+            });
           }
         },
         'releaseLock': function(data) {
@@ -239,12 +246,13 @@
           });
         },
         'log': function(data) {
-          return console.log(data.message);
+          return console.log('#' + data.id + ' ' + data.message);
         },
         'finished': function(data) {
           var nextClinit;
           console.log('Thread #' + data.id + ' finished');
           if (e.target === this.clinitThread) {
+            this.clinitThread.loaded++;
             this.clinitThread.callback.call(this);
             nextClinit = this.clinitThread.waiting.pop();
             if (nextClinit) {
@@ -253,9 +261,13 @@
               this.clinitThread.finished = true;
               if (this.clinitThread.init) {
                 this.clinitThread.init = false;
-                return this.JVM.load(this.JVM.mainclassname);
+                return this.JVM.InitializeSystem(__bind(function() {
+                  return this.JVM.load(this.JVM.mainclassname);
+                }, this));
               }
             }
+          } else if (e.target.callback) {
+            return e.target.callback();
           }
         }
       };

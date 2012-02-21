@@ -22,6 +22,8 @@ class this.RDA
     }
     
     @heap.allocate = (object) -> 
+      if object instanceof JVM_Reference
+        throw "Reference on heap?"
       ref = ++@id
       this[ref] = object
       return new JVM_Reference(ref)
@@ -29,16 +31,17 @@ class this.RDA
     @threads = new Array()
     
     # Define a thread foo clinit methods. These we want to take place synchronously
-    @clinitThread = new Worker('js/jvm/Thread.js')
+    @clinitThread = new Worker(Settings.workerpath+'/Thread.js')
     @clinitThread['finished'] = true 
     @clinitThread.waiting = new Array() 
     self = @
+    @clinitThread.loaded = 0
     @clinitThread.onmessage = (e) -> 
       self.message.call(self, e)
     @clinitThread.onerror = (e) ->
       console.log(e)
     @clinitThread.init = true
-         
+    @clinitThread.callback = new Array()
   addNative : (name, raw_class) ->
     @method_area[name] = raw_class
   
@@ -49,12 +52,15 @@ class this.RDA
     If the Class is the entry point to the application, the main method will be
     resolved and executed.
   ###
-  addClass : (classname, raw_class) ->
+  addClass : (classname, raw_class, instantiatedCallback) ->
     # create class object
     
     # final resolution step, resolve superclass reference
-    supercls = @method_area[raw_class.get_super()]
-    raw_class.constant_pool[raw_class.super_class] = supercls
+    cls = raw_class
+    while (cls = cls.get_super()) isnt undefined
+      if !@method_area[cls.real_name]
+        @method_area[cls.real_name] = cls
+         
     @method_area[classname] = raw_class
 
     @clinit(classname, raw_class, () =>
@@ -62,6 +68,7 @@ class this.RDA
       if classname is @JVM.mainclassname
         method = @JVM.JVM_ResolveMethod(raw_class, 'main', '([Ljava/lang/String;)V')
         @createThread classname, method 
+      if instantiatedCallback then instantiatedCallback() 
          
     )
     # If a class needs to be initialised synchronously, a callback can be used here
@@ -71,10 +78,10 @@ class this.RDA
     Creates a new Thread instance to execute Java methods. Each Java Thread 
     is represented by a JavaScript worker
   ###          
-  createThread : (mainClassName, method) ->
+  createThread : (mainClassName, method, locals, callback) ->
    
     id = @threads.length - 1
-    t = new Worker('js/jvm/Thread.js')
+    t = new Worker(Settings.workerpath + '/Thread.js')
     self = @
     t.onmessage = (e) -> 
       self.message.call(self, e)
@@ -82,12 +89,15 @@ class this.RDA
       console.log(e)
     # Add the Thread to the global Thread pool.
     @threads.push(t)
+    if callback
+      t.callback = callback
     args = { 
       'action' : 'new'
       'resource' : {
         'class' : @method_area[mainClassName]
         'id' : id
         'entryMethod' : method
+        'locals' : locals
       }        
     }
     # start the thread
@@ -112,8 +122,9 @@ class this.RDA
             'entryMethod' : clsini          
           }
       }
-      @clinitThread.callback = callback
-      if @clinitThread.finished
+      @clinitThread.callback.push(callback)
+      
+      if @clinitThread.finished or !@clinitThread.init
         @clinitThread.finished = false
         @clinitThread.postMessage(message)
       else
@@ -128,22 +139,17 @@ class this.RDA
     @see Thread.notify()
   ###
   notifyAll : (notifierName, data) ->
-    for lock,thread of @waiting
-      if(lock == notifierName)
-        thread.postMessage({
-          'action' : 'resource',
-          'resource' : data
-        })
-        delete @waiting[notifierName]
+    #for lock,thread of @waiting
+      #if(lock == notifierName)
+        #thread.postMessage({
+        #  'action' : 'resource',
+        #  'resource' : data
+        #})
+        #delete @waiting[notifierName]
     
     yes
   
-    
-  lockAquired : (thread) ->
-     thread.postMessage({
-          'action' : 'notify'
-     })
-    
+      
   ###
     Thread interface methods. The following are messages received from 
     running Threads. These are detailed individually, but are usually requests
@@ -154,17 +160,27 @@ class this.RDA
     
     actions = {
       'resolveClass' : (data) ->
-        @JVM.JVM_ResolveClass(data.name, e.target)
+        @JVM.JVM_ResolveClass(data.name, e.target, (cls) =>
+          e.target.postMessage({
+            'action' : 'resource',
+            'resource' : cls
+          })
+        )
         
       'resolveNativeClass' : (data) ->
-        @JVM.JVM_ResolveNativeClass(data.name, e.target)
+        if @JVM.JVM_ResolveNativeClass(data.name, e.target)
+          e.target.postMessage({
+            'action' : 'notify'
+          })
                 
       'resolveMethod' : (data) ->
-        method = @JVM.JVM_ResolveMethod(data.classname, data.name, data.descriptor)
-        e.target.postMessage({
-          'action' : 'resource',
-          'resource' : method
-        })
+        @JVM.JVM_ResolveClass(data.classname, e.target, (cls) =>
+          method = @JVM.JVM_ResolveMethod(cls, data.name, data.descriptor)
+          e.target.postMessage({
+            'action' : 'resource',
+            'resource' : method
+          })
+        )
        
       'executeNativeMethod' : (data) ->
         returnval = @JVM.JVM_ExecuteNativeMethod(data.classname, data.methodname, data.args)
@@ -176,11 +192,12 @@ class this.RDA
       'resolveField' : (data) ->
         # never used
       'resolveString' : (data) ->
-        stringref = @JVM.JVM_ResolveStringLiteral(data.string)
-        e.target.postMessage({
-          'action' : 'resource',
-          'resource' : stringref
-        })
+        @JVM.JVM_ResolveStringLiteral(data.string, (stringref) ->
+          e.target.postMessage({
+            'action' : 'resource',
+            'resource' : stringref
+          })
+        )
       
       'getObject' : (data) ->
         object = @heap[data.reference.pointer]
@@ -223,7 +240,9 @@ class this.RDA
         
       'aquireLock' : (data) ->
         if(@heap[data.reference.pointer].monitor.aquireLock(e.target))
-          lockAquired(e.target)
+          e.target.postMessage({
+            'action' : 'notify'
+          })
       'releaseLock' : (data) ->
         @heap[data.reference.pointer].monitor.releaseLock(e.target)
         
@@ -236,12 +255,13 @@ class this.RDA
         })
         
       'log' : (data) ->
-        console.log(data.message)
+        console.log('#'+data.id+' '+data.message)
         
       'finished' : (data) ->  
         console.log('Thread #' + data.id + ' finished')
         if e.target is @clinitThread
-          @clinitThread.callback.call(@)
+          @clinitThread.loaded++
+          @clinitThread.callback.pop().call(@)
           nextClinit = @clinitThread.waiting.pop()
           if nextClinit
             @clinitThread.postMessage(nextClinit)
@@ -250,7 +270,11 @@ class this.RDA
             if @clinitThread.init
               @clinitThread.init = false
               # finally, JVM init is complete so we can load the main class
-              @JVM.load(@JVM.mainclassname)
+              @JVM.InitializeSystem( () =>
+                @JVM.load(@JVM.mainclassname)
+              )
+        else if e.target.callback
+          e.target.callback()                    
     }
     
     actions[e.data.action].call(@, e.data)

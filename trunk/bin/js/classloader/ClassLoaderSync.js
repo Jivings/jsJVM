@@ -8,15 +8,13 @@
     child.__super__ = parent.prototype;
     return child;
   };
+  this.required_classes_length = 5;
   this.ClassLoader = (function() {
     ClassLoader.prototype.classReader = 1;
     ClassLoader.prototype.stack = new Array;
     ClassLoader.prototype.ps_id = 0;
-    ClassLoader.prototype.required_classes = ['java/lang/Class', 'java/lang/String'];
+    ClassLoader.prototype.required_classes = ['java/lang/Class', 'java/lang/String', 'java/lang/System', 'javascript/io/JavaScriptOutputStream', 'java/io/OutputStream'];
     ClassLoader.prototype.loaded_classes = {};
-    ClassLoader.prototype.postMessage = function(data) {
-      return this.find(data.classname, data.waitingThreads);
-    };
     /*
       Constructor 
       Set runtime data area and grab console from global scope
@@ -43,7 +41,7 @@
       _ref = this.required_classes;
       for (index in _ref) {
         cls = _ref[index];
-        this.find(cls);
+        callback(this.find(cls));
       }
       return true;
     };
@@ -51,7 +49,7 @@
       var req, _native;
       _native = null;
       req = new XMLHttpRequest();
-      req.open('GET', "js/classes/" + name + ".js", false);
+      req.open('GET', Settings.classpath + "/" + name + ".js", false);
       req.send(null);
       if (req.status === 200) {
         try {
@@ -61,7 +59,6 @@
           throw err;
         }
         _native = new _native();
-        this.returnNative(name, _native);
         return _native;
       } else {
         throw 'NoClassDefFoundError';
@@ -79,11 +76,11 @@
         return;
       }
       req = new XMLHttpRequest();
-      req.open('GET', "js/classes/rt/" + class_name + ".class", false);
+      req.open('GET', "" + Settings.classpath + "/rt/" + class_name + ".class", false);
       req.overrideMimeType('text/plain; charset=x-user-defined');
       req.send(null);
       if (req.status !== 200) {
-        req.open('GET', "js/classes/" + class_name + ".class", false);
+        req.open('GET', "" + Settings.classpath + "/" + class_name + ".class", false);
         req.overrideMimeType('text/plain; charset=x-user-defined');
         req.send(null);
         if (req.status !== 200) {
@@ -94,7 +91,6 @@
       _class = classReader.parse();
       this.find(_class.get_super(), false, this.returnMethod);
       this.loaded_classes[_class.get_name()] = _class;
-      this.returnMethod(_class.get_name(), _class);
       return _class;
     };
     return ClassLoader;

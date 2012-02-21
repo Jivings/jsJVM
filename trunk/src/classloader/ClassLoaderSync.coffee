@@ -1,3 +1,4 @@
+this.required_classes_length = 5
 class this.ClassLoader
   classReader : 1
   stack : new Array
@@ -5,13 +6,13 @@ class this.ClassLoader
   required_classes : [
     'java/lang/Class'
     'java/lang/String'
+    'java/lang/System'
+    'javascript/io/JavaScriptOutputStream'
+    'java/io/OutputStream'
   ]
     
   loaded_classes : {}
-  
-  postMessage : (data) ->
-    @find(data.classname, data.waitingThreads)
-  
+    
   ###
   Constructor 
   Set runtime data area and grab console from global scope
@@ -30,7 +31,7 @@ class this.ClassLoader
   
   init : (callback) ->
     for index, cls of @required_classes
-      @find cls
+      callback(@find cls)
     yes
       
 
@@ -38,7 +39,7 @@ class this.ClassLoader
     # declare so that it can be used with eval
     _native = null
     req = new XMLHttpRequest()
-    req.open 'GET', Settings.classpath + "native/#{name}.js", false
+    req.open 'GET', Settings.classpath + "/" + name + ".js", false
     req.send null
     if req.status is 200
       try 
@@ -47,7 +48,7 @@ class this.ClassLoader
         console.log("#{name}")
         throw err
       _native = new _native()
-      @returnNative(name, _native)
+      #@returnNative(name, _native)
       return _native
     else
       throw 'NoClassDefFoundError' 
@@ -63,12 +64,12 @@ class this.ClassLoader
     if typeof class_name is 'undefined'
       return 
     req = new XMLHttpRequest()
-    req.open 'GET', "js/classes/rt/#{class_name}.class", false
+    req.open 'GET', "#{Settings.classpath}/rt/#{class_name}.class", false
     # The following line says we want to receive data as Binary and not as Unicode
     req.overrideMimeType 'text/plain; charset=x-user-defined'
     req.send null
     if req.status isnt 200
-      req.open 'GET', "js/classes/#{class_name}.class", false
+      req.open 'GET', "#{Settings.classpath}/#{class_name}.class", false
       req.overrideMimeType 'text/plain; charset=x-user-defined'
       req.send null
       if req.status isnt 200
@@ -76,9 +77,10 @@ class this.ClassLoader
     #return @add req.responseText, class_name, waitingThreads
     classReader = new ClassReader req.responseText
     _class = classReader.parse()
-    @find(_class.get_super(), false, @returnMethod)
+    # resolve superclass
+    _class.constant_pool[_class.super_class] = @find(_class.get_super(), false)
     @loaded_classes[_class.get_name()] = _class
-    @returnMethod(_class.get_name(), _class)
+    #@returnMethod(_class.get_name(), _class)
     return _class
  
     

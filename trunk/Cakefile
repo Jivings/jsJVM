@@ -4,7 +4,13 @@ util       = require 'util'
 
 {spawn, exec} = require 'child_process'
 
-appFiles = []
+appFiles = [
+  'src/jvm/JVM.coffee'
+]
+
+workers = [
+  'src/jvm/Thread.coffee'
+]
 
 task 'watch', 'Build project from src/*.coffee to bin/*.js', ->
   exec 'mkdir -p bin/js/'
@@ -24,8 +30,9 @@ task 'coffeeFiles', 'how much coffee you got?!', ->
           currentFile = currentPath + '/' + file
           stats = fs.statSync(currentFile)
           if stats.isFile() and currentFile.indexOf('.coffee') > 1 and appFiles.join('=').indexOf("#{currentFile}=") < 0
-            util.log currentFile
-            appFiles.push currentFile
+            if workers.join('=').indexOf("#{currentFile}") < 0
+              util.log currentFile
+              appFiles.push currentFile
           else if stats.isDirectory()
             traverseFileSystem currentFile
 
@@ -42,19 +49,21 @@ task 'build', 'Build single application file from source files', ->
       throw err if err
       appContents[index] = fileContents
       process() if --remaining is 0
+  util.log "Compiling workers"
+  for file, index in workers then do (file, index) ->
+      util.log file
+      exec "coffee --compile -o lib/workers #{file}", (err, stdout, stderr) ->
+        if err
+          util.log 'Something went wrong'
+	 
   process = ->
     fs.writeFile 'lib/jvm.coffee', appContents.join('\n\n'), 'utf8', (err) ->
       throw err if err
       exec 'coffee --compile lib/jvm.coffee', (err, stdout, stderr) ->
         if err
           util.log 'Error compiling coffee file.'
-          grrrr 'Uh, coffee is bad.'
         else
           fs.unlink 'lib/jvm.coffee', (err) ->
             if err
               util.log 'Couldn\'t delete the app.coffee file/'
             util.log 'Done building coffee file.'
-            grrrr 'Okay, coffee is ready.'
-
-grrrr = (message = '') -> 
-  console.log message

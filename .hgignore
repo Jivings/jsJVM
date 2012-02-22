@@ -1,5 +1,4 @@
 syntax: glob
 
-trunk/bin/classes/rt/
-trunk/bin/js/classes/rt
 
+trunk

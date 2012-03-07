@@ -2,8 +2,12 @@ jsJVM is a conceptual Java Virtual Machine written in JavaScript and CoffeeScrip
 
 jsJVM allows execution of Java Bytecode within a web browser without the need for any client side dependancies. 
 
+A working implementation of the jsJVM can be found here:
+http://javafiddle.net
+
 For documentation, usage and examples, see:
 http://jsjvm.org
+
 
 To report bugs or suggest improvements visit:
 https://github.com/Jivings/jsJVM/issues

@@ -125,13 +125,13 @@
   JVM::JVM_NanoTime = (env, ignoredJClass) ->
     throw 'NotYetImplementedException'
 
-  JVM::JVM_ArrayCopy = (env, ignoredClass, length, dstPos, destObj, srcPos, srcObj) ->
+  JVM::JVM_ArrayCopy = (env, srcObj, srcPos, dstObj, destPos, length) ->
      src = env.JVM_FromHeap(srcObj)
-     arr = src.slice(srcPos.valueOf(), srcPos.valueOf() + length.valueOf())
+     arr = src.slice(srcPos.val, srcPos.val + length.val)
      dest = env.JVM_FromHeap(destObj)
-     destPos = dstPos.valueOf()
-     for index, ch of arr  
-        dest[new Number(index)+destPos] = ch;
+     destPos = dstPos.val
+     for index, ch of arr
+        dest[new Number(index)+destPos] = ch
      yes
 
   JVM::JVM_InitProperties = (env, jobject) ->
@@ -387,11 +387,13 @@
         for index of literal
           charArray[index] = literal[index]
         
-        charArray = @RDA.heap.allocate(charArray)
+          #        charArray = @RDA.heap.allocate(charArray)
         @JVM_NewObject(cls, method, [], (stringobj) =>
           # manually edit some important fields
-          @RDA.heap[stringobj.pointer].count = literal.length
-          @RDA.heap[stringobj.pointer].value = charArray
+          @RDA.heap[stringobj.pointer].count = new CONSTANT_integer(literal.length)
+          @RDA.heap[@RDA.heap[stringobj.pointer].value.pointer] = charArray
+          
+          #@RDA.heap[stringobj.pointer].value = charArray
           console.log('Done interning')
           @JVM_InternedStrings[literal] = stringobj
           callback(stringobj)

@@ -15,7 +15,7 @@ class this.NativeFrame
     
     @thread.log(@clsname + '-' + @name)
     
-    @thread.resolveNativeClass(@clsname, () -> 
+    @thread.resolveNativeClass(@clsname, () ->
       if @locals[0]
         @method['object'] = @locals[0]
 
@@ -31,31 +31,34 @@ class this.NativeFrame
 
       # include this reference in local 0
       else
-        i = 1 
+        i = 1
         while i < arg_num+1
           args.push(@locals[i++])
         
             
       @thread.executeNativeMethod(@clsname, @name, args, (returnval) ->
         if returnval?
-            @op_stack.push(returnval) 
+            @op_stack.push(returnval)
             
         switch(@returntype.charAt(0))
           when 'B', 'C', 'I', 'Z', 'S'
             opcodes[172].do(@)
-          when 'D' 
-            @op_stack.push(returnval) 
+          when 'D'
+            @op_stack.push(returnval)
             opcodes[175].do(@)
-          when 'F' 
+          when 'F'
             opcodes[174].do(@)
           when 'J'
-            @op_stack.push(returnval) 
+            @op_stack.push(returnval)
             opcodes[173].do(@)
           when 'L', '['
             opcodes[176].do(@)
           else opcodes[177].do(@)
       , @)
+      return false
     , @)
+    return false
+
     
     ###
     @thread.resolveNativeClass(@clsname, (nativeCls) -> 

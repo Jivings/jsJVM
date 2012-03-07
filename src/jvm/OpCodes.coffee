@@ -1,4 +1,3 @@
-
 class this.OpCodes
       
   constructor : (thread) ->    
@@ -602,9 +601,9 @@ class this.OpCodes
       frame.op_stack.push(word2)
     )
     @[96] = new OpCode('iadd', 'Pops two values from the stack, adds them and pushes the result.', (frame) -> 
-      i1 = frame.op_stack.pop()
-      i2 = frame.op_stack.pop()
-      if isNaN(i1.val) or isNaN(i2.val)
+      i1 = frame.op_stack.pop().val
+      i2 = frame.op_stack.pop().val
+      if isNaN(i1) or isNaN(i2)
         frame.op_stack.push(new CONSTANT_integer(Number.NaN))
         return true
       frame.op_stack.push(new CONSTANT_integer(i1 + i2)) 
@@ -1346,8 +1345,9 @@ class this.OpCodes
       thread.resolveClass(class_ref, (cls) ->
         thread.getStatic(cls, field_name, (value) ->
           frame.op_stack.push(value)
-        );
-      , @)  
+        )
+        return false
+      , @)
       return false
     )
     @[179] = new OpCode('putstatic', 'Set static field in class', (frame) -> 
@@ -1360,7 +1360,8 @@ class this.OpCodes
       thread.resolveClass(class_ref, (cls) ->
         value = frame.op_stack.pop()
         thread.setStatic(cls, field_name, value)
-      , @)  
+        return false
+      , @)
       return false
 
     )
@@ -1426,8 +1427,10 @@ class this.OpCodes
                   thread.aquireLock(objectref); 
                 yes
              , @)
+             return false
            , @)
-        else  
+           return false
+        else
           newframe = thread.createFrame(method, method.belongsTo)
           thread.current_class = method.belongsTo
           arg_num = method.nargs
@@ -1501,13 +1504,13 @@ class this.OpCodes
       , @)
       return false
     )
-    @[185] = new OpCode('invokeinterface', '', (frame) -> 
+    @[185] = new OpCode('invokeinterface', '', (frame) ->
       thread.log(@mnemonic)
     yes )
-    @[186] = new OpCode('xxxunusedxxx', '', (frame) -> 
+    @[186] = new OpCode('xxxunusedxxx', '', (frame) ->
       thread.log(@mnemonic)
     yes )
-    @[187] = new OpCode('new', 'Create new Object', (frame) -> 
+    @[187] = new OpCode('new', 'Create new Object', (frame) ->
       index = @constructIndex(frame, thread)
       clsref = @fromCP(index, thread)
       # TODO check if interface, array or abstract and throw instantiationException
@@ -1516,19 +1519,19 @@ class this.OpCodes
         if cls.access_flags & JVM_RECOGNIZED_CLASS_MODIFIERS.JVM_ACC_INTERFACE or cls.access_flags & JVM_RECOGNIZED_CLASS_MODIFIERS.JVM_ACC_ABSTRACT
           athrow('InstantiationException')
           
-        thread.allocate(new JVM_Object(cls), (objectref) ->
+        thread.allocateNew(cls.real_name, (objectref) ->
           frame.op_stack.push(objectref)
         )
-        return false        
+        return false
       , @)
-      return false        
+      return false
       
     )
-    @[188] = new OpCode('newarray', 'Create a new array', (frame) -> 
+    @[188] = new OpCode('newarray', 'Create a new array', (frame) ->
       atype = @getIndexByte(1, frame, thread)
       count = frame.op_stack.pop()
       if count < 0
-        athrow 'NegativeArraySizeException'  
+        athrow 'NegativeArraySizeException'
       switch atype
         when 4 then t = 'Z'
         when 5 then t = 'C'

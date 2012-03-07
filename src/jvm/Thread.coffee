@@ -114,13 +114,19 @@ class this.Thread
       'id' : @id 
     })
 
+  allocateNew : (classname, @callback, @caller) ->
+    worker.postMessage({
+        'action' : 'allocateNew',
+        'classname' : classname,
+        'id' : '@id'
+    })
   executeNativeMethod : (clsname, methodname, args, @callback, @caller) ->
-    worker.postMessage({ 
-      'action' : 'executeNativeMethod', 
+    worker.postMessage({
+      'action' : 'executeNativeMethod',
       'classname' : clsname,
       'methodname' : methodname,
-      'args' : args 
-      'id' : @id 
+      'args' : args,
+      'id' : @id
     })
   ###
     Ask RDA to resolve a Method

@@ -9,7 +9,7 @@ class this.ClassLoader
     'java/lang/System'
     'javascript/io/JavaScriptPrintStream'
   ]
-  initNum : 0 
+  initNum : 0
   initcb : 0
   loaded_classes : {}
     

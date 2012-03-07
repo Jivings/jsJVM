@@ -3,7 +3,7 @@
   instantiated Objects and running or paused Threads.
 ###
 
-class this.RDA 
+class this.RDA
   constructor : ->
         
     # threads that are currently waiting on a lock
@@ -21,7 +21,7 @@ class this.RDA
       0 : null # null object on heap, for all null references
     }
     
-    @heap.allocate = (object) -> 
+    @heap.allocate = (object) ->
       if object instanceof JVM_Reference
         throw "Reference on heap?"
       ref = ++@id
@@ -32,11 +32,11 @@ class this.RDA
     
     # Define a thread foo clinit methods. These we want to take place synchronously
     @clinitThread = new Worker(Settings.workerpath+'/Thread.js')
-    @clinitThread['finished'] = true 
-    @clinitThread.waiting = new Array() 
+    @clinitThread['finished'] = true
+    @clinitThread.waiting = new Array()
     self = @
     @clinitThread.loaded = 0
-    @clinitThread.onmessage = (e) -> 
+    @clinitThread.onmessage = (e) ->
       self.message.call(self, e)
     @clinitThread.onerror = (e) ->
       console.log(e)
@@ -67,8 +67,8 @@ class this.RDA
       # when the class is initialised, run the main method if it has one
       if classname is @JVM.mainclassname
         method = @JVM.JVM_ResolveMethod(raw_class, 'main', '([Ljava/lang/String;)V')
-        @createThread classname, method 
-      if instantiatedCallback then instantiatedCallback() 
+        @createThread classname, method
+      if instantiatedCallback then instantiatedCallback()
          
     )
     # If a class needs to be initialised synchronously, a callback can be used here
@@ -77,13 +77,13 @@ class this.RDA
   ###
     Creates a new Thread instance to execute Java methods. Each Java Thread 
     is represented by a JavaScript worker
-  ###          
+  ###
   createThread : (mainClassName, method, locals, callback) ->
    
     id = @threads.length - 1
     t = new Worker(Settings.workerpath + '/Thread.js')
     self = @
-    t.onmessage = (e) -> 
+    t.onmessage = (e) ->
       self.message.call(self, e)
     t.onerror = (e) ->
       console.log(e)
@@ -91,14 +91,14 @@ class this.RDA
     @threads.push(t)
     if callback
       t.callback = callback
-    args = { 
+    args = {
       'action' : 'new'
       'resource' : {
         'class' : @method_area[mainClassName]
         'id' : id
         'entryMethod' : method
         'locals' : locals
-      }        
+      }
     }
     # start the thread
     t.postMessage(args)
@@ -196,8 +196,9 @@ class this.RDA
       'resolveField' : (data) ->
         # never used
       'resolveString' : (data) ->
+        worker = e.target
         @JVM.JVM_ResolveStringLiteral(data.string, (stringref) ->
-          e.target.postMessage({
+          worker.postMessage({
             'action' : 'resource',
             'resource' : stringref
           })
@@ -257,11 +258,22 @@ class this.RDA
           'action' : 'resource',
           'resource' : ref
         })
-        
+
+      'allocateNew' : (data) ->
+        classname = data.classname
+        @JVM.JVM_ResolveClass(classname, e.target, (cls) =>
+          obj = new JVM_Object(cls)
+          ref = @heap.allocate(obj)
+          e.target.postMessage({
+            'action' : 'resource',
+            'resource' : ref
+          })
+        )
+    
       'log' : (data) ->
         console.log('#'+data.id+' '+data.message)
         
-      'finished' : (data) ->  
+      'finished' : (data) ->
         console.log('Thread #' + data.id + ' finished')
         if e.target is @clinitThread
           @clinitThread.loaded++
@@ -278,7 +290,7 @@ class this.RDA
                 @JVM.load(@JVM.mainclassname)
               )
         else if e.target.callback
-          e.target.callback()                    
+          e.target.callback()
     }
     
     actions[e.data.action].call(@, e.data)

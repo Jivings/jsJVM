@@ -1,0 +1,103 @@
+<html>
+    <head>
+      <script src="http://code.jquery.com/jquery-latest.js"></script>
+      <script type="text/javascript" src="http://code.jquery.com/qunit/git/qunit.js"></script>
+      <script type="text/javascript" src="../lib/jvm.js"></script>
+      <link rel="stylesheet" href="http://code.jquery.com/qunit/git/qunit.css" type="text/css" media="screen" />
+  
+      <script>
+        $(document).ready(function(){
+          
+          
+          
+          module("Opcodes", {
+            
+            run : function(op) {
+              this.ops[op].do(this.frame);
+            },
+            setup : function() {
+              var thread, ops;
+              thread = {
+              };
+              this.ops = new OpCodes(thread); 
+              this.frame = {
+                op_stack : new Array()
+              };   
+            },
+            teardown: function() {
+            
+            }
+         });
+           
+          test("aconst_null", function() {
+            this.run(1);
+            equal(this.frame.op_stack.pop().pointer, 0, "Expecting null pointer on stack.");
+          });
+          /**
+           * Integer pushing
+           */
+          test("iconst_m1", function() {
+            this.run(2);
+            equal(this.frame.op_stack.pop().val, -1, "Expecting negative 1 on stack.");
+          });
+          test("iconst_0", function() {
+            this.run(3);
+            equal(this.frame.op_stack.pop().val, 0, "Expecting 0 on stack.");
+          });
+          test("iconst_1", function() {
+            this.run(4);
+            equal(this.frame.op_stack.pop().val, 1, "Expecting 1 on stack.");
+          });
+          test("iconst_2", function() {
+            this.run(5);
+            equal(this.frame.op_stack.pop().val, 2, "Expecting 2 on stack.");
+          });
+          test("iconst_3", function() {
+            this.run(6);
+            equal(this.frame.op_stack.pop().val, 3, "Expecting 3 on stack.");
+          });
+          test("iconst_4", function() {
+            this.run(7);
+            equal(this.frame.op_stack.pop().val, 4, "Expecting 4 on stack.");
+          });
+          test("iconst_5", function() {
+            this.run(8);
+            equal(this.frame.op_stack.pop().val, 5, "Expecting 5 on stack.");
+          });
+          /**
+           * Boring operations here....
+           */
+           
+           
+           
+          test("", function() {
+            this.run(0);
+            equal(this.frame.op_stack.pop().pointer, 1, "");
+          });
+          
+          
+          
+          
+          
+          test("", function() {
+            this.run(0);
+            equal(this.frame.op_stack.pop().pointer, 1, "");
+          });
+          
+          
+          
+
+
+        });
+      </script>
+  
+</head>
+  <body>
+    <h1 id="qunit-header">jsJVM Test Suite</h1>
+   <h2 id="qunit-banner"></h2>
+   <div id="qunit-testrunner-toolbar"></div>
+   <h2 id="qunit-userAgent"></h2>
+   <ol id="qunit-tests"></ol>
+   <div id="qunit-fixture">test markup, will be hidden</div>
+  </body>
+</html>

@@ -10,21 +10,27 @@ class this.JVM
     Initialise JVM options
   ###
   
-  constructor : (params, @mainclassname) ->
-    scopedJVM = this
-    @VERSION_ID = "0.10"
-    @JAVA_VERSION = "1.6.0_22"
-    
-    @stdin = params['stdin']
-    @stdout = params['stdout']
-    @stderr = params['stderr']
-    @verbosity = params['verbosity']
-    #@console = new Console(stdout, stderr, @verbosity)
-    if params.version 
+  constructor : (options) ->
+    @VERSION_ID = "0.1"
+    @JAVA_VERSION = "1.2"
+
+    @settings = {
+        stdin : 'stdin'
+        stdout : 'stdout'
+        sterr : 'stderr'
+        verbosity : 'warn'
+        classpath : ''
+        workerpath : 'workers'
+    }
+
+    for name of options
+        @settings[name] = options[name]
+
+    if params.version
       @stdout.write "JS-JVM version '#{@VERSION_ID}' \njava version #{@JAVA_VERSION}"
     else if params.help
       @stdout.write @helpText()
-    else    
+    else
       # Create Runtime Data Area
       @RDA = new RDA()
       @RDA.JVM = @

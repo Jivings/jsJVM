@@ -8,18 +8,20 @@ class this.JVM_Object
       # init class variable to null, this will get initialised later
       @clsObject = new JVM_Reference(0)
       
+      # TODO wont break when static class fields are changed by 
+      # a different thread/class/object?
       for field of @cls.fields
         fld = @cls.fields[field]
         @[field] = fld
       
-    monitor : { 
+    monitor : {
         aquireLock : (thread) ->
           if @owner is thread
             @count++
           else if @owner isnt null
             @waiting.push(thread)
             return false
-          else 
+          else
             @owner = thread
             @count++
           yes
@@ -28,8 +30,8 @@ class this.JVM_Object
           if @owner isnt thread
             return false
             
-          @owner = null
-          @count = 0
+          if --@count is 0
+              @owner = null
           for thread in @waiting
             @notify thread
           @waiting.length = 0
@@ -37,7 +39,6 @@ class this.JVM_Object
         
         notify : (thread) ->
           @RDA.lockAquired(thread)
-          
           
         owner : null
         count : 0

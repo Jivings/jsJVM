@@ -87,7 +87,7 @@ class this.Thread
     Execution will continue when the Thread is notified by the JVM that the 
     resource has been loaded. The paused opcode will by interpretted from its 
     original state before the resolution.
-  ### 
+  ###
  
   ###
     Ask RDA to resolve a Class.
@@ -95,14 +95,18 @@ class this.Thread
   resolveClass : (clsname, @callback, @caller) ->
     # already resolved?
     if typeof clsname is 'object'
+      cb = @callback
       @callback.call(@caller, clsname)
-      @callback = null
-      return 
-    while (typeof clsname is 'number') 
-      clsname = @current_class.constant_pool[clsname];
+      # the callback can make a new callback. We wouldn't want to set that one
+      # to null!
+      if @callback is cb
+        @callback = null
+      return
+    while (typeof clsname is 'number')
+      clsname = @current_class.constant_pool[clsname]
     
     worker.postMessage({ 
-      'action' : 'resolveClass', 
+      'action' : 'resolveClass',
       'name' : clsname, 
       'id' : @id 
     })

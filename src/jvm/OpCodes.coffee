@@ -508,14 +508,14 @@ class this.OpCodes
     )
     @[85] = new OpCode('castore', 'Store into char array', (frame) -> 
       value = frame.op_stack.pop()
-      arrayindex = frame.op_stack.pop()
+      arrayindex = frame.op_stack.pop().val
       arrayref = frame.op_stack.pop()
       
       if @isNull(arrayref)
         athrow('NullPointerException')
       thread.getObject(arrayref, (array) ->
         if arrayindex > array.length or arrayindex < 0
-          athrow('ArrayIndexOutOfBoundsException')
+          throw('ArrayIndexOutOfBoundsException' + arrayindex + ' ' + array.length)
         array[arrayindex] = value
         thread.updateObject(arrayref, array)
       , @)
@@ -529,7 +529,7 @@ class this.OpCodes
         athrow('NullPointerException')
       thread.getObject(arrayref, (array) ->
         if arrayindex > array.length or arrayindex < 0
-          athrow('ArrayIndexOutOfBoundsException')
+          throw('ArrayIndexOutOfBoundsException' + arrayindex + ' ' + array.length)
         array[arrayindex] = value
         thread.updateObject(arrayref, array)
       , @)
@@ -1521,7 +1521,7 @@ class this.OpCodes
           
         thread.allocateNew(cls.real_name, (objectref) ->
           frame.op_stack.push(objectref)
-        )
+        , @)
         return false
       , @)
       return false
@@ -1541,7 +1541,16 @@ class this.OpCodes
         when 9 then t = 'S'
         when 10 then t = 'I'
         when 11 then t = 'J'
-      thread.allocate(new CONSTANT_Array(count, t), (arrayref) ->
+      if typeof count isnt 'number'
+        count = count.val
+      arr = new Array(count)
+      
+      while count-- > 0
+          arr[count] = 0
+      
+      arr.type = t
+      thread.log("new array with size"+count)
+      thread.allocate(arr, (arrayref) ->
         frame.op_stack.push(arrayref)
       )
       return false
@@ -1554,7 +1563,12 @@ class this.OpCodes
         athrow('NegativeArraySizeException')
         
       thread.resolveClass(classname, (cls) ->
-        arr = new CONSTANT_Array(count, 'L' + cls.real_name)
+        if typeof count isnt 'number'
+            count = count.val
+        arr = new Array()
+        arr.count = count
+
+        arr.type = 'L' + cls.real_name
         # init array to nulls
         while count-- > 0
           arr[count] = new JVM_Reference(0) # reference to null

@@ -6,21 +6,25 @@ import java.io.OutputStream;
 public class JavaScriptPrintStream {
 
 	private final String id;
-	private final String NEWLINE = "<br />";	
+	private final String NEWLINE = "<br />";
 
 	public JavaScriptPrintStream(String id) {
 		this.id = id;
 	}
 
-	public void write(String s) {
-		this.write0(s, this.id);
+	public void write(Object o) {
+			this.writeString((String)o, this.id);
 	}
 
 	public void println(String s) {
 		this.write(s);
 	}
 
-	private native void write0(String b, String id);
+	public void println(int i) {
+		this.write(Integer.toString(i));
+	}
 
+	private native void writeString(String s, String id);
+	private native void writeObject(Object o, String id);
 }
 

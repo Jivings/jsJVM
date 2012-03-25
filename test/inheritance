@@ -1,0 +1,21 @@
+public class HelloWorld {
+ 
+        public static void main(String... args) {
+          Bar b = new Bar();
+          System.out.println(b.getFoo());
+        }
+  
+  private static class Foo {
+    protected String foo = "No";
+    public Foo() {
+      this.foo = "Yes";
+    }
+  }
+  
+  private static class Bar extends Foo {
+    public String getFoo() {
+      return foo;
+    }
+  }
+ 
+}

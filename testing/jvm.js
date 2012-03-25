@@ -3528,8 +3528,9 @@
     return InternalJNI;
   })();
   this.Settings = {
-    classpath: 'compiler/',
-    workerpath: 'jvm/workers'
+    classpath: 'classes',
+    path : '',
+    workerpath: 'workers'
   };
   this.required_classes_length = 5;
   this.ClassLoader = (function() {

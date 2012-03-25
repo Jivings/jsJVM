@@ -1,6 +1,6 @@
 ###
-The core of the Java Virtual Machine
-Defined in Global Scope.
+    The core of the Java Virtual Machine
+    Defined in Global Scope.
 ###
 
 scopedJVM = 0
@@ -10,26 +10,33 @@ class this.JVM
     Initialise JVM options
   ###
   
-  constructor : (options) ->
+  constructor : (options, params, @callback) ->
     @VERSION_ID = "0.1"
     @JAVA_VERSION = "1.2"
-
+    scopedJVM = @
     @settings = {
         stdin : 'stdin'
         stdout : 'stdout'
         sterr : 'stderr'
         verbosity : 'warn'
         classpath : ''
+        path : ''
         workerpath : 'workers'
     }
 
     for name of options
         @settings[name] = options[name]
-
-    if params.version
-      @stdout.write "JS-JVM version '#{@VERSION_ID}' \njava version #{@JAVA_VERSION}"
-    else if params.help
-      @stdout.write @helpText()
+    
+    Settings.classpath = @settings.classpath
+    Settings.path = @settings.path
+    Settings.workerpath = @settings.workerpath
+    @JVM_InternedStrings = {}
+    if !(@mainclassname = @settings.classname) then throw 'ClassNotFound'
+    
+    if params and params.version
+        @stdout.write "JS-JVM version '#{@VERSION_ID}' \njava version #{@JAVA_VERSION}"
+    else if params and params.help
+        @stdout.write @helpText()
     else
       # Create Runtime Data Area
       @RDA = new RDA()
@@ -41,7 +48,7 @@ class this.JVM
         ,
         () =>
           @InitializeSystem(() =>
-            @load(@mainclassname, false, @end)
+            @load(@mainclassname, false, null, @end)
           )
       )).init()
       #@InitializeSystemClass()
@@ -57,9 +64,7 @@ class this.JVM
   When the RDA requests a class to be loaded, a callback method will be provided. 
   This is so that opcode execution can continue after the class is loaded.
   ###
-  load : (classname, threadsWaiting, finishedLoading) =>
-    if !finishedLoading
-      throw 'bugfixexception' #TODO remove
+  load : (classname, threadsWaiting, finishedLoading, finished) =>
     if @classLoader? 
       if classname? && classname.length > 0
         
@@ -67,10 +72,10 @@ class this.JVM
         @RDA.addClass(classname, cls, () =>
           if threadsWaiting
             @RDA.notifyAll(classname, cls)
-            
-          finishedLoading(cls)
-        )
-      else 
+          if finishedLoading
+            finishedLoading(cls)
+        , finished )
+      else
         @stdout.write @helpText()
     this
     
@@ -91,8 +96,8 @@ class this.JVM
   ###
  
   end : () ->
-    if @callback?
-      @callback() 
+    if scopedJVM.callback?
+      scopedJVM.callback()
 
   ###
   Retrieves messages from Workers and performs relevent actions.

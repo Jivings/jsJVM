@@ -1,7 +1,7 @@
          
   
          
-  JVM::JVM_InternedStrings = {}
+  #JVM::JVM_InternedStrings = {}
   ### 
   Additional JVM functions exported from the main VM.
   Add support for native methods interacting with the VM.

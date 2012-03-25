@@ -46,9 +46,9 @@ class this.ClassLoader
     req.open 'GET', Settings.classpath + "/" + name + ".js", false
     req.send null
     if req.status is 200
-      try 
+      try
         eval("_native = (" + req.responseText + ")")
-      catch err 
+      catch err
         console.log("#{name}")
         throw err
       _native = new _native()
@@ -66,14 +66,14 @@ class this.ClassLoader
       return @loaded_classes[class_name]
     # java/lang/Object super class will be undefined
     if typeof class_name is 'undefined'
-      return 
+      return
     req = new XMLHttpRequest()
     req.open 'GET', "#{Settings.classpath}/rt/#{class_name}.class", false
     # The following line says we want to receive data as Binary and not as Unicode
     req.overrideMimeType 'text/plain; charset=x-user-defined'
     req.send null
     if req.status isnt 200
-      req.open 'GET', "#{Settings.classpath}/#{class_name}.class", false
+      req.open 'GET', "#{Settings.path}/#{class_name}.class", false
       req.overrideMimeType 'text/plain; charset=x-user-defined'
       req.send null
       if req.status isnt 200

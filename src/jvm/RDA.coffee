@@ -52,7 +52,7 @@ class this.RDA
     If the Class is the entry point to the application, the main method will be
     resolved and executed.
   ###
-  addClass : (classname, raw_class, instantiatedCallback) ->
+  addClass : (classname, raw_class, instantiatedCallback, threadFinishedCallback) ->
     # create class object
     
     # final resolution step, resolve superclass reference
@@ -67,7 +67,7 @@ class this.RDA
       # when the class is initialised, run the main method if it has one
       if classname is @JVM.mainclassname
         method = @JVM.JVM_ResolveMethod(raw_class, 'main', '([Ljava/lang/String;)V')
-        @createThread classname, method
+        @createThread classname, method, null, threadFinishedCallback
       if instantiatedCallback then instantiatedCallback()
          
     )

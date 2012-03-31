@@ -7,10 +7,11 @@
       <link rel="stylesheet" href="style.css" type="text/css" media="screen" />
 
     <title>JVM Performance Tests</title>
-      <script>
+    <script>
+        var jvm;
         $(document).ready(function(){
           
-          var jvm, options, moduleOptions;
+          var options, moduleOptions;
 
           options = {
               path : 'classes',
@@ -23,7 +24,7 @@
                   $('#terminal').empty();
               },
               teardown : function() {
-                  jvm = null;
+        //      #    jvm = null;
               }
           };
 
@@ -47,6 +48,17 @@
                  start();
              });
          });
+
+         asyncTest("Inheritance", function() {
+             options['classname'] = "Inheritence";
+             jvm = new JVM(options, null, function() {
+                 equal($('#terminal').text(), "Subclass Text", "Output: " +
+                 $('#terminal').text());
+                 start();
+             });
+         });
+
+
 
 
          var startTimes = {};

@@ -30,7 +30,8 @@
         verbosity: 'warn',
         classpath: '',
         path: '',
-        workerpath: 'workers'
+        workerpath: 'workers',
+        debug: false
       };
       for (name in options) {
         this.settings[name] = options[name];
@@ -39,14 +40,18 @@
       Settings.path = this.settings.path;
       Settings.workerpath = this.settings.workerpath;
       this.JVM_InternedStrings = {};
-      if (!(this.mainclassname = this.settings.classname)) {
-        throw 'ClassNotFound';
-      }
       if (params && params.version) {
         this.stdout.write("JS-JVM version '" + this.VERSION_ID + "' \njava version " + this.JAVA_VERSION);
       } else if (params && params.help) {
         this.stdout.write(this.helpText());
+      } else if (this.settings['debug']) {
+        this.RDA = new RDA();
+        this.RDA.JVM = this;
+        this.classLoader = new ClassLoader();
       } else {
+        if (!(this.mainclassname = this.settings.classname)) {
+          throw 'ClassNotFound';
+        }
         this.RDA = new RDA();
         this.RDA.JVM = this;
         (this.classLoader = new ClassLoader(__bind(function(cls, c) {
@@ -3528,9 +3533,8 @@
     return InternalJNI;
   })();
   this.Settings = {
-    classpath: 'classes',
-    path : '',
-    workerpath: 'workers'
+    classpath: 'compiler/',
+    workerpath: 'jvm/workers'
   };
   this.required_classes_length = 5;
   this.ClassLoader = (function() {

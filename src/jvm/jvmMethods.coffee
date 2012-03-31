@@ -149,7 +149,7 @@
     cls.fields[fieldname] = stream
 
   JVM::GetObjectField = (objectReference, fieldname) ->
-    obj = @RDA.heap[objectReference.pointer]
+    obj = @JVM_FromHeap(objectReference)
     field = obj[fieldname]
     return field
   # java.lang.Runtime
@@ -390,8 +390,10 @@
           #        charArray = @RDA.heap.allocate(charArray)
         @JVM_NewObject(cls, method, [], (stringobj) =>
           # manually edit some important fields
-          @RDA.heap[stringobj.pointer].count = new CONSTANT_integer(literal.length)
-          @RDA.heap[@RDA.heap[stringobj.pointer].value.pointer] = charArray
+          @JVM_FromHeap(stringobj).count = new CONSTANT_integer(literal.length)
+          @RDA.heap.update(@JVM_FromHeap(stringobj).value, charArray)
+          # never GC interned strings
+          @JVM_FromHeap(stringobj).colour = 3
           
           #@RDA.heap[stringobj.pointer].value = charArray
           console.log('Done interning')
@@ -596,7 +598,7 @@
   JVM::JVM_GetDeclaringClass = (env, ofClass) ->
     throw 'NotYetImplementedException'
   JVM::JVM_FromHeap = (reference) ->
-    return @RDA.heap[reference.pointer]
+    return @RDA.heap.get(reference)
       
   #class this.JVM_ClassLoader
   #JVM::JVM_ClassLoader = new JVM_ClassLoader()

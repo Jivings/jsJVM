@@ -25,11 +25,34 @@ class this.RDA
       if object instanceof JVM_Reference
         throw "Reference on heap?"
       ref = ++@id
-      this[ref] = object
+      object.colour = 0
+      @younggen[ref] = object
       return new JVM_Reference(ref)
-    
+
+    @heap.get = (ref) ->
+      try
+        pointer = ref.pointer
+        if (object = @younggen[pointer]) or (object = @oldgen[pointer]) or (object = @permgen[pointer])
+          return object
+        else
+            throw "Object not found"
+      catch e
+          error = "Failed to retrieve Object from Heap" + e ? ": " + e : ""
+          throw error
+    @heap.update = (ref, newobject) ->
+        pointer = ref.pointer
+        if @younggen[pointer]
+            @younggen[pointer] = newobject
+        else if @oldgen[pointer]
+            @oldgen[pointer] = newobject
+        else if @permgen[pointer]
+            @permgen[pointer] = newobject
+        else
+            throw "Object not found"
+
     @threads = new Array()
-    
+    @GC = new GC(@method_area, @heap, @threads)
+
     # Define a thread foo clinit methods. These we want to take place synchronously
     @clinitThread = new Worker(Settings.workerpath+'/Thread.js')
     @clinitThread['finished'] = true
@@ -205,14 +228,14 @@ class this.RDA
         )
       
       'getObject' : (data) ->
-        object = @heap[data.reference.pointer]
+        object = @heap.get(data.reference)
         e.target.postMessage({
           'action' : 'resource',
           'resource' : object
         })
         
       'updateObject' : (data) -> 
-        @heap[data.reference.pointer] = data.object
+        @heap.update(data.reference, data.object)
         e.target.postMessage({
           'action' : 'notify'
         })
@@ -229,14 +252,14 @@ class this.RDA
           'action' : 'notify'
         })
       'setObjectField' : (data) ->
-        obj = @heap[data.reference.pointer]
+        obj = @heap.get(data.reference)
         obj[data.fieldname] = data.value
         e.target.postMessage({
           'action' : 'notify'
         })
         
       'getObjectField' : (data) ->
-        obj = @heap[data.reference.pointer]
+        obj = @heap.get(data.reference)
         value = obj[data.fieldname]
         e.target.postMessage({
           'action' : 'resource',
@@ -244,12 +267,12 @@ class this.RDA
         })
         
       'aquireLock' : (data) ->
-        if(@heap[data.reference.pointer].monitor.aquireLock(e.target))
+        if(@heap.get(data.reference).monitor.aquireLock(e.target))
           e.target.postMessage({
             'action' : 'notify'
           })
       'releaseLock' : (data) ->
-        @heap[data.reference.pointer].monitor.releaseLock(e.target)
+        @heap.get(data.reference).monitor.releaseLock(e.target)
         
       
       'allocate' : (data) ->
@@ -270,6 +293,9 @@ class this.RDA
           })
         )
     
+      'GCreport' : (data) ->
+        @GC.add(data.objectrefs)
+
       'log' : (data) ->
         console.log('#'+data.id+' '+data.message)
         

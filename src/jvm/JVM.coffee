@@ -22,6 +22,7 @@ class this.JVM
         classpath : ''
         path : ''
         workerpath : 'workers'
+        debug : false
     }
 
     for name of options
@@ -31,13 +32,21 @@ class this.JVM
     Settings.path = @settings.path
     Settings.workerpath = @settings.workerpath
     @JVM_InternedStrings = {}
-    if !(@mainclassname = @settings.classname) then throw 'ClassNotFound'
     
     if params and params.version
         @stdout.write "JS-JVM version '#{@VERSION_ID}' \njava version #{@JAVA_VERSION}"
     else if params and params.help
         @stdout.write @helpText()
+        
+    else if @settings['debug']
+        # if we're in debug mode, don't load a default class
+        # the JVM allows this to be done manually.
+        @RDA = new RDA()
+        @RDA.JVM = @
+        @classLoader = new ClassLoader()
     else
+        
+      if !(@mainclassname = @settings.classname) then throw 'ClassNotFound'
       # Create Runtime Data Area
       @RDA = new RDA()
       @RDA.JVM = @

@@ -7,7 +7,10 @@ worker.onmessage = (e)->
       if data.locals
         theThread.current_frame.locals = data.locals
       theThread.start()
-        
+    
+    'GCreport' : () ->
+        theThread.reportObjects()
+
     'notify' : () ->
       if @callback
         # resource requests can be nested, so we only want to continue opcode
@@ -61,7 +64,25 @@ class this.Thread
   
   createFrame : (method, cls) ->
     @methodFactory.createFrame(method, cls)
-    
+  
+  reportObjects : () ->
+    objs = new Array()
+    for index of @jvm_stack
+        frame = @jvm_stack[index]
+        for index of frame.op_stack
+            item = frame.op_stack[index]
+            if item.pointer
+                objs.push(item)
+        for index of frame.locals
+            item = frame.locals[index]
+            if item.pointer
+                objs.push(item)
+
+    worker.postMessage({
+        'action' : 'GCreport'
+        'objectrefs' : objs
+    })
+
   start : (destroy) ->
     @pc = @current_frame.pc
     
@@ -80,7 +101,7 @@ class this.Thread
     # terminate this worker
     @finished()
  
-
+  
   ###
     The following methods request the JVM load specific resources.
     During reolution this Thread will be paused on the invoking opcode.

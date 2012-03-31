@@ -1,0 +1,190 @@
+<html>
+    <head>
+      <script src="http://code.jquery.com/jquery-latest.js"></script>
+      <script type="text/javascript" src="http://code.jquery.com/qunit/git/qunit.js"></script>
+      <script type="text/javascript" src="../jre/jvm.js"></script>
+      <script type="text/javascript" src="../jre/workers/Thread.js"></script>
+      <script type="text/javascript" src="Object.js"></script>
+      <link rel="stylesheet" href="http://code.jquery.com/qunit/git/qunit.css" type="text/css" media="screen" />
+      <link rel="stylesheet" href="style.css" type="text/css" media="screen" />
+  
+      <script>
+          var jvm;
+          window.postMessage = function(args) {
+             if (args.message) {
+                 console.log(args.message);
+             }
+             else {
+                 var e = {
+                     'data' : args,
+                     'target' : { 
+                         'callback' : function() {},
+                         'postMessage' : function(e) {
+                             var data = { 'data' : e };
+                             jvm.RDA.threads[0].onmessage(data);
+                         }
+                     }
+                 };
+                 jvm.RDA.message(e);
+             }
+          };
+        $(document).ready(function(){
+            jvm = new JVM({
+                debug : true,
+                classpath : '../jre',
+                path : 'classes',
+                workerpath : '../jre/workers'
+            });
+          
+              
+              
+        var i = 0;
+
+          module("Opcodes", {
+            
+            setup : function() {
+              this.frame = 0;
+              (function() {
+                  this.threads[0] = (new Thread(testObj,
+                  testObj.methods['<init>()V'], 0));
+              }).call(jvm.RDA);
+                            
+              this.frame = {
+                op_stack : new Array()
+              };   
+              this.run = function(arr) {
+                  arr.push(177);
+                  this.frame = jvm.RDA.threads[0].current_frame;
+                  jvm.RDA.threads[0].current_frame.method_stack = arr;
+                  jvm.RDA.threads[0].start();
+              };
+              this.last = function() {
+                  return this.frame.op_stack.pop();
+              };
+
+              
+            },
+            teardown: function() {
+            
+            }
+         });
+
+         var opcodeTests = {
+             "nop" : function() {
+                 this.run([ 0 ]);
+                 ok(true, "Does nothing");
+             },
+          
+            "aconst_null" : function() {
+              this.run([ 1 ]);              
+              equal(this.last().pointer, 0, "Expecting null pointer on stack.");
+            },
+            "iconst_m1" : function() {
+                this.run([ 2 ]);
+                equal(this.last().val, -1, "Expecting negative 1 on stack.");
+            },
+            "iconst_0" : function() {
+                this.run([ 3 ]);
+                equal(this.last().val, 0, "Expecting 0 on stack.");
+            },
+            "iconst_1" : function() {
+                this.run([ 4 ]);
+                equal(this.last().val, 1, "Expecting 1 on stack.");
+            },
+            "iconst_2" : function() {
+              this.run([5]);
+              equal(this.last().val, 2, "Expecting 2 on stack.");
+            },
+            "iconst_3" : function() {
+                this.run([ 6 ]);
+                equal(this.last().val, 3, "Expecting 3 on stack.");
+            },
+            "iconst_4" : function() {
+                this.run([ 7 ]);
+                equal(this.last().val, 4, "Expecting 4 on stack.");
+            },
+            "iconst_5" : function() {
+                this.run( [ 8 ]);
+                equal(this.last().val, 5, "Expecting 5 on stack.");
+            },
+            "lconst_0" : function() {
+                 this.run( [9] );
+                 equal(this.last().val+this.last().val, 0, "Expecting long 0 on stack");
+            },
+            "lconst_1" : function() {
+              this.run([ 10 ]);
+              equal(this.last().val+this.last().val, 2, "Expecting long 1 on stack");
+            },
+            "fconst_0" : function() {
+              this.run([ 11 ]);
+              equal(this.last().val, 0, "Expecting float 0 on stack");
+            },
+            "fconst_1" : function() {
+              this.run([ 12 ]);
+              equal(this.last().val, 1, "Expecting float 1 on stack");
+            },
+            "fconst_2" : function() {
+              this.run([ 13 ]);
+              equal(this.last().val, 2, "Expecting float 2 on stack");
+            },
+            "dconst_0" : function() {
+              this.run([ 14 ]);
+              equal(this.last().val+this.last().val, 0, "Expecting double 0 on stack");
+            },
+            "dconst_1" : function() {
+              this.run([ 15 ]);
+              equal(this.last().val+this.last().val, 2, "Expecting double 0 on stack");
+            },
+            "bipush" : function() {
+                this.run([ 16, 10 ]);
+                equal(this.last().val, 10, "Expecting 8 bit signed int 10 on stack");
+            },
+            "sipush" : function() {
+                this.run([ 17 , 12, 255]);
+                equal(this.last().val, 3327, "Expecting 8 bit signed int 10 on stack");
+            },
+            "ldc" : function() {
+                this.run([ 18, 2]);
+                // push integer from constant pool
+                equal(this.last().val, 5, "Expecting CP entry to be pushed to the stack");
+            },          
+            "ldc_w" : function() {
+              this.run([ 19 ]);
+              
+            },   
+            "ldc2_w" : function() {
+              this.run([ 20 ]);
+            },   
+            "iload" : function() {
+              this.run([ 21 ]);
+              
+            }
+            
+            
+         };
+
+
+         
+         for(op in opcodeTests) {
+            
+            test(op, opcodeTests[op]);
+            
+            
+         };
+          
+        });
+      </script>
+  
+</head>
+  <body>
+    <h1 id="qunit-header">jsJVM Test Suite</h1>
+    <h2 id="qunit-banner"></h2>
+    <div id="description">Tests to determine the speed and accuracy of the
+        jsJVM OpCodes.
+        Testing...</div>
+   <div id="qunit-testrunner-toolbar"></div>
+   <h2 id="qunit-userAgent"></h2>
+   <ol id="qunit-tests"></ol>
+   <div id="qunit-fixture">test markup, will be hidden</div>
+  </body>
+</html>

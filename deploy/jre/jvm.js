@@ -1213,7 +1213,7 @@
             try {
               this.heap.younggen[ref.pointer].colour = this.grey;
             } catch (e) {
-              console.error(e + " : " + ref.pointer);
+              console.log("Missing object bug");
             }
           }
         }

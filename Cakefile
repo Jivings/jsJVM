@@ -81,7 +81,7 @@ task 'zip', 'Zip that stuff', ->
   # zip that awesome shit up
   exec "tar -cf builds/jvm-latest.tar deploy", (err, stdout, stderr) ->
       if err then util.log err
-      exec "bzip2 builds/jvm-latest.tar", (err, stdout, stderr) ->
+      exec "bzip2 -f builds/jvm-latest.tar", (err, stdout, stderr) ->
         if err then util.log err
         exec "cp builds/jvm-latest.tar.bz2 builds/jvm-#{day}-#{month}-#{year}.tar.bz2", (err, stdout, stderr) ->
           if err then util.log err

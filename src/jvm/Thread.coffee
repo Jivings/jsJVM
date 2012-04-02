@@ -1,3 +1,7 @@
+###
+# Worker details. Including callbacks and message passing operations.
+###
+
 worker = this
 theThread = null
 worker.onmessage = (e)->
@@ -34,11 +38,13 @@ worker.onmessage = (e)->
   actions[e.data.action].call(theThread, e.data.resource)
 
 # Worker imports:
-importScripts('../jvm.js')  
+importScripts('../jvm.js')
   
   
-
-class this.Thread 
+###
+# Thread instance. Controls program flow, method invocation and return.
+###
+class this.Thread
   constructor : (_class, startMethod, @id) ->
 
     @opcodes = new OpCodes(@)
@@ -88,9 +94,11 @@ class this.Thread
     
     while @current_frame?
       
-      if @current_frame.execute(@opcodes, @)  
+      if @current_frame.execute(@opcodes, @)
+        if @current_frame
+          @log(@current_frame.locals)
         continue
-      else  
+      else
         return false
       #if(!@current_frame.execute(@opcodes))
       #  @current_frame.pc++
@@ -304,11 +312,16 @@ class this.Thread
       'fieldname' : fieldname
     })
   
-  finished : () ->
+  finished : (err) ->
+    if err then result = 0
+    else result = 1
+    
     worker.postMessage({
       'action' : 'finished',
-      'id' : @id
-    })  
+      'id' : @id,
+      'result' : result,
+      'message' : err
+    })
   ###
   Called when waiting threads are notified by the RDA. Will continue opcode 
   loop

@@ -1,7 +1,3 @@
-         
-  
-         
-  #JVM::JVM_InternedStrings = {}
   ### 
   Additional JVM functions exported from the main VM.
   Add support for native methods interacting with the VM.
@@ -128,8 +124,8 @@
   JVM::JVM_ArrayCopy = (env, srcObj, srcPos, dstObj, destPos, length) ->
      src = env.JVM_FromHeap(srcObj)
      arr = src.slice(srcPos.val, srcPos.val + length.val)
-     dest = env.JVM_FromHeap(destObj)
-     destPos = dstPos.val
+     dest = env.JVM_FromHeap(dstObj)
+     destPos = destPos.val
      for index, ch of arr
         dest[new Number(index)+destPos] = ch
      yes
@@ -599,7 +595,11 @@
     throw 'NotYetImplementedException'
   JVM::JVM_FromHeap = (reference) ->
     return @RDA.heap.get(reference)
-      
+  
+  JVM::JVM_DoPrivileged = (cls, action, something, bool) ->
+    # don't really know what this does
+    yes
+
   #class this.JVM_ClassLoader
   #JVM::JVM_ClassLoader = new JVM_ClassLoader()
 

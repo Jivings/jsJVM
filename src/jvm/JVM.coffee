@@ -4,6 +4,8 @@
 ###
 
 scopedJVM = 0
+this.onerror = (e) ->
+    scopedJVM.end(e)
 
 class this.JVM
   ###
@@ -74,7 +76,7 @@ class this.JVM
   This is so that opcode execution can continue after the class is loaded.
   ###
   load : (classname, threadsWaiting, finishedLoading, finished) =>
-    if @classLoader? 
+    if @classLoader?
       if classname? && classname.length > 0
         
         cls = @classLoader.find(classname)
@@ -104,9 +106,9 @@ class this.JVM
       @RDA.notifyAll(classname)
   ###
  
-  end : () ->
+  end : (e) ->
     if scopedJVM.callback?
-      scopedJVM.callback()
+      scopedJVM.callback(e)
 
   ###
   Retrieves messages from Workers and performs relevent actions.
@@ -122,7 +124,7 @@ class this.JVM
         # notify any threads waiting on this class
         if(e.data.waitingThreads) 
           scopedJVM.RDA.notifyAll(e.data.classname)
-      else 
+      else
         alert e.data
 
 

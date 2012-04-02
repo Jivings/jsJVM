@@ -21,10 +21,11 @@ public class JavaScriptPrintStream {
 	}
 
 	public void println(int i) {
-		this.write(Integer.toString(i));
+		this.writeInt(i, this.id);
 	}
 
 	private native void writeString(String s, String id);
 	private native void writeObject(Object o, String id);
+    private native void writeInt(int i, String id);
 }
 

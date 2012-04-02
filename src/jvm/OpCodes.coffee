@@ -1,3 +1,7 @@
+###
+# All JVM OpCodes. Opcodes are accessed by their integer. 
+# Recurring operations are declared in the OpCode object.
+###
 class this.OpCodes
       
   constructor : (thread) ->    
@@ -53,8 +57,10 @@ class this.OpCodes
       frame.op_stack.push(new CONSTANT_double(1.0))
       frame.op_stack.push(new CONSTANT_double(1.0))
     )
-    @[16] = new OpCode('bipush', 'Push 8 bit signed integer', (frame) -> 
-      frame.op_stack.push(new CONSTANT_integer(@getIndexByte(1, frame, thread), false))
+    @[16] = new OpCode('bipush', 'Push 8 bit signed integer', (frame) ->
+      val = @getIndexByte(1, frame, thread)
+      thread.log(val)
+      frame.op_stack.push(new CONSTANT_integer(val, false))
     )
     @[17] = new OpCode('sipush', 'Push short', (frame) -> 
       byte1 = @getIndexByte(1, frame, thread)
@@ -101,8 +107,11 @@ class this.OpCodes
       frame.op_stack.push(item)
       frame.op_stack.push(item)
     )
-    @[21] = new OpCode('iload', 'Load int from local variable', (frame) -> 
-      frame.op_stack.push(frame.locals[@getIndexByte(1, frame, thread)])  
+    @[21] = new OpCode('iload', 'Load int from local variable', (frame) ->
+        local = @getIndexByte(1, frame, thread)
+        thread.log(local)
+        thread.log(frame.locals[local].val)
+        frame.op_stack.push(frame.locals[local])
     )
     @[22] = new OpCode('lload', 'Load long from local variable', (frame) ->
       frame.op_stack.push(frame.locals[@getIndexByte(1, frame, thread)])
@@ -120,7 +129,8 @@ class this.OpCodes
     @[26] = new OpCode('iload_0', 'Load int from local variable 0', (frame) -> 
       frame.op_stack.push(frame.locals[0])
     )
-    @[27] = new OpCode('iload_1', 'Load int from local variable 1', (frame) -> 
+    @[27] = new OpCode('iload_1', 'Load int from local variable 1', (frame) ->
+      thread.log(frame.locals[1])
       frame.op_stack.push(frame.locals[1])
     )
     @[28] = new OpCode('iload_2', 'Load int from local variable 2', (frame) -> 
@@ -645,7 +655,7 @@ class this.OpCodes
       frame.op_stack.push(new CONSTANT_double(result))
     )
     @[100] = new OpCode('isub', 'Subtract int', (frame) -> 
-      i2 = frame.op_stack.pop().val  
+      i2 = frame.op_stack.pop().val
       i1 = frame.op_stack.pop().val
       result = i1 - i2
       frame.op_stack.push(new CONSTANT_integer(result))
@@ -716,7 +726,7 @@ class this.OpCodes
         frame.op_stack.push(new CONSTANT_integer(Integer.NaN))
       if value2 is 0
         athrow('ArithmeticException')
-      result = value1 / value2
+      result = (value1 / value2) | 0
       frame.op_stack.push(new CONSTANT_integer(result))
     )
     @[109] = new OpCode('ldiv', 'Divide long', (frame) -> 
@@ -909,6 +919,8 @@ class this.OpCodes
       index = @getIndexByte(1, frame, thread)
       unsigned = @getIndexByte(1, frame, thread)
       consta = new CONSTANT_byte(unsigned, true)
+      thread.log(index)
+      thread.log(consta)
       variable = frame.locals[index]
       variable.val = variable.val + consta.value
       frame.locals[index] = variable
@@ -1190,7 +1202,7 @@ class this.OpCodes
       frame.pc = frame.locals[index]
     )
     @[170] = new OpCode('tableswitch', '', (frame) -> 
-      thread.log(@mnemonic)
+      thread.finished("tableswitch not implemented")
     yes )
     @[171] = new OpCode('lookupswitch', '', (frame) -> 
       thread.log(@mnemonic)
@@ -1344,7 +1356,8 @@ class this.OpCodes
       
       thread.resolveClass(class_ref, (cls) ->
         thread.getStatic(cls, field_name, (value) ->
-          frame.op_stack.push(value)
+            thread.log(value)
+            frame.op_stack.push(value)
         )
         return false
       , @)
@@ -1486,7 +1499,7 @@ class this.OpCodes
       classname = @fromCP(methodref.class_index, thread)
          
       method_name_and_type = @fromCP(methodref.name_and_type_index, thread)
-      method_name = @fromCP(method_name_and_type.name_index, thread)   
+      method_name = @fromCP(method_name_and_type.name_index, thread)
       descriptor = @fromCP(method_name_and_type.descriptor_index, thread)
 
       thread.resolveMethod(method_name, classname, descriptor, (method) ->
@@ -1504,8 +1517,30 @@ class this.OpCodes
       , @)
       return false
     )
-    @[185] = new OpCode('invokeinterface', '', (frame) ->
-      thread.log(@mnemonic)
+    @[185] = new OpCode('invokeinterface', 'Invoke interface method', (frame) ->
+        
+        methodref = @fromCP(@constructIndex(frame, thread), thread)
+        classname = @fromCP(methodref.class_index, thread)
+
+        method_name_and_type = @fromCP(methodref.name_and_type_index, thread)
+        method_name = @fromCP(method_name_and_type.name_index, thread)
+        descriptor = @fromCP(method_name_and_type.descriptor_index, thread)
+
+        nargs = @getIndexByte(1, frame, thread)
+        args = []
+        while nargs > 1
+            args[--nargs] = frame.op_stack.pop()
+        objectref = frame.op_stack.pop()
+        
+        thread.getObject(objectref, (obj) ->
+            thread.resolveMethod(method_name, obj.cls.real_name, descriptor, (method) ->
+                newframe = thread.createFrame(method, method.belongsTo)
+                thread.current_class = method.belongsTo
+                newframe.locals = args
+                newframe.locals[0] = objectref
+            , @)
+        , @)
+        
     yes )
     @[186] = new OpCode('xxxunusedxxx', '', (frame) ->
       thread.log(@mnemonic)
@@ -1544,12 +1579,12 @@ class this.OpCodes
       if typeof count isnt 'number'
         count = count.val
       arr = new Array(count)
-      
+     
+      thread.log("new array with size "+count)
       while count-- > 0
           arr[count] = 0
       
       arr.type = t
-      thread.log("new array with size"+count)
       thread.allocate(arr, (arrayref) ->
         frame.op_stack.push(arrayref)
       )
@@ -1584,7 +1619,9 @@ class this.OpCodes
       if @isNull(arrayref)
         athrow ('NullPointerException')
       thread.getObject(arrayref, (array) ->
-        frame.op_stack.push(array.length)
+        thread.log(array)
+        thread.log(array.length)
+        frame.op_stack.push(new CONSTANT_integer(array.length))
       , @)
       return false    
     )
@@ -1655,10 +1692,10 @@ class this.OpCodes
       return false 
     )
     @[196] = new OpCode('wide', '', (frame) -> 
-      alert(@mnemonic)#  not yet implemented
+      thread.log(@mnemonic)#  not yet implemented
     yes )
     @[197] = new OpCode('multianewarray', '', (frame) -> 
-      alert(@mnemonic)# not yet implemented
+      thread.finished(@mnemonic + ' not implemented')# not yet implemented
     yes )
     @[198] = new OpCode('ifnull', 'Branch if null', (frame) -> 
       branch = new CONSTANT_integer(@constructIndex(frame, thread), true)

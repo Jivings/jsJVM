@@ -1,0 +1,120 @@
+<html>
+    <head>
+      <script src="http://code.jquery.com/jquery-latest.js"></script>
+      <script type="text/javascript" src="http://code.jquery.com/qunit/git/qunit.js"></script>
+      <script type="text/javascript" src="../jre/jvm.js"></script>
+      <link rel="stylesheet" href="http://code.jquery.com/qunit/git/qunit.css" type="text/css" media="screen" />
+      <link rel="stylesheet" href="style.css" type="text/css" media="screen" />
+
+    <title>JVM Performance Tests</title>
+    <script>
+        var jvm;
+        $(document).ready(function(){
+          
+          var options, moduleOptions;
+
+          options = {
+              path : 'cmkit',
+              classpath : '../jre/',
+              workerpath : '../jre/workers',
+              sdout : 'terminal'
+          };
+          moduleOptions = {
+              setup : function() {
+                  $('#terminal').empty();
+                  
+              },
+              teardown : function() {
+                  jvm = null;
+              }
+          };
+
+           
+         asyncTest("Method", function() {
+             options['classname'] = 'MethodTest';
+             jvm = new JVM(options, null, function(ret) { 
+                 $('#terminal').text();
+                 ok(ret==undefined, $('#terminal').text());
+                 start();
+             });
+         });
+
+         
+         asyncTest("Loop", function() {
+             options['classname'] = 'LoopTest';
+             jvm = new JVM(options, null, function(ret) { 
+                 $('#terminal').text();
+                 ok(ret==undefined, $('#terminal').text());
+                 start();
+             });
+         });
+
+        asyncTest("Logic", function() {
+             options['classname'] = 'LoginTest';
+             jvm = new JVM(options, null, function(ret) { 
+                 $('#terminal').text();
+                 ok(ret==undefined, $('#terminal').text());
+                 start();
+             });
+         });
+
+        asyncTest("Float", function() {
+             options['classname'] = 'FloatTest';
+             jvm = new JVM(options, null, function(ret) { 
+                 $('#terminal').text();
+                 ok(ret==undefined, $('#terminal').text());
+                 start();
+             });
+         });
+         asyncTest("Sieve", function() {
+             options['classname'] = 'SieveTest';
+             jvm = new JVM(options, null, function(ret) { 
+                 $('#terminal').text();
+                 ok(ret==undefined, $('#terminal').text());
+                 start();
+             });
+         });
+         asyncTest("String", function() {
+             options['classname'] = 'StringTest';
+             jvm = new JVM(options, null, function(ret) { 
+                 $('#terminal').text();
+                 ok(ret==undefined, $('#terminal').text());
+                 start();
+             });
+         });
+         var startTimes = {};
+
+         QUnit.testStart = function(obj) {
+             var start = new Date().getTime();
+             startTimes[obj.name] = start;
+         };
+
+         QUnit.testDone = function(obj) {
+             var endTime = new Date().getTime() - startTimes[obj.name];
+             $('.test-name').each(function(item, value) {
+                 if($(value).text() == obj.name) {
+                     $(value).append('...........Completed in ' + endTime
+                     + ' milliseconds');
+                 }
+             });
+         };
+
+
+        });
+      </script>
+  
+</head>
+<body>
+    <div style="display:none" id="terminal"></div>
+    <h1 id="qunit-header">jsJVM Performance Tests</h1>
+    <h2 id="qunit-banner"></h2>
+    <div id="description">Performance tests for the jsJVM. Each test outputs
+        its own completion time. <br />
+        Testing...
+    </div>
+   <div id="qunit-testrunner-toolbar"></div>
+   <h2 id="qunit-userAgent"></h2>
+   <ol id="qunit-tests"></ol>
+   <div id="qunit-fixture">test markup, will be hidden</div>
+</body>
+</html>

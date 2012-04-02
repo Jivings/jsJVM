@@ -1,3 +1,7 @@
+###
+# Factory to create the appropriate Method Frame from
+# the method access flags.
+###
 class this.MethodFactory
 
   constructor : (@thread) ->

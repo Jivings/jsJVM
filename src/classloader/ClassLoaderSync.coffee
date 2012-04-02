@@ -1,3 +1,6 @@
+###
+# The Boot ClassLoader for the JVM 
+###
 this.required_classes_length = 5
 class this.ClassLoader
   classReader : 1
@@ -39,6 +42,9 @@ class this.ClassLoader
     yes
       
   
+  ###
+  # Find a native class on the native ClassPath
+  ###
   findNative : (name) ->
     # declare so that it can be used with eval
     _native = null
@@ -59,7 +65,7 @@ class this.ClassLoader
   
       
   ###
-  Finds a class on the classpath
+  # Finds a class on the classpath
   ###
   find : (class_name) ->
     if(@loaded_classes[class_name]?) 
@@ -90,19 +96,19 @@ class this.ClassLoader
     
     
 ###
-ClassReader
+# ClassReader. Loads Binary Class Data into CONSTANT_Class format.
 ###
 class ClassReader
     
   constructor : (stream) ->
     @binaryReader = new jDataView stream
     @binaryReader._littleEndian = false
-    @console = { debug : -> yes 
+    @console = { debug : -> yes
     writeConstant : -> yes}
     
   parse : () ->
-    _class = new CONSTANT_Class()  
-    @parseClassVars _class 
+    _class = new CONSTANT_Class()
+    @parseClassVars _class
     @parseConstantPool _class
     @parseFileVars _class
     @parseInterfaces _class
@@ -111,6 +117,9 @@ class ClassReader
     return _class
     #whenFinished _class, classLoader, waitingThreads
 
+  ###
+  # Read number of bits specified by length
+  ###
   read : (length) ->
     switch length
       when 1
@@ -119,7 +128,7 @@ class ClassReader
         @binaryReader.getUint16()
       when 4 
         @binaryReader.getUint32() 
-      else 
+      else
         # Probably something not implemented, step forward
         @binaryReader.seek(@binaryReader.tell() + length)
   
@@ -155,7 +164,7 @@ class ClassReader
       when 12 # Name and Type Descriptor
         new CONSTANT_NameAndType_info(@read(2), @read(2))
       when 11 # Interface method
-        @read 4
+        new CONSTANT_InterfaceMethodref_info(@read(2), @read(2))
       else
         throw "UnknownConstantException, Offset : " + @binaryReader.tell()
 

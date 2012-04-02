@@ -1,3 +1,6 @@
+###
+# Garbage Collector for the JVM, used by the RDA.
+###
 class this.GC
 
     grey : 1 # root objects
@@ -6,6 +9,9 @@ class this.GC
     running : false
     missed : 0
 
+    ###
+    # Constructor. Starts collections at one second intervals.
+    ###
     constructor : (@method_area, @heap, @threads) ->
       setInterval(()=>
          @collect()
@@ -17,6 +23,9 @@ class this.GC
         @promote()
         yes
 
+    ###
+    # Colours references for collection. Tri-Colour algorithm.
+    ###
     mark : () ->
         while (next = @getnextgrey()) isnt null
             for prop of next
@@ -26,6 +35,9 @@ class this.GC
             next.colour = @black
         yes
 
+    ###
+    # Reclaims heap space.
+    ###
     reclaim : () ->
         for index of @heap.younggen
             item = @heap.younggen[index]
@@ -33,9 +45,15 @@ class this.GC
                 delete @heap.younggen[index]
         yes
     
+    ###
+    # Promotes References to older generations.
+    ###
     promote : () ->
         yes
 
+    ###
+    # Collects references from Classes and Threads.
+    ###
     collect : () ->
         if @running 
             @missed++

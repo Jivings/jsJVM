@@ -13,6 +13,9 @@
     return child;
   };
   scopedJVM = 0;
+  this.onerror = function(e) {
+    return scopedJVM.end(e);
+  };
   this.JVM = (function() {
     /*
         Initialise JVM options
@@ -102,9 +105,9 @@
           # no data needs to be sent as native execution takes place on the JVM
           @RDA.notifyAll(classname)
       */
-    JVM.prototype.end = function() {
+    JVM.prototype.end = function(e) {
       if (scopedJVM.callback != null) {
-        return scopedJVM.callback();
+        return scopedJVM.callback(e);
       }
     };
     /*
@@ -194,7 +197,6 @@
         }
       };
       this.threads = new Array();
-      this.GC = new GC(this.method_area, this.heap, this.threads);
       this.clinitThread = new Worker(Settings.workerpath + '/Thread.js');
       this.clinitThread['finished'] = true;
       this.clinitThread.waiting = new Array();
@@ -440,11 +442,18 @@
           return this.GC.add(data.objectrefs);
         },
         'log': function(data) {
-          return console.log('#' + data.id + ' ' + data.message);
+          if (typeof data.message === 'object') {
+            return console.log(data.message);
+          } else {
+            return console.log('#' + data.id + ' ' + data.message);
+          }
         },
         'finished': function(data) {
           var nextClinit;
           console.log('Thread #' + data.id + ' finished');
+          if (data.result !== 1) {
+            throw 'Thread died with error ' + data.error;
+          }
           if (e.target === this.clinitThread) {
             this.clinitThread.loaded++;
             this.clinitThread.callback.pop().call(this);
@@ -638,8 +647,8 @@
       var arr, ch, dest, index, src;
       src = env.JVM_FromHeap(srcObj);
       arr = src.slice(srcPos.val, srcPos.val + length.val);
-      dest = env.JVM_FromHeap(destObj);
-      destPos = dstPos.val;
+      dest = env.JVM_FromHeap(dstObj);
+      destPos = destPos.val;
       for (index in arr) {
         ch = arr[index];
         dest[new Number(index) + destPos] = ch;
@@ -1146,14 +1155,23 @@
     JVM.prototype.JVM_FromHeap = function(reference) {
       return this.RDA.heap.get(reference);
     };
+    JVM.prototype.JVM_DoPrivileged = function(cls, action, something, bool) {
+      return true;
+    };
     return Frame;
   })();
+  /*
+  # Garbage Collector for the JVM, used by the RDA.
+  */
   this.GC = (function() {
     GC.prototype.grey = 1;
     GC.prototype.white = 0;
     GC.prototype.black = 3;
     GC.prototype.running = false;
     GC.prototype.missed = 0;
+    /*
+        # Constructor. Starts collections at one second intervals.
+        */
     function GC(method_area, heap, threads) {
       this.method_area = method_area;
       this.heap = heap;
@@ -1168,6 +1186,9 @@
       this.promote();
       return true;
     };
+    /*
+        # Colours references for collection. Tri-Colour algorithm.
+        */
     GC.prototype.mark = function() {
       var next, prop;
       while ((next = this.getnextgrey()) !== null) {
@@ -1182,6 +1203,9 @@
       }
       return true;
     };
+    /*
+        # Reclaims heap space.
+        */
     GC.prototype.reclaim = function() {
       var index, item;
       for (index in this.heap.younggen) {
@@ -1192,9 +1216,15 @@
       }
       return true;
     };
+    /*
+        # Promotes References to older generations.
+        */
     GC.prototype.promote = function() {
       return true;
     };
+    /*
+        # Collects references from Classes and Threads.
+        */
     GC.prototype.collect = function() {
       var cls, field, fields, message, ref, thread, _i, _len, _ref;
       if (this.running) {
@@ -1303,6 +1333,10 @@
     };
     return Console;
   })();
+  /*
+  # Factory to create the appropriate Method Frame from
+  # the method access flags.
+  */
   this.MethodFactory = (function() {
     function MethodFactory(thread) {
       this.thread = thread;
@@ -1619,6 +1653,9 @@
     }
     return CONSTANT_Stringref;
   })();
+  /*
+  # Handles the invocation of native methods in Threads. 
+  */
   this.NativeFrame = (function() {
     function NativeFrame(method, cls, env, thread) {
       this.method = method;
@@ -1718,6 +1755,10 @@
     };
     return NativeFrame;
   })();
+  /*
+  # All JVM OpCodes. Opcodes are accessed by their integer. 
+  # Recurring operations are declared in the OpCode object.
+  */
   this.OpCodes = (function() {
     function OpCodes(thread) {
       this[0] = new OpCode('nop', 'Does nothing', function(frame) {
@@ -1773,7 +1814,10 @@
         return frame.op_stack.push(new CONSTANT_double(1.0));
       });
       this[16] = new OpCode('bipush', 'Push 8 bit signed integer', function(frame) {
-        return frame.op_stack.push(new CONSTANT_integer(this.getIndexByte(1, frame, thread), false));
+        var val;
+        val = this.getIndexByte(1, frame, thread);
+        thread.log(val);
+        return frame.op_stack.push(new CONSTANT_integer(val, false));
       });
       this[17] = new OpCode('sipush', 'Push short', function(frame) {
         var byte1, byte2, short;
@@ -1827,7 +1871,11 @@
         return frame.op_stack.push(item);
       });
       this[21] = new OpCode('iload', 'Load int from local variable', function(frame) {
-        return frame.op_stack.push(frame.locals[this.getIndexByte(1, frame, thread)]);
+        var local;
+        local = this.getIndexByte(1, frame, thread);
+        thread.log(local);
+        thread.log(frame.locals[local].val);
+        return frame.op_stack.push(frame.locals[local]);
       });
       this[22] = new OpCode('lload', 'Load long from local variable', function(frame) {
         frame.op_stack.push(frame.locals[this.getIndexByte(1, frame, thread)]);
@@ -1846,6 +1894,7 @@
         return frame.op_stack.push(frame.locals[0]);
       });
       this[27] = new OpCode('iload_1', 'Load int from local variable 1', function(frame) {
+        thread.log(frame.locals[1]);
         return frame.op_stack.push(frame.locals[1]);
       });
       this[28] = new OpCode('iload_2', 'Load int from local variable 2', function(frame) {
@@ -2525,7 +2574,7 @@
         if (value2 === 0) {
           athrow('ArithmeticException');
         }
-        result = value1 / value2;
+        result = (value1 / value2) | 0;
         return frame.op_stack.push(new CONSTANT_integer(result));
       });
       this[109] = new OpCode('ldiv', 'Divide long', function(frame) {
@@ -2748,6 +2797,8 @@
         index = this.getIndexByte(1, frame, thread);
         unsigned = this.getIndexByte(1, frame, thread);
         consta = new CONSTANT_byte(unsigned, true);
+        thread.log(index);
+        thread.log(consta);
         variable = frame.locals[index];
         variable.val = variable.val + consta.value;
         return frame.locals[index] = variable;
@@ -3083,7 +3134,7 @@
         return frame.pc = frame.locals[index];
       });
       this[170] = new OpCode('tableswitch', '', function(frame) {
-        return thread.log(this.mnemonic);
+        return thread.finished("tableswitch not implemented");
       }, true);
       this[171] = new OpCode('lookupswitch', '', function(frame) {
         return thread.log(this.mnemonic);
@@ -3217,6 +3268,7 @@
         field_name = this.fromCP(field_name_type.name_index, thread);
         thread.resolveClass(class_ref, function(cls) {
           thread.getStatic(cls, field_name, function(value) {
+            thread.log(value);
             return frame.op_stack.push(value);
           });
           return false;
@@ -3369,8 +3421,28 @@
         }, this);
         return false;
       });
-      this[185] = new OpCode('invokeinterface', '', function(frame) {
-        return thread.log(this.mnemonic);
+      this[185] = new OpCode('invokeinterface', 'Invoke interface method', function(frame) {
+        var args, classname, descriptor, method_name, method_name_and_type, methodref, nargs, objectref;
+        methodref = this.fromCP(this.constructIndex(frame, thread), thread);
+        classname = this.fromCP(methodref.class_index, thread);
+        method_name_and_type = this.fromCP(methodref.name_and_type_index, thread);
+        method_name = this.fromCP(method_name_and_type.name_index, thread);
+        descriptor = this.fromCP(method_name_and_type.descriptor_index, thread);
+        nargs = this.getIndexByte(1, frame, thread);
+        args = [];
+        while (nargs > 1) {
+          args[--nargs] = frame.op_stack.pop();
+        }
+        objectref = frame.op_stack.pop();
+        return thread.getObject(objectref, function(obj) {
+          return thread.resolveMethod(method_name, obj.cls.real_name, descriptor, function(method) {
+            var newframe;
+            newframe = thread.createFrame(method, method.belongsTo);
+            thread.current_class = method.belongsTo;
+            newframe.locals = args;
+            return newframe.locals[0] = objectref;
+          }, this);
+        }, this);
       }, true);
       this[186] = new OpCode('xxxunusedxxx', '', function(frame) {
         return thread.log(this.mnemonic);
@@ -3426,11 +3498,11 @@
           count = count.val;
         }
         arr = new Array(count);
+        thread.log("new array with size " + count);
         while (count-- > 0) {
           arr[count] = 0;
         }
         arr.type = t;
-        thread.log("new array with size" + count);
         thread.allocate(arr, function(arrayref) {
           return frame.op_stack.push(arrayref);
         });
@@ -3468,7 +3540,9 @@
           athrow('NullPointerException');
         }
         thread.getObject(arrayref, function(array) {
-          return frame.op_stack.push(array.length);
+          thread.log(array);
+          thread.log(array.length);
+          return frame.op_stack.push(new CONSTANT_integer(array.length));
         }, this);
         return false;
       });
@@ -3535,10 +3609,10 @@
         return false;
       });
       this[196] = new OpCode('wide', '', function(frame) {
-        return alert(this.mnemonic);
+        return thread.log(this.mnemonic);
       }, true);
       this[197] = new OpCode('multianewarray', '', function(frame) {
-        return alert(this.mnemonic);
+        return thread.finished(this.mnemonic + ' not implemented');
       }, true);
       this[198] = new OpCode('ifnull', 'Branch if null', function(frame) {
         var branch, value;
@@ -3682,6 +3756,9 @@
     classpath: 'compiler/',
     workerpath: 'jvm/workers'
   };
+  /*
+  # The Boot ClassLoader for the JVM 
+  */
   this.required_classes_length = 5;
   this.ClassLoader = (function() {
     ClassLoader.prototype.classReader = 1;
@@ -3724,6 +3801,9 @@
       }
       return true;
     };
+    /*
+      # Find a native class on the native ClassPath
+      */
     ClassLoader.prototype.findNative = function(name) {
       var req, _native;
       _native = null;
@@ -3744,7 +3824,7 @@
       }
     };
     /*
-      Finds a class on the classpath
+      # Finds a class on the classpath
       */
     ClassLoader.prototype.find = function(class_name) {
       var classReader, req, _class;
@@ -3775,7 +3855,7 @@
     return ClassLoader;
   })();
   /*
-  ClassReader
+  # ClassReader. Loads Binary Class Data into CONSTANT_Class format.
   */
   ClassReader = (function() {
     function ClassReader(stream) {
@@ -3801,6 +3881,9 @@
       this.parseMethods(_class);
       return _class;
     };
+    /*
+      # Read number of bits specified by length
+      */
     ClassReader.prototype.read = function(length) {
       switch (length) {
         case 1:
@@ -3845,7 +3928,7 @@
         case 12:
           return new CONSTANT_NameAndType_info(this.read(2), this.read(2));
         case 11:
-          return this.read(4);
+          return new CONSTANT_InterfaceMethodref_info(this.read(2), this.read(2));
         default:
           throw "UnknownConstantException, Offset : " + this.binaryReader.tell();
       }

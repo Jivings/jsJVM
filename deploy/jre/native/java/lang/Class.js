@@ -160,8 +160,8 @@ function() {
     */
     this.getPrimitiveClass = function(env, name) {
       // get the string object from the heap
-      string = env.RDA.heap[name.pointer]
-      name = env.RDA.heap[string.value.pointer].join('')
+      string = env.JVM_FromHeap(name)
+      name = env.JVM_FromHeap(string.value).join('')
       // TODO, make this return the class
       //return window['CONSTANT_'+name];
       return new JVM_Reference(0);

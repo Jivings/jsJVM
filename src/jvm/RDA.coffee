@@ -51,7 +51,7 @@ class this.RDA
             throw "Object not found"
 
     @threads = new Array()
-    @GC = new GC(@method_area, @heap, @threads)
+    #@GC = new GC(@method_area, @heap, @threads)
 
     # Define a thread foo clinit methods. These we want to take place synchronously
     @clinitThread = new Worker(Settings.workerpath+'/Thread.js')
@@ -297,10 +297,15 @@ class this.RDA
         @GC.add(data.objectrefs)
 
       'log' : (data) ->
-        console.log('#'+data.id+' '+data.message)
+          if typeof data.message is 'object' then console.log data.message
+          else
+            console.log('#'+data.id+' '+data.message)
         
       'finished' : (data) ->
         console.log('Thread #' + data.id + ' finished')
+        if data.result isnt 1
+            throw 'Thread died with error ' + data.error
+
         if e.target is @clinitThread
           @clinitThread.loaded++
           @clinitThread.callback.pop().call(@)

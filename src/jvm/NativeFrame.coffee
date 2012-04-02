@@ -1,3 +1,7 @@
+###
+# Handles the invocation of native methods in Threads. 
+###
+
 class this.NativeFrame
 
 

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
+  <head>
+    <title>JavaScript JVM</title>
 		<link rel="stylesheet" href="css/bootstrap.min.css">
 		<style type="text/css">
 			body {        
@@ -54,12 +55,94 @@
 			        	<!--Body content-->
 					
 					<div class="page-header">
-						<h1><a class="nav" name="about">What is jsJVM?</a></h1>
+						<h1><a class="nav" name="about">About</a></h1>
 					</div>
-					<p>jsJVM is a conceptual Java Virtual Machine written completely in CoffeeScript and JavaScript.</p>
-					<p>It allows the execution of Java Bytecode within a web browser, without the need for any client side dependancies.</p>
+          <p>jsJVM is a specialised implementation of the Java Virtual Machine,
+          written in JavaScript.</p>
+          <p>The project was written to accomplish two primary goals;</p>
+          <ul>
+            <li><i>Execute compiled Java bytecode fully within the web
+              browser.</i></li>
+            <li><i>Relieve dependance on a client side JRE installation for
+              execution.></i></li>
+          </ul>
+          </p>
+          <p>Also important was that the jsJVM perform at a speed
+          comparable to current JVM implementations.</p>
 
-    				</div>
+          <p>
+            The jsJVM is used by deploying to a webpage in identical manner to
+            any existing JavaScript library. Application class files are then
+            deployed to the server and made available to the jsJVM. The server
+            also holds a copy of the Java API.
+          </p>
+          <p>
+            Any user visiting the page can now execute the Java application
+            without needing the JRE installed on their system. Any Java classes
+            that are required by the application are downloaded to the client
+            when needed and deleted when no longer required.
+          </p>
+          <div class="page-header">
+            <h1><a class="nav" name="installation">Installation</a></h1>
+          </div>
+          <h2>Deploying to a Web Server</h2>
+          <ul>
+            <li>
+              <p>Download the latest minified JVM build and modified Java API:</p>
+              <pre>$ wget https://github.com/Jivings/jsJVM/raw/master/builds/jvm-latest.tar.bz2</pre>
+            </li>
+            <li>
+              <p>Extract the contents of the archive:</p>
+              <pre>$ tar -xvjf jvm-latest.tar.bz2</pre>
+            </li>
+            <li>
+              <p>Descend into the JRE directory:</p>
+              <pre>$ cd deploy/jre</pre>
+            </li>
+            <li>
+              <p>Extract the system JRE:</p>
+              <pre>$ cd rt
+jar xf $JAVA_HOME/jre/lib/rt.jar</pre>
+            </li>
+            <li>
+              <p>The jsJVM is then deployed by including a link to the file in any web page:</p> 
+              <pre>&lt;script type="test/javascript" src="jvm.js"&gt;&lt;/script&gt;</pre>
+              </li>
+
+            <div class="page-header">
+              <h1><a class="nav">Usage</a></h1>
+            </div>
+
+            <p>The jsJVM is started by creating an instance and providing the
+            name of the applications main class:</p>
+
+            <pre>
+new jvm({
+  classname : 'HelloWorld'
+});
+            </pre>
+
+            <p>HelloWorld represents a .class file which resides on the server.</p>
+            <p>The JVM will then execute the Java application in the clients
+            web browser.</p>
+          <h2>Options</h2>
+
+          <p>For additional customisation, several more options can be passed
+          to the jsJVM on initialisation. These are as follows:</p>
+          <table>
+            <thead><th>Option</th><th>Type</th><th>Default</th></thead>
+            <tr>
+              <td>classpath</td><td>String</td><td>'.'</td>
+            </tr>
+
+            <tr></tr>
+            <tr></tr>
+            <tr></tr>
+            <tr></tr>
+            <tr></tr>
+            <tr></tr>
+          </table>
+    		</div>
 			</div>
 			<hr>
 			<footer>

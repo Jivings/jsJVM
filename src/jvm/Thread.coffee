@@ -247,7 +247,7 @@ class this.Thread
     worker.postMessage({
       'action' : 'allocate',
       'object' : jobject
-    )}    
+    })    
   
   ###
     Log something nicely if the JVM is in verbose mode

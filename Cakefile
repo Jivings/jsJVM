@@ -33,7 +33,7 @@ task 'coffeeFiles', 'how much coffee you got?!', ->
           stats = fs.statSync(currentFile)
           if stats.isFile() and currentFile.indexOf('.coffee') > 1 and appFiles.join('=').indexOf("#{currentFile}=") < 0
             if workers.join('=').indexOf("#{currentFile}") < 0
-              util.log currentFile
+              #util.log currentFile
               appFiles.push currentFile
           else if stats.isDirectory()
             traverseFileSystem currentFile
@@ -63,23 +63,24 @@ task 'javaFiles', 'Compile custom Java API files', ->
 task 'compile', 'Compile', ->
   invoke 'javaFiles'
   len = javaFiles.length
+  util.log 'Compiling...'
   for file, index in javaFiles then do (file, index) ->
       exec "javac -cp src/lib/rt -d deploy/jre/rt " + file, (err, stdout, stderr) ->
           if err 
             util.log "Error! #{err}"
-          else
-            util.log "Compiled Java Class #{file}"
-            if --len is 0
-              invoke 'zip'
+          #else
+          #  util.log "Compiled Java Class #{file}"
 
-task 'zip', 'Zip that stuff', ->
+
+
+task 'dist', 'Zip that stuff', ->
   util.log "Creating tarball..."
   date = new Date()
   day = date.getDate()
   month = date.getMonth()
   year = date.getFullYear()
   # zip that awesome shit up
-  exec "tar -cf builds/jvm-latest.tar deploy", (err, stdout, stderr) ->
+  exec "tar -cf builds/jvm-latest.tar deploy/*", (err, stdout, stderr) ->
       if err then util.log err
       exec "bzip2 -f builds/jvm-latest.tar", (err, stdout, stderr) ->
         if err then util.log err
@@ -90,19 +91,19 @@ task 'zip', 'Zip that stuff', ->
 
 task 'build', 'Build single application file from source files', ->
   invoke 'coffeeFiles'
+  util.log 'Building...'
   appContents = new Array remaining = appFiles.length
   for file, index in appFiles then do (file, index) ->
     fs.readFile file, 'utf8', (err, fileContents) ->
       throw err if err
       appContents[index] = fileContents
       process() if --remaining is 0
-  util.log "Compiling workers"
+  util.log "Creating workers..."
   for file, index in workers then do (file, index) ->
-      util.log file
       exec "coffee --compile -o deploy/jre/workers #{file}", (err, stdout, stderr) ->
         if err
-          util.log 'Something went wrong'
-  
+          util.log 'Error compiling src.'
+          util.log err
   invoke "compile"
   
   process = ->
@@ -116,4 +117,4 @@ task 'build', 'Build single application file from source files', ->
           fs.unlink 'deploy/jre/jvm.coffee', (err) ->
             if err
               util.log 'Couldn\'t delete the app.coffee file/'
-            util.log 'Done building coffee file.'
+            util.log 'Done brewing coffee.'

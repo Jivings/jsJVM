@@ -89,7 +89,7 @@
           <ul>
             <li>
               <p>Download the latest minified JVM build and modified Java API:</p>
-              <pre>$ wget https://github.com/Jivings/jsJVM/raw/master/builds/jvm-latest.tar.bz2</pre>
+              <pre>$ wget https://github.com/downloads/Jivings/jsJVM/jvm-latest.tar.bz2</pre>
             </li>
             <li>
               <p>Extract the contents of the archive:</p>
@@ -108,6 +108,21 @@ jar xf $JAVA_HOME/jre/lib/rt.jar</pre>
               <p>The jsJVM is then deployed by including a link to the file in any web page:</p> 
               <pre>&lt;script type="test/javascript" src="jvm.js"&gt;&lt;/script&gt;</pre>
               </li>
+          <h2>From source</h2>
+          <p>If you would prefer to install the latest master version of jsJVM,
+          you can clone the <a href="https://github.com/Jivings/jsJVM">source
+            repository</a> or download the <a
+            href="https://github.com/Jivings/jsJVM/tarball/master">source
+            directly</a>
+          </p>
+          <p>
+          The jsJVM itself is written in <a
+            href="http://coffeescript.org">CoffeeScript</a>, thus to build from
+            source you must have a working copy of the CoffeeScript compiler.
+            The build process can then be invoked from the project directory:
+            <pre>cake build</pre>
+            The above steps can then be followed for deployment.
+          </p>
 
             <div class="page-header">
               <h1><a class="nav">Usage</a></h1>

@@ -17,7 +17,10 @@
 			a.nav:hover {
 				color:black;
 				text-decoration:none;
-			}
+      }
+      ul {
+        list-style:none;
+      }
 
 		</style>
 	</head>
@@ -46,8 +49,20 @@
 					<div class="well sidebar-nav">
 						<ul class="nav nav-list">
 							<li><a href="#about">About</a></li>
-							<li><a href="#installation">Installation</a></li>
-							<li><a href="#usage">Usage</a></li>	
+              <li><a href="#installation">Installation</a></li>
+              <li>
+              <ul>
+                <li><a href="#deployment">Deployment</a></li>
+                <li><a href="#build">Build</a></li>
+              </ul>
+              </li>
+              <li><a href="#usage">Usage</a></li>	
+              <li>
+              <ul>
+                <li><a href="#options">Options</a></li>
+                </ul>
+                </li>
+                <li><a href="#limitations">Limitations</a></li>
 						</ul>
 					</div>	
 				</div>
@@ -59,24 +74,13 @@
 					</div>
           <p>jsJVM is a specialised implementation of the Java Virtual Machine,
           written in JavaScript.</p>
-          <p>The project was written to accomplish two primary goals;</p>
+          <p>The primary goal of the project is; </p>
           <ul>
-            <li><i>Execute compiled Java bytecode fully within the web
-              browser.</i></li>
-            <li><i>Relieve dependance on a client side JRE installation for
-              execution.></i></li>
+            <li><i>To allow Java code to be executed within a web browser
+              <strong>even if the client does not have Java installed.</strong></i></li>
           </ul>
           </p>
-          <p>Also important was that the jsJVM perform at a speed
-          comparable to current JVM implementations.</p>
-
-          <p>
-            The jsJVM is used by deploying to a webpage in identical manner to
-            any existing JavaScript library. Application class files are then
-            deployed to the server and made available to the jsJVM. The server
-            also holds a copy of the Java API.
-          </p>
-          <p>
+                    <p>
             Any user visiting the page can now execute the Java application
             without needing the JRE installed on their system. Any Java classes
             that are required by the application are downloaded to the client
@@ -85,7 +89,20 @@
           <div class="page-header">
             <h1><a class="nav" name="installation">Installation</a></h1>
           </div>
-          <h2>Deploying to a Web Server</h2>
+          <p>
+            The jsJVM is used by deploying to a webpage in identical manner to
+            any standard JavaScript library. <br />
+            Application class files must be then copied onto the web server and
+            made accessible to the webpage. The server must also hold a copy of
+            the Java API classes.
+          </p>
+          <p>
+            When the page is accessed, application class files are downloaded
+            to the client and executed.
+            </p>
+            <p>The following steps will result in a working copy of the jsJVM.</p>
+            <hr />
+            <h2><a class="nav" name="deployment">Deployment</a></h2>
           <ul>
             <li>
               <p>Download the latest minified JVM build and modified Java API:</p>
@@ -108,7 +125,9 @@ jar xf $JAVA_HOME/jre/lib/rt.jar</pre>
               <p>The jsJVM is then deployed by including a link to the file in any web page:</p> 
               <pre>&lt;script type="test/javascript" src="jvm.js"&gt;&lt;/script&gt;</pre>
               </li>
-          <h2>From source</h2>
+            </ul>
+            <hr />
+            <h2><a class="nav" name="build">From source</a></h2>
           <p>If you would prefer to install the latest master version of jsJVM,
           you can clone the <a href="https://github.com/Jivings/jsJVM">source
             repository</a> or download the <a
@@ -125,7 +144,7 @@ jar xf $JAVA_HOME/jre/lib/rt.jar</pre>
           </p>
 
             <div class="page-header">
-              <h1><a class="nav">Usage</a></h1>
+              <h1><a class="nav" name="usage">Usage</a></h1>
             </div>
 
             <p>The jsJVM is started by creating an instance and providing the
@@ -134,12 +153,12 @@ jar xf $JAVA_HOME/jre/lib/rt.jar</pre>
             <pre>
 new jvm({
   classname : 'HelloWorld'
-});
-            </pre>
+});</pre>
 
             <p>HelloWorld represents a .class file which resides on the server.</p>
             <p>The JVM will then execute the Java application in the clients
             web browser.</p>
+            <hr />
           <h2>Options</h2>
 
           <p>For additional customisation, several more options can be passed
@@ -157,7 +176,12 @@ new jvm({
             <tr></tr>
             <tr></tr>
           </table>
-    		</div>
+        
+
+        <div class="page-header">
+          <h1><a class="nav" name="limitations">Limitations</a></h1>
+        </div>
+        </div>
 			</div>
 			<hr>
 			<footer>

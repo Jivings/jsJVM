@@ -161,6 +161,416 @@
 
   })();
 
+  this.JVM_Object = (function() {
+
+    JVM_Object.name = 'JVM_Object';
+
+    function JVM_Object(cls) {
+      var field, fld, supercls;
+      this.cls = cls;
+      supercls = this.cls.constant_pool[this.cls.super_class];
+      if (supercls !== void 0) this.__proto__ = new JVM_Object(supercls);
+      this.clsObject = new JVM_Reference(0);
+      for (field in this.cls.fields) {
+        fld = this.cls.fields[field];
+        this[field] = fld;
+      }
+    }
+
+    JVM_Object.prototype.monitor = {
+      aquireLock: function(thread) {
+        if (this.owner === thread) {
+          this.count++;
+        } else if (this.owner !== null) {
+          this.waiting.push(thread);
+          return false;
+        } else {
+          this.owner = thread;
+          this.count++;
+        }
+        return true;
+      },
+      releaseLock: function(thread) {
+        var _i, _len, _ref;
+        if (this.owner !== thread) return false;
+        if (--this.count === 0) this.owner = null;
+        _ref = this.waiting;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          thread = _ref[_i];
+          this.notify(thread);
+        }
+        this.waiting.length = 0;
+        return true;
+      },
+      notify: function(thread) {
+        return this.RDA.lockAquired(thread);
+      },
+      owner: null,
+      count: 0,
+      waiting: new Array()
+    };
+
+    return JVM_Object;
+
+  })();
+
+  ({
+    compareTo: function(jvmObject) {
+      if (this.cls.real_name === jvmObject.cls.real_name) {
+        return true;
+      } else {
+        try {
+          return compareTo.__super__.constructor.apply(this, arguments).compareTo(jvmObject);
+        } catch (err) {
+          return false;
+        }
+      }
+    }
+  });
+
+  this.JVM_Reference = (function() {
+
+    JVM_Reference.name = 'JVM_Reference';
+
+    function JVM_Reference(pointer) {
+      this.pointer = pointer;
+    }
+
+    JVM_Reference.prototype.toString = function() {
+      return this.pointer;
+    };
+
+    return JVM_Reference;
+
+  })();
+
+  JVM_Number = (function() {
+
+    JVM_Number.name = 'JVM_Number';
+
+    function JVM_Number(val) {
+      this.val = val;
+    }
+
+    JVM_Number.prototype.valueOf = function() {
+      return this.val;
+    };
+
+    return JVM_Number;
+
+  })();
+
+  this.CONSTANT_Array = (function(_super) {
+
+    __extends(CONSTANT_Array, _super);
+
+    CONSTANT_Array.name = 'CONSTANT_Array';
+
+    function CONSTANT_Array(length, type) {
+      this.length = length;
+      this.type = type;
+      CONSTANT_Array.__super__.constructor.call(this, this.length);
+    }
+
+    return CONSTANT_Array;
+
+  })(Array);
+
+  this.CONSTANT_Object = (function() {
+
+    CONSTANT_Object.name = 'CONSTANT_Object';
+
+    function CONSTANT_Object(classname) {
+      this.classname = classname;
+      this.value = null;
+    }
+
+    return CONSTANT_Object;
+
+  })();
+
+  this.CONSTANT_integer = (function(_super) {
+
+    __extends(CONSTANT_integer, _super);
+
+    CONSTANT_integer.name = 'CONSTANT_integer';
+
+    function CONSTANT_integer(val, sign) {
+      var next;
+      if (val == null) val = 0;
+      if (sign == null) sign = false;
+      if (sign) {
+        if ((val & 0x8000) !== 0) {
+          next = (~val) + 1 & 0xffff;
+          val = next * -1;
+        }
+      }
+      if (isNaN(val)) throw 'UnexpectedNaN';
+      CONSTANT_integer.__super__.constructor.call(this, val);
+    }
+
+    return CONSTANT_integer;
+
+  })(JVM_Number);
+
+  this.CONSTANT_int = (function(_super) {
+
+    __extends(CONSTANT_int, _super);
+
+    CONSTANT_int.name = 'CONSTANT_int';
+
+    function CONSTANT_int(val, sign) {
+      if (val == null) val = 0;
+      if (sign == null) sign = false;
+      CONSTANT_int.__super__.constructor.call(this, val, sign);
+    }
+
+    return CONSTANT_int;
+
+  })(CONSTANT_integer);
+
+  this.CONSTANT_float = (function(_super) {
+
+    __extends(CONSTANT_float, _super);
+
+    CONSTANT_float.name = 'CONSTANT_float';
+
+    function CONSTANT_float(val) {
+      if (val == null) val = 0.0;
+      CONSTANT_float.__super__.constructor.call(this, val);
+    }
+
+    return CONSTANT_float;
+
+  })(JVM_Number);
+
+  this.CONSTANT_long = (function(_super) {
+
+    __extends(CONSTANT_long, _super);
+
+    CONSTANT_long.name = 'CONSTANT_long';
+
+    function CONSTANT_long(val) {
+      if (val == null) val = 0;
+      CONSTANT_long.__super__.constructor.call(this, val);
+    }
+
+    return CONSTANT_long;
+
+  })(JVM_Number);
+
+  this.CONSTANT_double = (function(_super) {
+
+    __extends(CONSTANT_double, _super);
+
+    CONSTANT_double.name = 'CONSTANT_double';
+
+    function CONSTANT_double(val) {
+      if (val == null) val = 0.0;
+      CONSTANT_double.__super__.constructor.call(this, val);
+    }
+
+    return CONSTANT_double;
+
+  })(JVM_Number);
+
+  this.CONSTANT_char = (function() {
+
+    CONSTANT_char.name = 'CONSTANT_char';
+
+    function CONSTANT_char(value) {
+      this.value = value != null ? value : '\u0000';
+      this.value = this.value.charCodeAt();
+    }
+
+    return CONSTANT_char;
+
+  })();
+
+  this.CONSTANT_short = (function(_super) {
+
+    __extends(CONSTANT_short, _super);
+
+    CONSTANT_short.name = 'CONSTANT_short';
+
+    function CONSTANT_short(val) {
+      if (val == null) val = 0;
+      CONSTANT_short.__super__.constructor.call(this, val);
+    }
+
+    return CONSTANT_short;
+
+  })(JVM_Number);
+
+  this.CONSTANT_byte = (function() {
+
+    CONSTANT_byte.name = 'CONSTANT_byte';
+
+    function CONSTANT_byte(value, sign) {
+      var next;
+      this.value = value != null ? value : 0;
+      if (sign == null) sign = false;
+      if (sign) {
+        if ((this.value & 0x80) !== 0) {
+          next = (~this.value) + 1 & 0xff;
+          this.value = next * -1;
+        }
+      }
+    }
+
+    return CONSTANT_byte;
+
+  })();
+
+  this.CONSTANT_boolean = (function() {
+
+    CONSTANT_boolean.name = 'CONSTANT_boolean';
+
+    function CONSTANT_boolean(value) {
+      this.value = value != null ? value : 0;
+    }
+
+    return CONSTANT_boolean;
+
+  })();
+
+  this.CONSTANT_String = (function(_super) {
+
+    __extends(CONSTANT_String, _super);
+
+    CONSTANT_String.name = 'CONSTANT_String';
+
+    function CONSTANT_String(value) {
+      this.value = value != null ? value : '';
+    }
+
+    return CONSTANT_String;
+
+  })(String);
+
+  this.JVM_RECOGNIZED_METHOD_MODIFIERS = {
+    JVM_ACC_PUBLIC: 0x0001,
+    JVM_ACC_PRIVATE: 0x0002,
+    JVM_ACC_PROTECTED: 0x0004,
+    JVM_ACC_STATIC: 0x0008,
+    JVM_ACC_FINAL: 0x0010,
+    JVM_ACC_SYNCHRONIZED: 0x0020,
+    JVM_ACC_BRIDGE: 0,
+    JVM_ACC_VARARGS: 0,
+    JVM_ACC_NATIVE: 0x0100,
+    JVM_ACC_ABSTRACT: 0x0400,
+    JVM_ACC_STRICT: 0,
+    JVM_ACC_SYNTHETIC: 0
+  };
+
+  this.JVM_RECOGNIZED_CLASS_MODIFIERS = {
+    JVM_ACC_PUBLIC: 0x0001,
+    JVM_ACC_FINAL: 0x0010,
+    JVM_ACC_SUPER: 0x0020,
+    JVM_ACC_INTERFACE: 0x0200,
+    JVM_ACC_ABSTRACT: 0x0400
+  };
+
+  /*                                        JVM_ACC_ANNOTATION | \
+                                          JVM_ACC_ENUM | \
+                                          JVM_ACC_SYNTHETIC)
+  */
+
+
+  this.JVM_RECOGNIZED_FIELD_MODIFIERS = {
+    JVM_ACC_PUBLIC: 0x0000,
+    JVM_ACC_PRIVATE: 0x0000,
+    JVM_ACC_PROTECTED: 0x0000,
+    JVM_ACC_STATIC: 0x0000,
+    JVM_ACC_FINAL: 0x0000,
+    JVM_ACC_VOLATILE: 0x0000,
+    JVM_ACC_TRANSIENT: 0x0000,
+    JVM_ACC_ENUM: 0x0000,
+    JVM_ACC_SYNTHETIC: 0x0000
+  };
+
+  this.FIELD_DESCRIPTORS = {
+    'B': 'CONSTANT_byte',
+    'C': 'CONSTANT_char',
+    'D': 'CONSTANT_double',
+    'F': 'CONSTANT_float',
+    'I': 'CONSTANT_integer',
+    'J': 'CONSTANT_long',
+    'L': 'CONSTANT_Class',
+    'S': 'CONSTANT_short',
+    'Z': 'CONSTANT_boolean',
+    '[': 'CONSTANT_Array'
+  };
+
+  /*
+    Used by the ClassLoader
+  */
+
+
+  this.CONSTANT_Methodref_info = (function() {
+
+    CONSTANT_Methodref_info.name = 'CONSTANT_Methodref_info';
+
+    function CONSTANT_Methodref_info(class_index, name_and_type_index) {
+      this.class_index = class_index;
+      this.name_and_type_index = name_and_type_index;
+    }
+
+    return CONSTANT_Methodref_info;
+
+  })();
+
+  this.CONSTANT_InterfaceMethodref_info = (function() {
+
+    CONSTANT_InterfaceMethodref_info.name = 'CONSTANT_InterfaceMethodref_info';
+
+    function CONSTANT_InterfaceMethodref_info(class_index, name_and_type_index) {
+      this.class_index = class_index;
+      this.name_and_type_index = name_and_type_index;
+    }
+
+    return CONSTANT_InterfaceMethodref_info;
+
+  })();
+
+  this.CONSTANT_Fieldref_info = (function() {
+
+    CONSTANT_Fieldref_info.name = 'CONSTANT_Fieldref_info';
+
+    function CONSTANT_Fieldref_info(class_index, name_and_type_index) {
+      this.class_index = class_index;
+      this.name_and_type_index = name_and_type_index;
+    }
+
+    return CONSTANT_Fieldref_info;
+
+  })();
+
+  this.CONSTANT_NameAndType_info = (function() {
+
+    CONSTANT_NameAndType_info.name = 'CONSTANT_NameAndType_info';
+
+    function CONSTANT_NameAndType_info(name_index, descriptor_index) {
+      this.name_index = name_index;
+      this.descriptor_index = descriptor_index;
+    }
+
+    return CONSTANT_NameAndType_info;
+
+  })();
+
+  this.CONSTANT_Stringref = (function() {
+
+    CONSTANT_Stringref.name = 'CONSTANT_Stringref';
+
+    function CONSTANT_Stringref(string_index) {
+      this.string_index = string_index;
+    }
+
+    return CONSTANT_Stringref;
+
+  })();
+
   /*
   # The Boot ClassLoader for the JVM
   */
@@ -2634,416 +3044,6 @@
     InternalJNI.prototype.GetObjectClass = function() {};
 
     return InternalJNI;
-
-  })();
-
-  this.JVM_Object = (function() {
-
-    JVM_Object.name = 'JVM_Object';
-
-    function JVM_Object(cls) {
-      var field, fld, supercls;
-      this.cls = cls;
-      supercls = this.cls.constant_pool[this.cls.super_class];
-      if (supercls !== void 0) this.__proto__ = new JVM_Object(supercls);
-      this.clsObject = new JVM_Reference(0);
-      for (field in this.cls.fields) {
-        fld = this.cls.fields[field];
-        this[field] = fld;
-      }
-    }
-
-    JVM_Object.prototype.monitor = {
-      aquireLock: function(thread) {
-        if (this.owner === thread) {
-          this.count++;
-        } else if (this.owner !== null) {
-          this.waiting.push(thread);
-          return false;
-        } else {
-          this.owner = thread;
-          this.count++;
-        }
-        return true;
-      },
-      releaseLock: function(thread) {
-        var _i, _len, _ref;
-        if (this.owner !== thread) return false;
-        if (--this.count === 0) this.owner = null;
-        _ref = this.waiting;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          thread = _ref[_i];
-          this.notify(thread);
-        }
-        this.waiting.length = 0;
-        return true;
-      },
-      notify: function(thread) {
-        return this.RDA.lockAquired(thread);
-      },
-      owner: null,
-      count: 0,
-      waiting: new Array()
-    };
-
-    return JVM_Object;
-
-  })();
-
-  ({
-    compareTo: function(jvmObject) {
-      if (this.cls.real_name === jvmObject.cls.real_name) {
-        return true;
-      } else {
-        try {
-          return compareTo.__super__.constructor.apply(this, arguments).compareTo(jvmObject);
-        } catch (err) {
-          return false;
-        }
-      }
-    }
-  });
-
-  this.JVM_Reference = (function() {
-
-    JVM_Reference.name = 'JVM_Reference';
-
-    function JVM_Reference(pointer) {
-      this.pointer = pointer;
-    }
-
-    JVM_Reference.prototype.toString = function() {
-      return this.pointer;
-    };
-
-    return JVM_Reference;
-
-  })();
-
-  JVM_Number = (function() {
-
-    JVM_Number.name = 'JVM_Number';
-
-    function JVM_Number(val) {
-      this.val = val;
-    }
-
-    JVM_Number.prototype.valueOf = function() {
-      return this.val;
-    };
-
-    return JVM_Number;
-
-  })();
-
-  this.CONSTANT_Array = (function(_super) {
-
-    __extends(CONSTANT_Array, _super);
-
-    CONSTANT_Array.name = 'CONSTANT_Array';
-
-    function CONSTANT_Array(length, type) {
-      this.length = length;
-      this.type = type;
-      CONSTANT_Array.__super__.constructor.call(this, this.length);
-    }
-
-    return CONSTANT_Array;
-
-  })(Array);
-
-  this.CONSTANT_Object = (function() {
-
-    CONSTANT_Object.name = 'CONSTANT_Object';
-
-    function CONSTANT_Object(classname) {
-      this.classname = classname;
-      this.value = null;
-    }
-
-    return CONSTANT_Object;
-
-  })();
-
-  this.CONSTANT_integer = (function(_super) {
-
-    __extends(CONSTANT_integer, _super);
-
-    CONSTANT_integer.name = 'CONSTANT_integer';
-
-    function CONSTANT_integer(val, sign) {
-      var next;
-      if (val == null) val = 0;
-      if (sign == null) sign = false;
-      if (sign) {
-        if ((val & 0x8000) !== 0) {
-          next = (~val) + 1 & 0xffff;
-          val = next * -1;
-        }
-      }
-      if (isNaN(val)) throw 'UnexpectedNaN';
-      CONSTANT_integer.__super__.constructor.call(this, val);
-    }
-
-    return CONSTANT_integer;
-
-  })(JVM_Number);
-
-  this.CONSTANT_int = (function(_super) {
-
-    __extends(CONSTANT_int, _super);
-
-    CONSTANT_int.name = 'CONSTANT_int';
-
-    function CONSTANT_int(val, sign) {
-      if (val == null) val = 0;
-      if (sign == null) sign = false;
-      CONSTANT_int.__super__.constructor.call(this, val, sign);
-    }
-
-    return CONSTANT_int;
-
-  })(CONSTANT_integer);
-
-  this.CONSTANT_float = (function(_super) {
-
-    __extends(CONSTANT_float, _super);
-
-    CONSTANT_float.name = 'CONSTANT_float';
-
-    function CONSTANT_float(val) {
-      if (val == null) val = 0.0;
-      CONSTANT_float.__super__.constructor.call(this, val);
-    }
-
-    return CONSTANT_float;
-
-  })(JVM_Number);
-
-  this.CONSTANT_long = (function(_super) {
-
-    __extends(CONSTANT_long, _super);
-
-    CONSTANT_long.name = 'CONSTANT_long';
-
-    function CONSTANT_long(val) {
-      if (val == null) val = 0;
-      CONSTANT_long.__super__.constructor.call(this, val);
-    }
-
-    return CONSTANT_long;
-
-  })(JVM_Number);
-
-  this.CONSTANT_double = (function(_super) {
-
-    __extends(CONSTANT_double, _super);
-
-    CONSTANT_double.name = 'CONSTANT_double';
-
-    function CONSTANT_double(val) {
-      if (val == null) val = 0.0;
-      CONSTANT_double.__super__.constructor.call(this, val);
-    }
-
-    return CONSTANT_double;
-
-  })(JVM_Number);
-
-  this.CONSTANT_char = (function() {
-
-    CONSTANT_char.name = 'CONSTANT_char';
-
-    function CONSTANT_char(value) {
-      this.value = value != null ? value : '\u0000';
-      this.value = this.value.charCodeAt();
-    }
-
-    return CONSTANT_char;
-
-  })();
-
-  this.CONSTANT_short = (function(_super) {
-
-    __extends(CONSTANT_short, _super);
-
-    CONSTANT_short.name = 'CONSTANT_short';
-
-    function CONSTANT_short(val) {
-      if (val == null) val = 0;
-      CONSTANT_short.__super__.constructor.call(this, val);
-    }
-
-    return CONSTANT_short;
-
-  })(JVM_Number);
-
-  this.CONSTANT_byte = (function() {
-
-    CONSTANT_byte.name = 'CONSTANT_byte';
-
-    function CONSTANT_byte(value, sign) {
-      var next;
-      this.value = value != null ? value : 0;
-      if (sign == null) sign = false;
-      if (sign) {
-        if ((this.value & 0x80) !== 0) {
-          next = (~this.value) + 1 & 0xff;
-          this.value = next * -1;
-        }
-      }
-    }
-
-    return CONSTANT_byte;
-
-  })();
-
-  this.CONSTANT_boolean = (function() {
-
-    CONSTANT_boolean.name = 'CONSTANT_boolean';
-
-    function CONSTANT_boolean(value) {
-      this.value = value != null ? value : 0;
-    }
-
-    return CONSTANT_boolean;
-
-  })();
-
-  this.CONSTANT_String = (function(_super) {
-
-    __extends(CONSTANT_String, _super);
-
-    CONSTANT_String.name = 'CONSTANT_String';
-
-    function CONSTANT_String(value) {
-      this.value = value != null ? value : '';
-    }
-
-    return CONSTANT_String;
-
-  })(String);
-
-  this.JVM_RECOGNIZED_METHOD_MODIFIERS = {
-    JVM_ACC_PUBLIC: 0x0001,
-    JVM_ACC_PRIVATE: 0x0002,
-    JVM_ACC_PROTECTED: 0x0004,
-    JVM_ACC_STATIC: 0x0008,
-    JVM_ACC_FINAL: 0x0010,
-    JVM_ACC_SYNCHRONIZED: 0x0020,
-    JVM_ACC_BRIDGE: 0,
-    JVM_ACC_VARARGS: 0,
-    JVM_ACC_NATIVE: 0x0100,
-    JVM_ACC_ABSTRACT: 0x0400,
-    JVM_ACC_STRICT: 0,
-    JVM_ACC_SYNTHETIC: 0
-  };
-
-  this.JVM_RECOGNIZED_CLASS_MODIFIERS = {
-    JVM_ACC_PUBLIC: 0x0001,
-    JVM_ACC_FINAL: 0x0010,
-    JVM_ACC_SUPER: 0x0020,
-    JVM_ACC_INTERFACE: 0x0200,
-    JVM_ACC_ABSTRACT: 0x0400
-  };
-
-  /*                                        JVM_ACC_ANNOTATION | \
-                                          JVM_ACC_ENUM | \
-                                          JVM_ACC_SYNTHETIC)
-  */
-
-
-  this.JVM_RECOGNIZED_FIELD_MODIFIERS = {
-    JVM_ACC_PUBLIC: 0x0000,
-    JVM_ACC_PRIVATE: 0x0000,
-    JVM_ACC_PROTECTED: 0x0000,
-    JVM_ACC_STATIC: 0x0000,
-    JVM_ACC_FINAL: 0x0000,
-    JVM_ACC_VOLATILE: 0x0000,
-    JVM_ACC_TRANSIENT: 0x0000,
-    JVM_ACC_ENUM: 0x0000,
-    JVM_ACC_SYNTHETIC: 0x0000
-  };
-
-  this.FIELD_DESCRIPTORS = {
-    'B': 'CONSTANT_byte',
-    'C': 'CONSTANT_char',
-    'D': 'CONSTANT_double',
-    'F': 'CONSTANT_float',
-    'I': 'CONSTANT_integer',
-    'J': 'CONSTANT_long',
-    'L': 'CONSTANT_Class',
-    'S': 'CONSTANT_short',
-    'Z': 'CONSTANT_boolean',
-    '[': 'CONSTANT_Array'
-  };
-
-  /*
-    Used by the ClassLoader
-  */
-
-
-  this.CONSTANT_Methodref_info = (function() {
-
-    CONSTANT_Methodref_info.name = 'CONSTANT_Methodref_info';
-
-    function CONSTANT_Methodref_info(class_index, name_and_type_index) {
-      this.class_index = class_index;
-      this.name_and_type_index = name_and_type_index;
-    }
-
-    return CONSTANT_Methodref_info;
-
-  })();
-
-  this.CONSTANT_InterfaceMethodref_info = (function() {
-
-    CONSTANT_InterfaceMethodref_info.name = 'CONSTANT_InterfaceMethodref_info';
-
-    function CONSTANT_InterfaceMethodref_info(class_index, name_and_type_index) {
-      this.class_index = class_index;
-      this.name_and_type_index = name_and_type_index;
-    }
-
-    return CONSTANT_InterfaceMethodref_info;
-
-  })();
-
-  this.CONSTANT_Fieldref_info = (function() {
-
-    CONSTANT_Fieldref_info.name = 'CONSTANT_Fieldref_info';
-
-    function CONSTANT_Fieldref_info(class_index, name_and_type_index) {
-      this.class_index = class_index;
-      this.name_and_type_index = name_and_type_index;
-    }
-
-    return CONSTANT_Fieldref_info;
-
-  })();
-
-  this.CONSTANT_NameAndType_info = (function() {
-
-    CONSTANT_NameAndType_info.name = 'CONSTANT_NameAndType_info';
-
-    function CONSTANT_NameAndType_info(name_index, descriptor_index) {
-      this.name_index = name_index;
-      this.descriptor_index = descriptor_index;
-    }
-
-    return CONSTANT_NameAndType_info;
-
-  })();
-
-  this.CONSTANT_Stringref = (function() {
-
-    CONSTANT_Stringref.name = 'CONSTANT_Stringref';
-
-    function CONSTANT_Stringref(string_index) {
-      this.string_index = string_index;
-    }
-
-    return CONSTANT_Stringref;
 
   })();
 

@@ -5,7 +5,8 @@ util       = require 'util'
 {spawn, exec} = require 'child_process'
 
 appFiles = [
-  'src/jvm/JVM.coffee'
+  'src/jvm/JVM.coffee',
+  'src/jvm/InternalObjects.coffee'
 ]
 javaFiles = [
 ]

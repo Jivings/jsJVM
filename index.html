@@ -157,28 +157,35 @@ new jvm({
           <p>For additional customisation, several more options can be passed
           to the jsJVM on initialisation. These are as follows:</p>
           <table class="table table-bordered table-striped">
-            <thead><th>Option</th><th>Type</th><th>Default</th></thead>
+            <thead><th>Variable</th><th>Default Value</th><th>Description</th></thead>
             <tr>
-              <td>classpath</td><td>String</td><td>. [current directory]</td>
-              
+              <td>classpath</td><td>. [current directory]</td><td>The path to
+                the Java API Classes</td>
             </tr>
             <tr>
-              <td>path</td><td>String</td><td>. [current directory]</td>
+              <td>path</td><td>. [current directory]</td><td>The path to the
+                Application Classes</td>
             </tr>
             <tr>
-              <td>workerpath</td><td>String</td><td>$classpath/workers</td>
+              <td>workerpath</td><td>$classpath/workers</td><td>The path to the
+              worker Classes</td>
             </tr>
             <tr>
-              <td>stdin</td><td>String</td><td>stdin</td>
+              <td>stdin</td><td>stdin</td><td>The ID of the page element from which
+              to take input.</td>
             </tr>
             <tr>
-              <td>stdout</td><td>String</td><td>stdout</td>
+              <td>stdout</td><td>stdout</td><td>The ID of the page element to which
+              to print output</td>
             </tr>
             <tr>
-              <td>stderr</td><td>String</td><td>stderr</td>
+              <td>stderr</td><td>stderr</td><td>The ID of the page element to
+                which to print error output</td>
             </tr>
             <tr>
-              <td>verbosity</td><td>String</td><td>warn</td>
+              <td>verbosity</td><td>warn</td><td>The verbosity level. 'warn' to
+              print warnings and errors to stderr, 'error' to only print errors
+            to stderr, or 'none' to suppress all errors and warnings</td>
             </tr>
           </table>
         

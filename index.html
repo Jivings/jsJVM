@@ -30,13 +30,13 @@
 		<div class="navbar navbar-fixed-top">
 			<div class="navbar-inner">
 				<div class="container-fluid">
-					<a class="brand" href="/">jsJVM</a>
+					<a class="brand" href="index.html">jsJVM</a>
 					<div class="nav-collapse">
 						<ul class="nav">
-							<li class="active"><a href="/">Home</a> </li>
-							<li><a href="/#deployment">Download</a></li>
+							<li class="active"><a href="index.html">Home</a> </li>
+							<li><a href="index.html#deployment">Download</a></li>
 							<li><a href="examples.html">Examples</a></li>
-							<li><a href="#">Contact</a></li>
+							<li><a href="contact.html">Contact</a></li>
 						</ul>
 					</div>
 				</div>
@@ -81,11 +81,11 @@
           written in JavaScript.</p>
           <p>The primary goal of the project is; </p>
           <ul>
-            <li><i>To allow Java code to be executed within a web browser
+            <li><i>To allow Java applications to be executed within a web browser
               <strong>even if the client does not have Java installed.</strong></i></li>
           </ul>
           </p>
-                    <p>
+           <p>
             Any user visiting the page can now execute the Java application
             without needing the JRE installed on their system. Any Java classes
             that are required by the application are downloaded to the client
@@ -108,29 +108,17 @@
             <p>The following steps will result in a working copy of the jsJVM.</p>
             <hr />
             <h2><a class="nav" name="deployment">Deployment</a></h2>
-          <ul>
-            <li>
               <p>Download the latest minified JVM build and modified Java API:</p>
               <pre>$ wget https://github.com/downloads/Jivings/jsJVM/jvm-latest.tar.bz2</pre>
-            </li>
-            <li>
               <p>Extract the contents of the archive:</p>
               <pre>$ tar -xvjf jvm-latest.tar.bz2</pre>
-            </li>
-            <li>
               <p>Descend into the JRE directory:</p>
               <pre>$ cd deploy/jre</pre>
-            </li>
-            <li>
               <p>Extract the system JRE:</p>
               <pre>$ cd rt
 jar xf $JAVA_HOME/jre/lib/rt.jar</pre>
-            </li>
-            <li>
               <p>The jsJVM is then deployed by including a link to the file in any web page:</p> 
               <pre>&lt;script type="test/javascript" src="jvm.js"&gt;&lt;/script&gt;</pre>
-              </li>
-            </ul>
             <hr />
             <h2><a class="nav" name="build">From source</a></h2>
           <p>If you would prefer to install the latest master version of jsJVM,
@@ -168,18 +156,30 @@ new jvm({
 
           <p>For additional customisation, several more options can be passed
           to the jsJVM on initialisation. These are as follows:</p>
-          <table>
+          <table class="table table-bordered table-striped">
             <thead><th>Option</th><th>Type</th><th>Default</th></thead>
             <tr>
-              <td>classpath</td><td>String</td><td>'.'</td>
+              <td>classpath</td><td>String</td><td>. [current directory]</td>
+              
             </tr>
-
-            <tr></tr>
-            <tr></tr>
-            <tr></tr>
-            <tr></tr>
-            <tr></tr>
-            <tr></tr>
+            <tr>
+              <td>path</td><td>String</td><td>. [current directory]</td>
+            </tr>
+            <tr>
+              <td>workerpath</td><td>String</td><td>$classpath/workers</td>
+            </tr>
+            <tr>
+              <td>stdin</td><td>String</td><td>stdin</td>
+            </tr>
+            <tr>
+              <td>stdout</td><td>String</td><td>stdout</td>
+            </tr>
+            <tr>
+              <td>stderr</td><td>String</td><td>stderr</td>
+            </tr>
+            <tr>
+              <td>verbosity</td><td>String</td><td>warn</td>
+            </tr>
           </table>
         
 

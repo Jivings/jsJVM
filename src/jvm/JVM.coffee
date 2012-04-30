@@ -25,6 +25,7 @@ class this.JVM
         path : ''
         workerpath : 'workers'
         debug : false
+        end : ->
     }
 
     for name of options
@@ -59,7 +60,7 @@ class this.JVM
         ,
         () =>
           @InitializeSystem(() =>
-            @load(@mainclassname, false, null, @end)
+            @load(@mainclassname, false, null, @settings.end)
           )
       )).init()
       #@InitializeSystemClass()

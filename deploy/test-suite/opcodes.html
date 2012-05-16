@@ -3,12 +3,21 @@
       <script src="http://code.jquery.com/jquery-latest.js"></script>
       <script type="text/javascript" src="http://code.jquery.com/qunit/git/qunit.js"></script>
       <script type="text/javascript" src="../jre/jvm.js"></script>
+
+      <script type="text/javascript">
+        // We are including Thread directly so we need to fake this method.
+        var importScripts = function() {
+        };
+      </script>
+
       <script type="text/javascript" src="../jre/workers/Thread.js"></script>
       <script type="text/javascript" src="Object.js"></script>
       <link rel="stylesheet" href="http://code.jquery.com/qunit/git/qunit.css" type="text/css" media="screen" />
       <link rel="stylesheet" href="style.css" type="text/css" media="screen" />
   
       <script>
+
+        
           var jvm;
           window.postMessage = function(args) {
              if (args.message) {

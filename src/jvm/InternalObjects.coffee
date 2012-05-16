@@ -47,8 +47,8 @@ class this.JVM_Object
     compareTo : (jvmObject) ->
       if @cls.real_name is jvmObject.cls.real_name
         return true
-      else 
-        try 
+      else
+        try
           return super.compareTo(jvmObject)
         catch err
           return false
@@ -79,9 +79,9 @@ class this.CONSTANT_integer extends JVM_Number
         val = (next * -1)
     if isNaN(val)
       throw 'UnexpectedNaN'
-    super val    
+    super val
 
-class this.CONSTANT_int extends CONSTANT_integer
+class this.CONSTANT_int extends JVM_Number 
   constructor : (val = 0, sign = false) ->
     super(val, sign)
         
@@ -99,16 +99,16 @@ class this.CONSTANT_double extends JVM_Number
 
 class this.CONSTANT_char
   constructor : (@value = '\u0000') ->
-    @value = @value.charCodeAt();
+    @value = @value.charCodeAt()
 
 class this.CONSTANT_short extends JVM_Number
   constructor : (val = 0) ->
     super val
   
-class this.CONSTANT_byte 
+class this.CONSTANT_byte
   constructor : (@value = 0, sign = false) ->
     if sign
-      if (@value & 0x80) != 0 
+      if (@value & 0x80) != 0
         next = ((~@value)+1 & 0xff)
         @value = (next * -1)
         
@@ -140,10 +140,6 @@ this.JVM_RECOGNIZED_CLASS_MODIFIERS = {
   JVM_ACC_INTERFACE : 0x0200
   JVM_ACC_ABSTRACT  : 0x0400
 }
-###                                        JVM_ACC_ANNOTATION | \
-                                        JVM_ACC_ENUM | \
-                                        JVM_ACC_SYNTHETIC)
-                                        ###
 
 this.JVM_RECOGNIZED_FIELD_MODIFIERS = {
   JVM_ACC_PUBLIC    : 0x0000

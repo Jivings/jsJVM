@@ -65,9 +65,15 @@ task 'compile', 'Compile', ->
   invoke 'javaFiles'
   len = javaFiles.length
   util.log 'Compiling...'
+  try {
+    stats = fs.lstatSync('deploy/jre/rt')
+  }
+  catch (e) { # catch if the dir doesn't exist
+    fs.mkdir('deploy/jre/rt', 0755)
+  }
   for file, index in javaFiles then do (file, index) ->
       exec "javac -cp src/lib/rt -d deploy/jre/rt " + file, (err, stdout, stderr) ->
-          if err 
+          if err
             util.log "Error! #{err}"
           #else
           #  util.log "Compiled Java Class #{file}"

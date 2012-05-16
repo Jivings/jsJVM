@@ -1,2 +1,5 @@
 builds/*
 deploy/jre/rt/*
+
+*.class
+*.swp

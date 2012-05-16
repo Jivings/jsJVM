@@ -21,6 +21,9 @@
       ul {
         list-style:none;
       }
+      .test-btns li {
+        margin-bottom: 5px;
+      }
 
 		</style>
 	</head>
@@ -33,10 +36,10 @@
 					<a class="brand" href="index.html">jsJVM</a>
 					<div class="nav-collapse">
 						<ul class="nav">
-							<li><a href="index.html">Home</a> </li>
+							<li class="active"><a href="index.html">Home</a> </li>
 							<li><a href="index.html#deployment">Download</a></li>
-							<li class="active"><a href="examples.html">Examples</a></li>
-							<li><a href="tests.html">Test Suite</a></li>
+              <li><a href="examples.html">Examples</a></li>
+              <li class="active"><a href="tests.html">Test Suite</a></li>
 							<li><a href="contact.html">Contact</a></li>
 						</ul>
 					</div>
@@ -46,20 +49,19 @@
 		<div class="container-fluid">
 			<div class="row-fluid">
 				<div class="span9">
-          <!--Body content-->
-          <div class="page-header">
-            <h1>Example Applications</h1>
+			    <!--Body content-->
+
+					<div class="page-header">
+						<h1><a class="nav" name="tests">Test Suite</a></h1>
           </div>
-          <ul class="thumbnails">
-            <li class="span5">
-            <a href="http://javafiddle.net" class="thumbnail"><img src="img/javafiddle.png"
-              alt="Java Fiddle"></a>
-            </li>
-            <li class="span2">
-            <h3>Java Fiddle</h3> 
-            <p>A simple IDE implementation allowing Java code to be written,
-            compiled and executed within the web browser.</p>
-            </li>
+          <ul class="test-btns">
+            <li><a href="deploy/test-suite/opcodes.html" class="btn
+              btn-success">Opcode Tests</a></li>
+            <li><a href="deploy/test-suite/performance.html" class="btn
+              btn-success">Performance Tests</a></li>
+            <li><a href="deploy/test-suite/classloader.html" class="btn
+              btn-success">ClassLoader Tests</a> <span class="label
+              label-info">Note: Runtime over 30 seconds.</span></li>
           </ul>
         </div>
 			</div>

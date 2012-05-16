@@ -1,0 +1,100 @@
+<html>
+    <head>
+      <script src="http://code.jquery.com/jquery-latest.js"></script>
+      <script type="text/javascript" src="http://code.jquery.com/qunit/git/qunit.js"></script>
+      <script type="text/javascript" src="../jre/jvm.js"></script>
+      <link rel="stylesheet" href="http://code.jquery.com/qunit/git/qunit.css" type="text/css" media="screen" />
+      <link rel="stylesheet" href="style.css" type="text/css" media="screen" />
+
+    <title>JVM Performance Tests</title>
+    <script>
+        var jvm;
+        $(document).ready(function(){
+          
+          var options, moduleOptions;
+
+          options = {
+              path : 'classes',
+              classpath : '../jre/',
+              workerpath : '../jre/workers',
+              sdout : 'terminal'
+          };
+          moduleOptions = {
+              setup : function() {
+                  $('#terminal').empty();
+              },
+              teardown : function() {
+                  jvm = null;
+              }
+          };
+
+         module("Test 1", moduleOptions);
+           
+         asyncTest("Hello World", function() {
+             options['classname'] = 'HelloWorld';
+             jvm = new JVM(options, null, function() { 
+                 equal($('#terminal').text(), "Hello World", "Output: " +
+                 $('#terminal').text());
+                 start();
+             });
+         });
+
+         module("Test 2", moduleOptions);
+
+         asyncTest("Loop x 50", function() {
+             options['classname'] = "Loop";
+             jvm = new JVM(options, null, function() {
+                 ok($('#terminal').text(), "Output: " + $('#terminal').text());
+                 start();
+             });
+         });
+
+         asyncTest("Inheritance", function() {
+             options['classname'] = "Inheritence";
+             jvm = new JVM(options, null, function() {
+                 equal($('#terminal').text(), "Subclass Text", "Output: " +
+                 $('#terminal').text());
+                 start();
+             });
+         });
+
+
+
+
+         var startTimes = {};
+          
+         QUnit.moduleStart = function(obj) {
+             var start = new Date().getTime();
+             startTimes[obj.name] = start;
+         };
+          
+         QUnit.moduleDone = function(obj) {
+             var endTime = new Date().getTime() - startTimes[obj.name];
+             $('.module-name').each(function(item, value) {
+                 if($(value).text() == obj.name) {
+                     $(value).parent().siblings('ol').append('<li class="pass">Test completed in ' + endTime
+                     + ' milliseconds</li>');
+                 }
+             });
+         };
+
+
+        });
+      </script>
+  
+</head>
+<body>
+    <div style="display:none" id="terminal"></div>
+    <h1 id="qunit-header">jsJVM Performance Tests</h1>
+    <h2 id="qunit-banner"></h2>
+    <div id="description">Performance tests for the jsJVM. Each test outputs
+        its own completion time. <br />
+        Testing...
+    </div>
+   <div id="qunit-testrunner-toolbar"></div>
+   <h2 id="qunit-userAgent"></h2>
+   <ol id="qunit-tests"></ol>
+   <div id="qunit-fixture">test markup, will be hidden</div>
+   <applet code="HelloWorldApplet.class" width=150 height=150></applet>
+</body>
+</html>

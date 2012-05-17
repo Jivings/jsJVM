@@ -30,7 +30,7 @@
                          'callback' : function() {},
                          'postMessage' : function(e) {
                              var data = { 'data' : e };
-                             jvm.RDA.threads[0].onmessage(data);
+                             window.onmessage(data);
                          }
                      }
                  };

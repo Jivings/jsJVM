@@ -5,7 +5,8 @@
   var theThread, worker;
   worker = this;
   theThread = null;
-  worker.onmessage = function(e) {
+  worker.onmessage = function(e, t) {
+    if (t) { theThread = t; }
     var actions;
     actions = {
       'new': function(data) {
@@ -29,7 +30,7 @@
         }
       },
       'resource': function(resource) {
-        if (this.callback !== null) {
+        if (this.callback !== null && typeof this.callback !== 'undefined') {
           if (this.callback.call(this.caller, resource)) {
             this.callback = null;
             return theThread["continue"]();

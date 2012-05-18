@@ -3,8 +3,10 @@ var testObj = {
     attributes : new Array(),
     attributes_count : 0,
     constant_pool : {
-        2 : new CONSTANT_integer(5),
-        18 : this
+        2 : new CONSTANT_integer(5), // for ldc / 18
+        18 : this,
+        258 : new CONSTANT_integer(5),
+        259 : new CONSTANT_long(1)
     },
     constant_pool_count : 0,
     dependancies : Array[8],

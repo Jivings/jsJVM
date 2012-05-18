@@ -31,33 +31,66 @@
          module("Test 1", moduleOptions);
            
          asyncTest("Hello World", function() {
-             options['classname'] = 'HelloWorld';
-             jvm = new JVM(options, null, function() { 
-                 equal($('#terminal').text(), "Hello World", "Output: " +
-                 $('#terminal').text());
-                 start();
-             });
+           options['classname'] = 'HelloWorld';
+           options['end'] = function() {
+             equal($('#terminal').text(), "Hello World", "Output: " +
+             $('#terminal').text());
+             start();
+           };
+           jvm = new JVM(options );
          });
 
          module("Test 2", moduleOptions);
 
          asyncTest("Loop x 50", function() {
-             options['classname'] = "Loop";
-             jvm = new JVM(options, null, function() {
-                 ok($('#terminal').text(), "Output: " + $('#terminal').text());
-                 start();
-             });
+           options['classname'] = "Loop";
+           options['end'] = function() { 
+             ok($('#terminal').text(), "Output: " + $('#terminal').text());
+             start();
+           }
+
+           jvm = new JVM(options);
          });
 
          asyncTest("Inheritance", function() {
-             options['classname'] = "Inheritence";
-             jvm = new JVM(options, null, function() {
-                 equal($('#terminal').text(), "Subclass Text", "Output: " +
-                 $('#terminal').text());
-                 start();
-             });
+           options['classname'] = "Inheritence";
+           options['end'] = function() {
+             equal($('#terminal').text(), "Subclass Text", "Output: " +
+             $('#terminal').text());
+             start();
+           };
+           jvm = new JVM(options);
          });
 
+         /*asyncTest("Fibonachi", function() {
+           options['classname'] = "Fib";
+           options['end'] = function() {
+             equal($('#terminal').text(), "Subclass Text", "Output: " +
+             $('#terminal').text());
+             start();
+           };
+           jvm = new JVM(options);
+         });
+
+         asyncTest("Array Operations", function() {
+           options['classname'] = "ArrayOps";
+           options['end'] = function() {
+             equal($('#terminal').text(), "Subclass Text", "Output: " +
+             $('#terminal').text());
+             start();
+           };
+           jvm = new JVM(options);
+         });
+*/
+         asyncTest("Concat Strings", function() {
+           options['classname'] = "ConcatStrings";
+           options['end'] = function() {
+             equal($('#terminal').text(), "Subclass Text", "Output: " +
+             $('#terminal').text());
+             start();
+           };
+           jvm = new JVM(options);
+         });
 
 
 
@@ -95,6 +128,6 @@
    <h2 id="qunit-userAgent"></h2>
    <ol id="qunit-tests"></ol>
    <div id="qunit-fixture">test markup, will be hidden</div>
-   <applet code="HelloWorldApplet.class" width=150 height=150></applet>
+   <!-- <applet code="HelloWorldApplet.class" width=150 height=150></applet> -->
 </body>
 </html>

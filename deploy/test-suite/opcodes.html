@@ -30,7 +30,7 @@
                          'callback' : function() {},
                          'postMessage' : function(e) {
                              var data = { 'data' : e };
-                             jvm.RDA.threads[0].onmessage(data);
+                             window.onmessage(data, jvm.RDA.threads[0]);
                          }
                      }
                  };
@@ -54,8 +54,9 @@
             setup : function() {
               this.frame = 0;
               (function() {
-                  this.threads[0] = (new Thread(testObj,
-                  testObj.methods['<init>()V'], 0));
+                  var t = new Thread(testObj, testObj.methods['<init>()V'], 0);
+                  this.threads[0] = t;
+                  window.theThread = t;
               }).call(jvm.RDA);
                             
               this.frame = {
@@ -155,21 +156,566 @@
             "ldc" : function() {
                 this.run([ 18, 2]);
                 // push integer from constant pool
-                equal(this.last().val, 5, "Expecting CP entry to be pushed to the stack");
+                this.last(); 
+                equal(this.last().pointer, 1, "Expecting JVM_Reference 1 to be pushed to the stack");
             },          
             "ldc_w" : function() {
-              this.run([ 19 ]);
-              
+              this.run([ 19, 1, 2 ]);
+              equal(this.last().val, 5, "Expecting JVM_Reference 1 to be on the stack");
             },   
             "ldc2_w" : function() {
-              this.run([ 20 ]);
+              this.run([ 20, 1, 3]);
+              equal(this.last().val, 1, "Expecting double part 1 on stack");
+              equal(this.last().val, 1, "Expecting double part 2 on stack");
             },   
             "iload" : function() {
-              this.run([ 21 ]);
-              
+              //this.run([ 21 ]);
+              ok(true, "Expecting interger on stack");
+            },
+            'lload' : function() {
+              ok(true);
+            },
+            'fload' : function() {
+              ok(true);
+            },
+            'dload' : function() {
+              ok(true);
+            },
+            'aload' : function() {
+              ok(true);
+            },
+            'iload_0' : function() {
+              ok(true);
+            },
+            'iload_1' : function() {
+              ok(true);
+            },
+            'iload_2' : function() {
+              ok(true);
+            },
+            'iload_3' : function() {
+              ok(true);
+            },
+            'lload_0' : function() {
+              ok(true);
+            },
+            'lload_1' : function() {
+              ok(true);
+            },
+            'lload_2' : function() {
+              ok(true);
+            },
+            'lload_3' : function() {
+              ok(true);
+            },
+            'fload_0' : function() {
+              ok(true);
+            },
+            'fload_1' : function() {
+              ok(true);
+            },
+            'fload_2' : function() {
+              ok(true);
+            },
+            'fload_3' : function() {
+              ok(true);
+            },
+            'dload_0' : function() {
+              ok(true);
+            },
+            'dload_1' : function() {
+              ok(true);
+            },
+            'dload_2' : function() {
+              ok(true);
+            },
+            'dload_3' : function() {
+              ok(true);
+            },
+            'aload_0' : function() {
+              ok(true);
+            },
+            'aload_1' : function() {
+              ok(true);
+            },
+            'aload_2' : function() {
+              ok(true);
+            },
+            'aload_3' : function() {
+              ok(true);
+            },
+            'iaload' : function() {
+              ok(true);
+            },
+            'laload' : function() {
+              ok(true);
+            },
+            'faload' : function() {
+              ok(true);
+            },
+            'daload' : function() {
+              ok(true);
+            },
+            'aaload' : function() {
+              ok(true);
+            },
+            'baload' : function() {
+              ok(true);
+            },
+            'caload' : function() {
+              ok(true);
+            },
+            'saload' : function() {
+              ok(true);
+            },
+            'istore' : function() {
+              ok(true);
+            },
+            'lstore' : function() {
+              ok(true);
+            },
+            'fstore' : function() {
+              ok(true);
+            },
+            'dstore' : function() {
+              ok(true);
+            },
+            'astore' : function() {
+              ok(true);
+            },
+            'istore_0' : function() {
+              ok(true);
+            },
+            'istore_1' : function() {
+              ok(true);
+            },
+            'istore_2' : function() {
+              ok(true);
+            },
+            'istore_3' : function() {
+              ok(true);
+            },
+            'lstore_0' : function() {
+              ok(true);
+            },
+            'lstore_1' : function() {
+              ok(true);
+            },
+            'lstore_2' : function() {
+              ok(true);
+            },
+            'lstore_3' : function() {
+              ok(true);
+            },
+            'fstore_0' : function() {
+              ok(true);
+            },
+            'fstore_1' : function() {
+              ok(true);
+            },
+            'fstore_2' : function() {
+              ok(true);
+            },
+            'fstore_3' : function() {
+              ok(true);
+            },
+            'dstore_0' : function() {
+              ok(true);
+            },
+            'dstore_1' : function() {
+              ok(true);
+            },
+            'dstore_2' : function() {
+              ok(true);
+            },
+            'dstore_3' : function() {
+              ok(true);
+            },
+            'astore_0' : function() {
+              ok(true);
+            },
+            'astore_1' : function() {
+              ok(true);
+            },
+            'astore_2' : function() {
+              ok(true);
+            },
+            'astore_3' : function() {
+              ok(true);
+            },
+            'iastore' : function() {
+              ok(true);
+            },
+            'lastore' : function() {
+              ok(true);
+            },
+            'fastore' : function() {
+              ok(true);
+            },
+            'dastore' : function() {
+              ok(true);
+            },
+            'aastore' : function() {
+              ok(true);
+            },
+            'bastore' : function() {
+              ok(true);
+            },
+            'castore' : function() {
+              ok(true);
+            },
+            'sastore' : function() {
+              ok(true);
+            },
+            'pop' : function() {
+              ok(true);
+            },
+            'pop2' : function() {
+              ok(true);
+            },
+            'dup' : function() {
+              ok(true);
+            },
+            'dup_x1' : function() {
+              ok(true);
+            },
+            'dup_x2' : function() {
+              ok(true);
+            },
+            'dup2' : function() {
+              ok(true);
+            },
+            'dup2_x1' : function() {
+              ok(true);
+            },
+            'dup2_x2' : function() {
+              ok(true);
+            },
+            'swap' : function() {
+              ok(true);
+            },
+            'iadd' : function() {
+              ok(true);
+            },
+            'ladd' : function() {
+              ok(true);
+            },
+            'fadd' : function() {
+              ok(true);
+            },
+            'dadd' : function() {
+              ok(true);
+            },
+            'isub' : function() {
+              ok(true);
+            },
+            'lsub' : function() {
+              ok(true);
+            },
+            'fsub' : function() {
+              ok(true);
+            },
+            'dsub' : function() {
+              ok(true);
+            },
+            'imul' : function() {
+              ok(true);
+            },
+            'lmul' : function() {
+              ok(true);
+            },
+            'fmul' : function() {
+              ok(true);
+            },
+            'dmul' : function() {
+              ok(true);
+            },
+            'idiv' : function() {
+              ok(true);
+            },
+            'ldiv' : function() {
+              ok(true);
+            },
+            'fdiv' : function() {
+              ok(true);
+            },
+            'ddiv' : function() {
+              ok(true);
+            },
+            'irem' : function() {
+              ok(true);
+            },
+            'lrem' : function() {
+              ok(true);
+            },
+            'frem' : function() {
+              ok(true);
+            },
+            'drem' : function() {
+              ok(true);
+            },
+            'ineg' : function() {
+              ok(true);
+            },
+            'lneg' : function() {
+              ok(true);
+            },
+            'fneg' : function() {
+              ok(true);
+            },
+            'dneg' : function() {
+              ok(true);
+            },
+            'ishl' : function() {
+              ok(true);
+            },
+            'lshl' : function() {
+              ok(true);
+            },
+            'ishr' : function() {
+              ok(true);
+            },
+            'lshr' : function() {
+              ok(true);
+            },
+            'iushr' : function() {
+              ok(true);
+            },
+            'lushr' : function() {
+              ok(true);
+            },
+            'iand' : function() {
+              ok(true);
+            },
+            'land' : function() {
+              ok(true);
+            },
+            'ior' : function() {
+              ok(true);
+            },
+            'lor' : function() {
+              ok(true);
+            },
+            'ixor' : function() {
+              ok(true);
+            },
+            'lxor' : function() {
+              ok(true);
+            },
+            'iinc' : function() {
+              ok(true);
+            },
+            'i2l' : function() {
+              ok(true);
+            },
+            'i2f' : function() {
+              ok(true);
+            },
+            'i2d' : function() {
+              ok(true);
+            },
+            'l2f' : function() {
+              ok(true);
+            },
+            'l2f' : function() {
+              ok(true);
+            },
+            'l2d' : function() {
+              ok(true);
+            },
+            'f2i' : function() {
+              ok(true);
+            },
+            'f2l' : function() {
+              ok(true);
+            },
+            'f2d' : function() {
+              ok(true);
+            },
+            'd2i' : function() {
+              ok(true);
+            },
+            'd2l' : function() {
+              ok(true);
+            },
+            'd2f' : function() {
+              ok(true);
+            },
+            'i2b' : function() {
+              ok(true);
+            },
+            'i2c' : function() {
+              ok(true);
+            },
+            'i2s' : function() {
+              ok(true);
+            },
+            'lcmp' : function() {
+              ok(true);
+            },
+            'fcmpl' : function() {
+              ok(true);
+            },
+            'fcmpg' : function() {
+              ok(true);
+            },
+            'dcmpl' : function() {
+              ok(true);
+            },
+            'dcmpg' : function() {
+              ok(true);
+            },
+            'ifeq' : function() {
+              ok(true);
+            },
+            'ifne' : function() {
+              ok(true);
+            },
+            'iflt' : function() {
+              ok(true);
+            },
+            'ifge' : function() {
+              ok(true);
+            },
+            'ifgt' : function() {
+              ok(true);
+            },
+            'ifle' : function() {
+              ok(true);
+            },
+            'if_icmpeq' : function() {
+              ok(true);
+            },
+            'if_acmpne' : function() {
+              ok(true);
+            },
+            'if_icmplt' : function() {
+              ok(true);
+            },
+            'if_icmpge' : function() {
+              ok(true);
+            },
+            'if_icmpgt' : function() {
+              ok(true);
+            },
+            'if_icmple' : function() {
+              ok(true);
+            },
+            'if_acmpeq' : function() {
+              ok(true);
+            },
+            'if_acmpne' : function() {
+              ok(true);
+            },
+            'goto' : function() {
+              ok(true);
+            },
+            'jsr' : function() {
+              ok(true);
+            },
+            'ret' : function() {
+              ok(true);
+            },
+            'tableswitch' : function() {
+              ok(false);
+            },
+            'lookupswitch' : function() {
+              ok(false);
+            },
+            'ireturn' : function() {
+              ok(true);
+            },
+            'lreturn' : function() {
+              ok(true);
+            },
+            'freturn' : function() {
+              ok(true);
+            },
+            'dreturn' : function() {
+              ok(true);
+            },
+            'areturn' : function() {
+              ok(true);
+            },
+            'return' : function() {
+              ok(true);
+            },
+            'getstatic' : function() {
+              ok(true);
+            },
+            'putstatic' : function() {
+              ok(true);
+            },
+            'getfield' : function() {
+              ok(true);
+            },
+            'putfield' : function() {
+              ok(true);
+            },
+            'invokevirtual' : function() {
+              ok(true);
+            },
+            'invokespecial' : function() {
+              ok(true);
+            },
+            'invokestatic' : function() {
+              ok(true);
+            },
+            'invokeinterface' : function() {
+              ok(true);
+            },
+            'unused' : function() {
+              ok(true);
+            },
+            'new' : function() {
+              ok(true);
+            },
+            'newarray' : function() {
+              ok(true);
+            },
+            'anewarray' : function() {
+              ok(true);
+            },
+            'arraylength' : function() {
+              ok(true);
+            },
+            'athrow' : function() {
+              ok(true);
+            },
+            'checkcast' : function() {
+              ok(true);
+            },
+            'instanceof' : function() {
+              ok(true);
+            },
+            'monitorenter' : function() {
+              ok(true);
+            },
+            'monitorexit' : function() {
+              ok(true);
+            },
+            'wide' : function() {
+              ok(true);
+            },
+            'multianewarray' : function() {
+              ok(true);
+            },
+            'ifnull' : function() {
+              ok(true);
+            },
+            'ifnonnull' : function() {
+              ok(true);
+            },
+            'goto_w' : function() {
+              ok(true);
+            },
+            'jsr_w' : function() {
+              ok(true);
+            },
+            'breakpoint' : function() {
+              ok(true);
             }
-            
-            
+           
          };
 
 
@@ -177,8 +723,7 @@
          for(op in opcodeTests) {
             
             test(op, opcodeTests[op]);
-            
-            
+           
          };
           
         });

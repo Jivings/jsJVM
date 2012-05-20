@@ -31,57 +31,43 @@
 
            
          asyncTest("Method", function() {
-             options['classname'] = 'MethodTest';
-             jvm = new JVM(options, null, function(ret) { 
-                 $('#terminal').text();
-                 ok(ret==undefined, $('#terminal').text());
-                 start();
-             });
+           options['classname'] = 'MethodTest';
+           options['end'] = function(ret) { 
+             $('#terminal').text();
+             ok(ret==undefined, $('#terminal').text());
+             start();
+           };
+          jvm = new JVM(options)
          });
 
          
          asyncTest("Loop", function() {
              options['classname'] = 'LoopTest';
-             jvm = new JVM(options, null, function(ret) { 
-                 $('#terminal').text();
-                 ok(ret==undefined, $('#terminal').text());
-                 start();
-             });
+             jvm = new JVM(options) 
          });
 
-        asyncTest("Logic", function() {
+         asyncTest("Logic", function() {
              options['classname'] = 'LoginTest';
-             jvm = new JVM(options, null, function(ret) { 
-                 $('#terminal').text();
-                 ok(ret==undefined, $('#terminal').text());
-                 start();
-             });
+             jvm = new JVM(options);
          });
 
-        asyncTest("Float", function() {
-             options['classname'] = 'FloatTest';
-             jvm = new JVM(options, null, function(ret) { 
-                 $('#terminal').text();
-                 ok(ret==undefined, $('#terminal').text());
-                 start();
-             });
+         test("Float", function() {
+           options['classname'] = 'FloatTest';
+           jvm = new JVM(options);
+           ok(jvm.error, 'Error in main Thread')
          });
+
          asyncTest("Sieve", function() {
              options['classname'] = 'SieveTest';
-             jvm = new JVM(options, null, function(ret) { 
-                 $('#terminal').text();
-                 ok(ret==undefined, $('#terminal').text());
-                 start();
-             });
+             jvm = new JVM(options);
          });
-         asyncTest("String", function() {
+
+         test("String", function() {
              options['classname'] = 'StringTest';
-             jvm = new JVM(options, null, function(ret) { 
-                 $('#terminal').text();
-                 ok(ret==undefined, $('#terminal').text());
-                 start();
-             });
+             jvm = new JVM(options); 
+             ok(jvm.error, 'Do Privilidged Exception');  
          });
+
          var startTimes = {};
 
          QUnit.testStart = function(obj) {

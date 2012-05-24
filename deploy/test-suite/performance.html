@@ -81,11 +81,32 @@
            };
            jvm = new JVM(options);
          });
-*/
+         */
+         
+         asyncTest("Method Invocation", function() {
+           options['classname'] = "Mathods";
+           options['end'] = function() {
+             equal($('#terminal').text(), "Hello from method", "Output: " +
+             $('#terminal').text());
+             start();
+           };
+           jvm = new JVM(options);
+         });
+
          asyncTest("Concat Strings", function() {
            options['classname'] = "ConcatStrings";
            options['end'] = function() {
              equal($('#terminal').text(), "Subclass Text", "Output: " +
+             $('#terminal').text());
+             start();
+           };
+           jvm = new JVM(options);
+         });
+
+         asyncTest("Interface", function() {
+           options['classname'] = "Interface";
+           options['end'] = function() {
+             equal($('#terminal').text(), "Hello", "Output: " +
              $('#terminal').text());
              start();
            };
